@@ -26,35 +26,44 @@ async def get_qr_config(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
 ):
-    result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
-    setting = result.scalar_one_or_none()
-    
-    if not setting:
-        # Auto-generate if missing
-        new_secret = f"atc_punch_{uuid.uuid4().hex}"
-        setting = SystemSetting(key="active_qr_secret", value=new_secret)
-        db.add(setting)
-        await db.flush()
+    try:
+        result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
+        setting = result.scalar_one_or_none()
         
-    return {"qr_secret": setting.value}
+        if not setting:
+            # Auto-generate if missing
+            new_secret = f"atc_punch_{uuid.uuid4().hex}"
+            setting = SystemSetting(key="active_qr_secret", value=new_secret)
+            db.add(setting)
+            await db.commit()
+            await db.refresh(setting)
+            
+        return {"qr_secret": setting.value}
+    except Exception as e:
+        print(f"Error in get_qr_config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/qr-config/regenerate")
 async def regenerate_qr_config(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
 ):
-    new_secret = f"atc_punch_{uuid.uuid4().hex}"
-    result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
-    setting = result.scalar_one_or_none()
-    
-    if setting:
-        setting.value = new_secret
-    else:
-        setting = SystemSetting(key="active_qr_secret", value=new_secret)
-        db.add(setting)
+    try:
+        new_secret = f"atc_punch_{uuid.uuid4().hex}"
+        result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
+        setting = result.scalar_one_or_none()
         
-    await db.flush()
-    return {"qr_secret": new_secret, "message": "New QR secret generated. Old QR codes are now invalid."}
+        if setting:
+            setting.value = new_secret
+        else:
+            setting = SystemSetting(key="active_qr_secret", value=new_secret)
+            db.add(setting)
+            
+        await db.commit()
+        return {"qr_secret": new_secret, "message": "New QR secret generated. Old QR codes are now invalid."}
+    except Exception as e:
+        print(f"Error in regenerate_qr_config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ─── Attendance ───────────────────────────────────────
