@@ -15,8 +15,16 @@ from app.routers import auth, admin, marketing, training, placement
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: create tables if they don't exist
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    print("Starting up: checking database connection and creating tables...")
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("Database startup successful!")
+    except Exception as e:
+        print(f"DATABASE STARTUP ERROR: {e}")
+        # We don't want to swallow the error completely if it's critical,
+        # but printing it helps debug status 3.
+        # raise e 
     yield
     # Shutdown
     await engine.dispose()
