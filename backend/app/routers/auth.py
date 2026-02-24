@@ -304,14 +304,14 @@ async def scan_attendance_qr(
     if not token:
         raise HTTPException(status_code=400, detail="Missing QR token")
         
-    # Standard check: Only trainees (students) can use the punch QR system
+    # Standard check: Trainees (Students/Trainers) can use the punch QR system
     from app.models.user import Role
     # Handle both Enum and string representations
     role_val = str(user.role.value if hasattr(user.role, 'value') else user.role).strip().upper()
-    if role_val != "STUDENT":
+    if role_val not in ["STUDENT", "TRAINER"]:
         raise HTTPException(
             status_code=403, 
-            detail=f"Only Student accounts can scan QR codes for attendance. You are currently logged in with a '{role_val}' account. Please log in as a Student."
+            detail=f"Only Trainee (Student/Trainer) accounts can scan QR codes for attendance. You are currently logged in with a '{role_val}' account."
         )
 
     # 1. Validate the token
