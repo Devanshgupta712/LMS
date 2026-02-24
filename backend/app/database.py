@@ -3,17 +3,27 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
-if settings.DATABASE_URL.startswith("sqlite"):
+db_url = settings.DATABASE_URL
+# Managed databases often provide urls starting with postgres:// but SQLAlchemy async requires postgresql+asyncpg://
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif db_url.startswith("postgresql://"):
+    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+if db_url.startswith("sqlite"):
     engine = create_async_engine(
-        settings.DATABASE_URL, 
+        db_url, 
         echo=False,
         connect_args={"check_same_thread": False}
     )
 else:
+    # Managed Postgres often requires SSL
     engine = create_async_engine(
-        settings.DATABASE_URL, 
-        echo=False
+        db_url, 
+        echo=False,
+        connect_args={"ssl": True}
     )
+    
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
