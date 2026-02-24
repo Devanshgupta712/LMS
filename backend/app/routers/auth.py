@@ -344,6 +344,13 @@ async def scan_attendance_qr(
     if not is_valid:
         raise HTTPException(status_code=400, detail="Invalid or outdated QR code. Please scan the current one provided by the trainer.")
 
+    # 1.5 Verify Batch exists to prevent 500 Foreign Key Integrity Errors
+    from app.models.course import Batch
+    if batch_id:
+        batch = await db.get(Batch, batch_id)
+        if not batch:
+            raise HTTPException(status_code=400, detail="The training batch associated with this QR code is invalid or has been deleted.")
+
     # 2. Toggle Logic: Punch In if no record for today, or Punch Out if active session
     from app.models.attendance import TimeTracking, Attendance, AttendanceStatus
     from sqlalchemy import and_, func
