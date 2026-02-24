@@ -11,8 +11,17 @@ interface AttendanceRecord {
     remarks: string | null;
 }
 
+interface TimeLog {
+    id: string;
+    date: string;
+    login_time: string;
+    logout_time: string | null;
+    total_minutes: number | null;
+}
+
 export default function StudentAttendancePage() {
     const [records, setRecords] = useState<AttendanceRecord[]>([]);
+    const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [showScanner, setShowScanner] = useState(false);
     const [scanMsg, setScanMsg] = useState('');
@@ -29,8 +38,12 @@ export default function StudentAttendancePage() {
     const loadAttendance = async () => {
         try {
             setLoading(true);
-            const data = await apiGet(`/api/training/attendance?student_id=${user.id}`);
-            setRecords(data);
+            const [attData, timeData] = await Promise.all([
+                apiGet(`/api/training/attendance?student_id=${user.id}`),
+                apiGet(`/api/training/time-tracking`)
+            ]);
+            setRecords(attData);
+            setTimeLogs(timeData.logs || []);
         } catch (err) {
             console.error('Failed to load attendance:', err);
         } finally {
@@ -183,6 +196,36 @@ export default function StudentAttendancePage() {
                                             </span>
                                         </td>
                                         <td className="text-muted">{r.remarks || '-'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            <div className="card mt-24">
+                <h3 className="font-semibold mb-16">Login & Logout History</h3>
+                {loading ? <p>Loading logs...</p> : timeLogs.length === 0 ? (
+                    <p className="text-muted text-sm">No login/logout logs found. Scan a General QR code to start tracking your time.</p>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Login</th>
+                                    <th>Logout</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {timeLogs.map(log => (
+                                    <tr key={log.id}>
+                                        <td>{new Date(log.date).toLocaleDateString()}</td>
+                                        <td style={{ color: 'var(--success)' }}>{new Date(log.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td style={{ color: 'var(--danger)' }}>{log.logout_time ? new Date(log.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                                        <td style={{ fontWeight: 600 }}>{log.total_minutes ? `${Math.floor(log.total_minutes / 60)}h ${log.total_minutes % 60}m` : '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>

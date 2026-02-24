@@ -314,6 +314,50 @@ async def scan_attendance_qr(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid expiration date in token")
         
+    payload_type = payload.get("type")
+    
+    if payload_type == "GENERAL_LOGIN":
+        from app.models.attendance import TimeTracking
+        from sqlalchemy import and_, func
+        
+        now = datetime.utcnow()
+        today = now.date()
+        
+        # Check if there is already a record for today
+        result = await db.execute(
+            select(TimeTracking).where(
+                and_(
+                    TimeTracking.user_id == user.id,
+                    func.date(TimeTracking.date) == today
+                )
+            )
+        )
+        record = result.scalar_one_or_none()
+        
+        if not record:
+            # First scan of the day: Login
+            record = TimeTracking(
+                user_id=user.id,
+                date=datetime.combine(today, datetime.min.time()),
+                login_time=now
+            )
+            db.add(record)
+            message = "Login time recorded successfully!"
+        elif record.logout_time is None:
+            # Second scan: Logout
+            record.logout_time = now
+            # Calculate total minutes
+            diff = now - record.login_time
+            record.total_minutes = int(diff.total_seconds() / 60)
+            message = f"Logout time recorded! Total session: {record.total_minutes} mins"
+        else:
+            # Already logged out
+            return {"status": "success", "message": "You have already completed your login/logout for today."}
+            
+        await db.flush()
+        return {"status": "success", "message": message}
+
+    # Original Batch-specific logic
     batch_id = payload.get("b")
     date_str = payload.get("d")
     if not batch_id or not date_str:

@@ -646,5 +646,58 @@ async def list_videos(db: AsyncSession = Depends(get_db)):
         }
         for v in result.scalars().all()
     ]
-from fastapi.responses import StreamingResponse
+@router.get("/time-tracking")
+async def get_time_tracking(
+    date: str = "",
+    user_id: str = "",
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.attendance import TimeTracking
+    from sqlalchemy import and_, func
+    
+    query = select(TimeTracking)
+    
+    # If user is a student, only let them see their own logs unless specified and admin
+    if user.role == Role.STUDENT:
+        query = query.where(TimeTracking.user_id == user.id)
+    elif user_id:
+        query = query.where(TimeTracking.user_id == user_id)
+        
+    if date:
+        day = datetime.strptime(date, "%Y-%m-%d")
+        query = query.where(func.date(TimeTracking.date) == day.date())
+        
+    result = await db.execute(query.order_by(TimeTracking.login_time.desc()))
+    records = result.scalars().all()
+    
+    out_logs = []
+    for r in records:
+        student = await db.get(User, r.user_id)
+        out_logs.append({
+            "id": r.id,
+            "date": r.date.isoformat(),
+            "login_time": r.login_time.isoformat(),
+            "logout_time": r.logout_time.isoformat() if r.logout_time else None,
+            "total_minutes": r.total_minutes,
+            "user": {
+                "name": student.name if student else "Unknown",
+                "email": student.email if student else "",
+                "student_id": student.student_id if student else None
+            }
+        })
+        
+    # Stats (simple example for admin)
+    stats = {"avgHours": "0h", "activeToday": 0, "onTime": 0, "late": 0}
+    if user.role != Role.STUDENT and date:
+        active_count = len([r for r in records if r.logout_time is None])
+        completed = [r for r in records if r.total_minutes is not None]
+        avg_mins = sum([r.total_minutes for r in completed]) / len(completed) if completed else 0
+        
+        stats["activeToday"] = active_count
+        stats["avgHours"] = f"{avg_mins/60:.1f}h"
+        stats["onTime"] = len([r for r in records if r.login_time.hour < 10])
+        stats["late"] = len([r for r in records if r.login_time.hour >= 10])
+
+    return {"logs": out_logs, "stats": stats}
 
