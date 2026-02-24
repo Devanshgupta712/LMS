@@ -152,13 +152,41 @@ export default function StudentAttendancePage() {
                     <p className="page-subtitle">Track your attendance record and scan QR codes</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="btn btn-primary" onClick={startScanner} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                        📱 Scan QR Code
-                    </button>
                     <button className="btn btn-ghost" onClick={downloadCSV} disabled={records.length === 0}>
                         📥 Download CSV
                     </button>
+                    <button className="btn btn-primary" onClick={startScanner} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                        📱 Scan QR Code
+                    </button>
                 </div>
+            </div>
+
+            <div className="card-glass mb-24" style={{
+                border: '2px solid var(--border)',
+                padding: '32px',
+                textAlign: 'center',
+                background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6))',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Punch Machine</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '24px', maxWidth: '400px', marginInline: 'auto' }}>
+                    Click the button below to scan the general QR code and record your work hours.
+                </p>
+                <button
+                    className="btn btn-primary"
+                    onClick={startScanner}
+                    style={{
+                        padding: '16px 32px',
+                        fontSize: '1.1rem',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                        boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)',
+                        borderRadius: '16px'
+                    }}
+                >
+                    ⚡ Punch In / Out
+                </button>
             </div>
 
             <div className="grid-4 mb-24">
@@ -196,36 +224,6 @@ export default function StudentAttendancePage() {
                                             </span>
                                         </td>
                                         <td className="text-muted">{r.remarks || '-'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            <div className="card mt-24">
-                <h3 className="font-semibold mb-16">Login & Logout History</h3>
-                {loading ? <p>Loading logs...</p> : timeLogs.length === 0 ? (
-                    <p className="text-muted text-sm">No login/logout logs found. Scan a General QR code to start tracking your time.</p>
-                ) : (
-                    <div className="table-responsive">
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Login</th>
-                                    <th>Logout</th>
-                                    <th>Duration</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {timeLogs.map(log => (
-                                    <tr key={log.id}>
-                                        <td>{new Date(log.date).toLocaleDateString()}</td>
-                                        <td style={{ color: 'var(--success)' }}>{new Date(log.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                                        <td style={{ color: 'var(--danger)' }}>{log.logout_time ? new Date(log.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                                        <td style={{ fontWeight: 600 }}>{log.total_minutes ? `${Math.floor(log.total_minutes / 60)}h ${log.total_minutes % 60}m` : '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>

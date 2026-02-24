@@ -60,6 +60,7 @@ const navSections: NavSection[] = [
         roles: ['SUPER_ADMIN', 'ADMIN', 'TRAINER'],
         items: [
             { label: 'Attendance', href: '/training/attendance', icon: '✅' },
+            { label: 'Work Hour', href: '/student/time-tracking', icon: '⏱️' },
             { label: 'Projects', href: '/training/projects', icon: '🏗️' },
             { label: 'Tasks', href: '/training/tasks', icon: '📋' },
             { label: 'Assignments', href: '/training/assignments', icon: '📝' },
