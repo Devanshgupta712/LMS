@@ -79,9 +79,12 @@ export default function TimeTrackingPage() {
         }
     };
 
-    const generateQrCode = () => {
+    const [qrType, setQrType] = useState<'PUNCH_IN' | 'PUNCH_OUT'>('PUNCH_IN');
+
+    const generateQrCode = (type: 'PUNCH_IN' | 'PUNCH_OUT') => {
+        setQrType(type);
         const expDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-        const payload = { type: "GENERAL_LOGIN", exp: expDate };
+        const payload = { type: type, exp: expDate };
         const token = btoa(JSON.stringify(payload));
         setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${token}`);
         setShowQrModal(true);
@@ -182,12 +185,17 @@ export default function TimeTrackingPage() {
                         className="form-control"
                         style={{ width: 'auto' }}
                     />
-                    <button className="btn btn-ghost" onClick={handleAddManual}>
+                    <button className="btn btn-ghost" onClick={handleAddManual} style={{ border: '1px solid var(--border)' }}>
                         ➕ Manual Entry
                     </button>
-                    <button className="btn btn-primary" onClick={generateQrCode} style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)' }}>
-                        📸 Show General QR
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', padding: '4px', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                        <button className="btn btn-primary" onClick={() => generateQrCode('PUNCH_IN')} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', padding: '8px 16px' }}>
+                            📥 Punch In QR
+                        </button>
+                        <button className="btn btn-primary" onClick={() => generateQrCode('PUNCH_OUT')} style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', padding: '8px 16px' }}>
+                            📤 Punch Out QR
+                        </button>
+                    </div>
                     <button className="btn btn-ghost" onClick={loadData}>
                         🔄 Refresh
                     </button>
@@ -340,12 +348,15 @@ export default function TimeTrackingPage() {
                 <div className="modal-backdrop" onClick={() => setShowQrModal(false)}>
                     <div className="modal card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h3 style={{ margin: 0 }}>General Attendance QR</h3>
+                            <h3 style={{ margin: 0 }}>{qrType === 'PUNCH_IN' ? 'Punch In QR Code' : 'Punch Out QR Code'}</h3>
                             <button className="btn btn-ghost" onClick={() => setShowQrModal(false)} style={{ padding: '4px 8px' }}>✕</button>
                         </div>
 
                         <p className="text-muted mb-24 text-sm">
-                            Trainees can scan this QR code using the Trainee application to log their arrival and departure times for today.
+                            {qrType === 'PUNCH_IN'
+                                ? 'Trainees scan this QR using their dashboard to mark their ARRIVAL.'
+                                : 'Trainees scan this QR using their dashboard to mark their DEPARTURE.'
+                            }
                         </p>
 
                         <div style={{

@@ -316,7 +316,7 @@ async def scan_attendance_qr(
         
     payload_type = payload.get("type")
     
-    if payload_type == "GENERAL_LOGIN":
+    if payload_type in ["GENERAL_LOGIN", "PUNCH_IN", "PUNCH_OUT"]:
         from app.models.attendance import TimeTracking
         from sqlalchemy import and_, func
         
@@ -334,25 +334,37 @@ async def scan_attendance_qr(
         )
         record = result.scalar_one_or_none()
         
-        if not record:
-            # First scan of the day: Login
+        # Determine intended action based on payload_type or toggle behavior
+        action = payload_type
+        if action == "GENERAL_LOGIN":
+            # Backward compatibility / generic toggle
+            action = "PUNCH_OUT" if (record and record.logout_time is None) else "PUNCH_IN"
+
+        if action == "PUNCH_IN":
+            if record:
+                return {"status": "success", "message": "You have already punched in for today."}
+            
+            # First scan: Punch In
             record = TimeTracking(
                 user_id=user.id,
                 date=datetime.combine(today, datetime.min.time()),
                 login_time=now
             )
             db.add(record)
-            message = "Login time recorded successfully!"
-        elif record.logout_time is None:
-            # Second scan: Logout
+            message = "Punch In successful! Have a great day."
+        
+        elif action == "PUNCH_OUT":
+            if not record:
+                raise HTTPException(status_code=400, detail="You must Punch In first.")
+            if record.logout_time:
+                return {"status": "success", "message": "You have already punched out for today."}
+            
+            # Second scan: Punch Out
             record.logout_time = now
             # Calculate total minutes
             diff = now - record.login_time
             record.total_minutes = int(diff.total_seconds() / 60)
-            message = f"Logout time recorded! Total session: {record.total_minutes} mins"
-        else:
-            # Already logged out
-            return {"status": "success", "message": "You have already completed your login/logout for today."}
+            message = f"Punch Out successful! Total session: {record.total_minutes} mins"
             
         await db.flush()
         return {"status": "success", "message": message}
