@@ -21,10 +21,9 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
         print("Database startup successful!")
     except Exception as e:
-        print(f"DATABASE STARTUP ERROR: {e}")
-        # We don't want to swallow the error completely if it's critical,
-        # but printing it helps debug status 3.
-        # raise e 
+        print(f"DATABASE STARTUP CRITICAL ERROR: {e}")
+        # Re-raise so Render knows the service failed to start correctly
+        raise e 
     yield
     # Shutdown
     await engine.dispose()

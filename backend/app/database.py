@@ -3,19 +3,17 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
-db_url = settings.DATABASE_URL
+db_url = settings.DATABASE_URL.strip()
 # Managed databases often provide urls starting with postgres:// but SQLAlchemy async requires postgresql+asyncpg://
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 elif db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Remove 'sslmode' from query parameters as it's not supported by asyncpg and causes crashes
+# Aggressively remove all query parameters to avoid asyncpg connection errors (e.g., sslmode)
+# We handle SSL via connect_args below instead.
 if "?" in db_url:
-    base_url, query = db_url.split("?", 1)
-    params = query.split("&")
-    params = [p for p in params if not p.startswith("sslmode=")]
-    db_url = f"{base_url}?{'&'.join(params)}" if params else base_url
+    db_url = db_url.split("?")[0]
 
 if db_url.startswith("sqlite"):
     engine = create_async_engine(
