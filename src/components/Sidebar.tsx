@@ -87,6 +87,7 @@ const navSections: NavSection[] = [
             { label: 'My Courses', href: '/student/courses', icon: '📚' },
             { label: 'My Profile', href: '/student/profile', icon: '👤' },
             { label: 'Attendance', href: '/student/attendance', icon: '✅' },
+            { label: 'Time Tracking', href: '/student/time-tracking', icon: '⏱️' },
             { label: 'Apply Leave', href: '/student/leaves', icon: '🗓️' },
             { label: 'Assessments', href: '/student/assessments', icon: '📝' },
             { label: 'Job Board', href: '/student/jobs', icon: '💼' },
