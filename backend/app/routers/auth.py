@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
-from datetime import datetime
-import os, uuid, base64
+from datetime import datetime, date, time
+import os, uuid, base64, json
 
 from app.database import get_db
 from app.models.user import User
@@ -297,11 +297,12 @@ async def scan_attendance_qr(
         raise HTTPException(status_code=400, detail="Missing QR token")
         
     try:
-        # Decode base64
-        decoded_bytes = base64.b64decode(token)
+        # Decode base64 — add padding if needed to prevent errors
+        padded = token + '=' * (-len(token) % 4)
+        decoded_bytes = base64.b64decode(padded)
         payload = json.loads(decoded_bytes.decode())
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid QR code format")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid QR code format: {e}")
         
     expiration = payload.get("exp")
     if not expiration:
@@ -347,7 +348,7 @@ async def scan_attendance_qr(
             # First scan: Punch In
             record = TimeTracking(
                 user_id=user.id,
-                date=datetime.combine(today, datetime.min.time()),
+                date=datetime.combine(today, time.min),
                 login_time=now
             )
             db.add(record)
