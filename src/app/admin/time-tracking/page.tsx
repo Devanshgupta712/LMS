@@ -99,7 +99,9 @@ export default function TimeTrackingPage() {
     const handleRegenerateQr = async () => {
         if (!confirm('This will invalidate all current QR codes printed or displayed elsewhere. Trainees must scan the NEW code. Continue?')) return;
         try {
-            const data = await apiPost('/api/training/qr-config/regenerate', {});
+            const res = await apiPost('/api/training/qr-config/regenerate', {});
+            if (!res.ok) throw new Error('Regeneration failed');
+            const data = await res.json();
             setQrSecret(data.qr_secret);
             setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data.qr_secret}`);
             alert('New QR code generated successfully.');
