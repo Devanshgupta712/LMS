@@ -124,12 +124,12 @@ async def seed():
         await db.flush()
 
         tasks = [
-            Task(project_id=project.id, student_id=students[0].id,
-                 title="Frontend (React)", deadline=datetime(2026, 3, 15), status="IN_PROGRESS"),
-            Task(project_id=project.id, student_id=students[1].id,
-                 title="Backend (Node.js API)", deadline=datetime(2026, 3, 20), status="PENDING"),
-            Task(project_id=project.id, student_id=students[2].id,
-                 title="Database & Deployment", deadline=datetime(2026, 3, 25), status="PENDING"),
+            Task(batch_id=batches[0].id, assigned_by=users[0].id,
+                 title="Frontend (React)", due_date=datetime(2026, 3, 15), status="IN_PROGRESS"),
+            Task(batch_id=batches[0].id, assigned_by=users[0].id,
+                 title="Backend (Node.js API)", due_date=datetime(2026, 3, 20), status="PENDING"),
+            Task(batch_id=batches[0].id, assigned_by=users[0].id,
+                 title="Database & Deployment", due_date=datetime(2026, 3, 25), status="PENDING"),
         ]
         db.add_all(tasks)
         await db.flush()
