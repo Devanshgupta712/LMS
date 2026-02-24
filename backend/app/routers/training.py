@@ -16,7 +16,45 @@ from app.models.project import (
 )
 from app.models.notification import Video, Feedback
 
+from app.models.setting import SystemSetting
+import uuid
+
 router = APIRouter(prefix="/api/training", tags=["Training"])
+
+@router.get("/qr-config")
+async def get_qr_config(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
+    setting = result.scalar_one_or_none()
+    
+    if not setting:
+        # Auto-generate if missing
+        new_secret = f"atc_punch_{uuid.uuid4().hex}"
+        setting = SystemSetting(key="active_qr_secret", value=new_secret)
+        db.add(setting)
+        await db.flush()
+        
+    return {"qr_secret": setting.value}
+
+@router.post("/qr-config/regenerate")
+async def regenerate_qr_config(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    new_secret = f"atc_punch_{uuid.uuid4().hex}"
+    result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
+    setting = result.scalar_one_or_none()
+    
+    if setting:
+        setting.value = new_secret
+    else:
+        setting = SystemSetting(key="active_qr_secret", value=new_secret)
+        db.add(setting)
+        
+    await db.flush()
+    return {"qr_secret": new_secret, "message": "New QR secret generated. Old QR codes are now invalid."}
 
 
 # ─── Attendance ───────────────────────────────────────

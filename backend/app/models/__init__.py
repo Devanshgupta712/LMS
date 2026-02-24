@@ -8,6 +8,7 @@ from app.models.project import Project, ProjectMilestone, Task, Assignment, Assi
 from app.models.placement import Job, JobApplication, Assessment, AssessmentSubmission, MockInterview, CommunicationPractice
 from app.models.registration import Registration, Document
 from app.models.notification import Notification, Message, Video, Feedback
+from app.models.setting import SystemSetting
 
 __all__ = [
     "User",
@@ -18,6 +19,7 @@ __all__ = [
     "Job", "JobApplication", "Assessment", "AssessmentSubmission", "MockInterview", "CommunicationPractice",
     "Registration", "Document",
     "Notification", "Message", "Video", "Feedback",
+    "SystemSetting",
 ]
 
 

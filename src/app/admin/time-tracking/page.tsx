@@ -79,15 +79,33 @@ export default function TimeTrackingPage() {
         }
     };
 
-    const [qrType, setQrType] = useState<'PUNCH_IN' | 'PUNCH_OUT'>('PUNCH_IN');
+    const [qrSecret, setQrSecret] = useState('');
 
-    const generateQrCode = (type: 'PUNCH_IN' | 'PUNCH_OUT') => {
-        setQrType(type);
-        const expDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-        const payload = { type: type, exp: expDate };
-        const token = btoa(JSON.stringify(payload));
-        setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${token}`);
+    const fetchQrConfig = async () => {
+        try {
+            const data = await apiGet('/api/training/qr-config');
+            setQrSecret(data.qr_secret);
+            setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data.qr_secret}`);
+        } catch (err) {
+            console.error('Failed to fetch QR config:', err);
+        }
+    };
+
+    const handleOpenQrModal = async () => {
+        await fetchQrConfig();
         setShowQrModal(true);
+    };
+
+    const handleRegenerateQr = async () => {
+        if (!confirm('This will invalidate all current QR codes printed or displayed elsewhere. Trainees must scan the NEW code. Continue?')) return;
+        try {
+            const data = await apiPost('/api/training/qr-config/regenerate', {});
+            setQrSecret(data.qr_secret);
+            setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data.qr_secret}`);
+            alert('New QR code generated successfully.');
+        } catch (err) {
+            alert('Failed to regenerate QR code.');
+        }
     };
 
     const formatTimeForInput = (isoString: string | null) => {
@@ -188,14 +206,9 @@ export default function TimeTrackingPage() {
                     <button className="btn btn-ghost" onClick={handleAddManual} style={{ border: '1px solid var(--border)' }}>
                         ➕ Manual Entry
                     </button>
-                    <div style={{ display: 'flex', gap: '8px', padding: '4px', background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                        <button className="btn btn-primary" onClick={() => generateQrCode('PUNCH_IN')} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', padding: '8px 16px' }}>
-                            📥 Punch In QR
-                        </button>
-                        <button className="btn btn-primary" onClick={() => generateQrCode('PUNCH_OUT')} style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', padding: '8px 16px' }}>
-                            📤 Punch Out QR
-                        </button>
-                    </div>
+                    <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #10b981, #6366f1)', padding: '8px 20px', borderRadius: '12px' }}>
+                        🎁 Punch Machine QR
+                    </button>
                     <button className="btn btn-ghost" onClick={loadData}>
                         🔄 Refresh
                     </button>
@@ -343,36 +356,42 @@ export default function TimeTrackingPage() {
                 </div>
             )}
 
-            {/* General QR Modal */}
             {showQrModal && (
                 <div className="modal-backdrop" onClick={() => setShowQrModal(false)}>
                     <div className="modal card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h3 style={{ margin: 0 }}>{qrType === 'PUNCH_IN' ? 'Punch In QR Code' : 'Punch Out QR Code'}</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0 }}>Punch Machine QR</h3>
                             <button className="btn btn-ghost" onClick={() => setShowQrModal(false)} style={{ padding: '4px 8px' }}>✕</button>
                         </div>
 
-                        <p className="text-muted mb-24 text-sm">
-                            {qrType === 'PUNCH_IN'
-                                ? 'Trainees scan this QR using their dashboard to mark their ARRIVAL.'
-                                : 'Trainees scan this QR using their dashboard to mark their DEPARTURE.'
-                            }
-                        </p>
+                        <div className="text-sm text-muted mb-20" style={{ textAlign: 'left', padding: '12px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
+                            <p style={{ marginBottom: '8px' }}><strong>Universal Toggle Code:</strong></p>
+                            <ul style={{ paddingLeft: '20px', listStyleType: 'disc' }}>
+                                <li>Scan 1st: <strong>Punch In</strong></li>
+                                <li>Scan 2nd: <strong>Punch Out</strong></li>
+                                <li>Only <strong>Trainees</strong> can use this.</li>
+                            </ul>
+                        </div>
 
                         <div style={{
                             background: '#fff',
                             padding: '24px',
                             borderRadius: '16px',
                             display: 'inline-block',
-                            margin: '0 auto 24px',
+                            margin: '0 auto 20px',
                             boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
                         }}>
-                            <img src={qrUrl} alt="General Attendance QR Code" width={250} height={250} style={{ display: 'block' }} />
+                            <img src={qrUrl} alt="Permanent Punch QR" width={250} height={250} style={{ display: 'block' }} />
                         </div>
 
-                        <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', color: 'var(--primary)', fontWeight: 500, fontSize: '14px' }}>
-                            QR Code expires in 24 hours
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button className="btn btn-ghost" onClick={() => window.print()} style={{ flex: 1 }}>🖨️ Print</button>
+                            <button className="btn btn-danger" onClick={handleRegenerateQr} style={{ flex: 1 }}>🔄 Regenerate</button>
                         </div>
+
+                        <p className="text-xs text-muted mt-16 italic">
+                            Regenerating will invalidate old codes immediately.
+                        </p>
                     </div>
                 </div>
             )}

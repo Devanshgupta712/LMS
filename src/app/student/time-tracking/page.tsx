@@ -123,7 +123,7 @@ export default function StudentTimeTrackingPage() {
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Punch Machine</h2>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '24px', maxWidth: '400px', marginInline: 'auto' }}>
-                    Click the button below to scan the general QR code and record your current punch time.
+                    Scan the institute's official QR code to record your arrival. Scan the same code again when leaving to record your departure.
                 </p>
 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>

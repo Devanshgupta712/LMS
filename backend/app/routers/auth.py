@@ -296,121 +296,79 @@ async def scan_attendance_qr(
     if not token:
         raise HTTPException(status_code=400, detail="Missing QR token")
         
-    try:
-        # Decode base64 — add padding if needed to prevent errors
-        padded = token + '=' * (-len(token) % 4)
-        decoded_bytes = base64.b64decode(padded)
-        payload = json.loads(decoded_bytes.decode())
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid QR code format: {e}")
-        
-    expiration = payload.get("exp")
-    if not expiration:
-        raise HTTPException(status_code=400, detail="Invalid token payload")
-        
-    try:
-        exp_date = datetime.fromisoformat(expiration)
-        if datetime.utcnow() > exp_date:
-            raise HTTPException(status_code=400, detail="This QR code has expired")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid expiration date in token")
-        
-    payload_type = payload.get("type")
-    
-    if payload_type in ["GENERAL_LOGIN", "PUNCH_IN", "PUNCH_OUT"]:
-        # Only trainees (students) can use the punch QR system
-        if user.role != Role.STUDENT:
-            raise HTTPException(status_code=403, detail="Only trainees can use the punch QR system.")
+    # Standard check: Only trainees (students) can use the punch QR system
+    from app.models.user import Role
+    if user.role != Role.STUDENT:
+        raise HTTPException(status_code=403, detail="Only trainees can use the punch QR system.")
 
-        from app.models.attendance import TimeTracking
-        from sqlalchemy import and_, func
-        
-        now = datetime.utcnow()
-        today = now.date()
-        
-        # Check if there is already a record for today
-        result = await db.execute(
-            select(TimeTracking).where(
-                and_(
-                    TimeTracking.user_id == user.id,
-                    func.date(TimeTracking.date) == today
-                )
+    # 1. Validate the token against the persistent secret
+    from app.models.setting import SystemSetting
+    result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
+    setting = result.scalar_one_or_none()
+    
+    if not setting:
+        raise HTTPException(status_code=500, detail="QR system not initialized. Please ask Admin to generate a QR.")
+
+    # Check if this is the dynamic/old format or the new permanent secret
+    is_valid = False
+    if token == setting.value:
+        is_valid = True
+    else:
+        # Check if it's the old JSON format (for backward compatibility during migration)
+        try:
+            padded = token + '=' * (-len(token) % 4)
+            decoded_bytes = base64.b64decode(padded)
+            payload = json.loads(decoded_bytes.decode())
+            # If it's a valid JSON payload from the old system, we'll allow it if not expired
+            # but ideally everyone should use the new one.
+            expiration = payload.get("exp")
+            if expiration:
+                exp_date = datetime.fromisoformat(expiration)
+                if datetime.utcnow() < exp_date:
+                    is_valid = True
+        except:
+            pass
+
+    if not is_valid:
+        raise HTTPException(status_code=400, detail="Invalid or outdated QR code. Please scan the current one provided by the admin.")
+
+    # 2. Toggle Logic: Punch In if no record for today, or Punch Out if active session
+    from app.models.attendance import TimeTracking
+    from sqlalchemy import and_, func
+    
+    now = datetime.utcnow()
+    today = now.date()
+    
+    # Check if there is already a record for today
+    result = await db.execute(
+        select(TimeTracking).where(
+            and_(
+                TimeTracking.user_id == user.id,
+                func.date(TimeTracking.date) == today
             )
         )
-        record = result.scalar_one_or_none()
-        
-        # Determine intended action based on payload_type or toggle behavior
-        action = payload_type
-        if action == "GENERAL_LOGIN":
-            # Backward compatibility / generic toggle
-            action = "PUNCH_OUT" if (record and record.logout_time is None) else "PUNCH_IN"
-
-        if action == "PUNCH_IN":
-            if record:
-                return {"status": "success", "message": "You have already punched in for today."}
-            
-            # First scan: Punch In
-            record = TimeTracking(
-                user_id=user.id,
-                date=datetime.combine(today, time.min),
-                login_time=now
-            )
-            db.add(record)
-            message = "Punch In successful! Have a great day."
-        
-        elif action == "PUNCH_OUT":
-            if not record:
-                raise HTTPException(status_code=400, detail="You must Punch In first.")
-            if record.logout_time:
-                return {"status": "success", "message": "You have already punched out for today."}
-            
-            # Second scan: Punch Out
-            record.logout_time = now
-            # Calculate total minutes
-            diff = now - record.login_time
-            record.total_minutes = int(diff.total_seconds() / 60)
-            message = f"Punch Out successful! Total session: {record.total_minutes} mins"
-            
-        await db.flush()
-        return {"status": "success", "message": message}
-
-    # Original Batch-specific logic
-    batch_id = payload.get("b")
-    date_str = payload.get("d")
-    if not batch_id or not date_str:
-        raise HTTPException(status_code=400, detail="Missing batch or date info in token")
-        
-    # Check if student is in batch
-    from app.models.course import BatchStudent
-    bs_result = await db.execute(
-        select(BatchStudent).where(BatchStudent.batch_id == batch_id, BatchStudent.student_id == user.id)
     )
-    if not bs_result.scalar_one_or_none():
-        raise HTTPException(status_code=403, detail="You are not enrolled in this batch")
-        
-    # Mark attendance - check by date only (ignoring time)
-    from app.models.attendance import Attendance
-    from sqlalchemy import func
+    record = result.scalar_one_or_none()
     
-    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-    existing = await db.execute(
-        select(Attendance).where(
-            Attendance.student_id == user.id,
-            Attendance.batch_id == batch_id,
-            func.date(Attendance.date) == date_obj.date()
+    message = ""
+    if not record:
+        # Case A: First scan of the day -> Punch In
+        record = TimeTracking(
+            user_id=user.id,
+            date=datetime.combine(today, time.min),
+            login_time=now
         )
-    )
-    if existing.scalar_one_or_none():
-        return {"status": "success", "message": "Attendance already marked for today."}
+        db.add(record)
+        message = "Punch In successful! Your arrival has been recorded."
+    elif record.logout_time is None:
+        # Case B: Already punched in, no logout yet -> Punch Out
+        record.logout_time = now
+        diff = now - record.login_time
+        record.total_minutes = int(diff.total_seconds() / 60)
+        message = f"Punch Out successful! You were active for {record.total_minutes} mins today."
+    else:
+        # Case C: Already punched out today
+        return {"status": "success", "message": "You have already completed your time tracking for today. See you tomorrow!"}
         
-    record = Attendance(
-        student_id=user.id,
-        batch_id=batch_id,
-        date=date_obj,
-        status="PRESENT",
-        remarks="Scanned QR Code"
-    )
-    db.add(record)
     await db.flush()
-    
-    return {"status": "success", "message": "Successfully marked Present!"}
+    return {"status": "success", "message": message}
