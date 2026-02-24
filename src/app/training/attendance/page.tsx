@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiGet, apiPost } from '@/lib/api';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface Batch { id: string; name: string; course_name: string; }
 interface Student { id: string; name: string; student_id: string | null; }
@@ -23,6 +24,7 @@ export default function AttendancePage() {
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
     const [qrModal, setQrModal] = useState<{ token: string; batch_id: string; date: string } | null>(null);
+    const [globalQrModal, setGlobalQrModal] = useState<{ token: string } | null>(null);
 
     useEffect(() => { apiGet('/api/admin/batches').then(setBatches).catch(() => { }); }, []);
 
@@ -68,6 +70,25 @@ export default function AttendancePage() {
             setQrModal(res);
         } catch {
             alert('Failed to generate QR Code. Ensure the backend is available.');
+        }
+    };
+
+    const fetchGlobalQr = async () => {
+        try {
+            const res = await apiGet('/api/training/qr/global');
+            setGlobalQrModal({ token: res.qr_token });
+        } catch {
+            alert('Failed to fetch Global QR Code.');
+        }
+    };
+
+    const rotateGlobalQr = async () => {
+        if (!confirm('Are you certain? The old QR code will immediately stop working for all trainees.')) return;
+        try {
+            const res = await apiPost('/api/training/qr/global/rotate', {});
+            setGlobalQrModal({ token: res.qr_token });
+        } catch {
+            alert('Failed to regenerate Global QR Code.');
         }
     };
 
@@ -123,6 +144,9 @@ export default function AttendancePage() {
             <div className="page-header">
                 <div><h1 className="page-title">Attendance</h1><p className="page-subtitle">Mark daily attendance by batch</p></div>
                 <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn btn-accent" onClick={fetchGlobalQr}>
+                        🌍 View Global Login QR
+                    </button>
                     <button className="btn btn-primary" onClick={handleSave}>
                         💾 Save Attendance
                     </button>
@@ -254,6 +278,42 @@ export default function AttendancePage() {
                                 <button className="btn btn-primary" onClick={submitLeave} style={{ flex: 1 }}>Submit Leave Request</button>
                                 <button className="btn btn-ghost" onClick={() => setLeaveModal(null)}>Cancel</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Global QR Modal */}
+            {globalQrModal && (
+                <div className="modal-overlay" onClick={() => setGlobalQrModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', textAlign: 'center', padding: '40px 30px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(99,102,241,0.1)', color: '#818cf8', fontSize: '32px', marginBottom: '20px' }}>
+                            🌍
+                        </div>
+                        <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 700, color: '#f8fafc' }}>
+                            Global Trainee Login
+                        </h2>
+                        <p style={{ color: '#94a3b8', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
+                            Have trainees scan this code to Punch In / Punch Out. It is persistent and works for <strong>all</strong> current students and trainers.
+                        </p>
+
+                        <div style={{ background: '#ffffff', padding: '24px', borderRadius: '24px', display: 'inline-block', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', marginBottom: '32px' }}>
+                            <QRCodeSVG
+                                value={globalQrModal.token}
+                                size={220}
+                                level="H"
+                                fgColor="#0f172a"
+                                bgColor="#ffffff"
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button className="btn btn-danger" onClick={rotateGlobalQr}>
+                                🔄 Regenerate Code
+                            </button>
+                            <button className="btn btn-primary" onClick={() => setGlobalQrModal(null)}>
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>

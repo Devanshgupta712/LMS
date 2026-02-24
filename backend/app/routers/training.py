@@ -162,10 +162,54 @@ async def generate_qr_token(
         "exp": (datetime.utcnow() + timedelta(hours=12)).isoformat()
     }
     
-    # Simple base64 encoding (since we don't have python-jose installed by default, 
-    # we'll just encode a JSON string. In production, sign this!)
+    # Simple base64 encoding
     encoded = base64.b64encode(json.dumps(payload).encode()).decode()
     return {"qr_token": encoded, "batch_id": batch_id, "date": today_str}
+
+
+from app.models.setting import SystemSetting
+import uuid
+
+@router.get("/qr/global")
+async def get_global_qr(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER))
+):
+    """Fetches the current persistent global QR token for trainees."""
+    query = select(SystemSetting).where(SystemSetting.key == "active_qr_secret")
+    result = await db.execute(query)
+    setting = result.scalar_one_or_none()
+    
+    if not setting:
+        # Initialize it if it doesn't exist
+        secret = str(uuid.uuid4())
+        setting = SystemSetting(key="active_qr_secret", value=secret)
+        db.add(setting)
+        await db.commit()
+    
+    return {"qr_token": setting.value}
+
+
+@router.post("/qr/global/rotate")
+async def rotate_global_qr(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    """Invalidates the old global QR token and creates a new one."""
+    query = select(SystemSetting).where(SystemSetting.key == "active_qr_secret")
+    result = await db.execute(query)
+    setting = result.scalar_one_or_none()
+    
+    new_secret = str(uuid.uuid4())
+    
+    if setting:
+        setting.value = new_secret
+    else:
+        setting = SystemSetting(key="active_qr_secret", value=new_secret)
+        db.add(setting)
+        
+    await db.commit()
+    return {"qr_token": new_secret, "message": "Global QR Code has been regenerated successfully."}
 
 
 
