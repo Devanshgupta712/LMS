@@ -3,13 +3,14 @@ Seed script: Populates the database with demo data.
 Run: python -m app.seed
 """
 import asyncio
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal, engine, Base
 from app.models import *  # noqa
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
 async def seed():
@@ -28,13 +29,13 @@ async def seed():
 
         # ── Users ─────────────────────────────────────────
         users = [
-            User(email="admin@apptech.com", password=pwd_context.hash("admin123"),
+            User(email="admin@apptech.com", password=get_password_hash("admin123"),
                  name="Super Admin", role="SUPER_ADMIN", phone="9000000001"),
-            User(email="manager@apptech.com", password=pwd_context.hash("admin123"),
+            User(email="manager@apptech.com", password=get_password_hash("admin123"),
                  name="Admin Manager", role="ADMIN", phone="9000000002"),
-            User(email="trainer@apptech.com", password=pwd_context.hash("trainer123"),
+            User(email="trainer@apptech.com", password=get_password_hash("trainer123"),
                  name="Ravi Kumar", role="TRAINER", phone="9000000003"),
-            User(email="marketer@apptech.com", password=pwd_context.hash("market123"),
+            User(email="marketer@apptech.com", password=get_password_hash("market123"),
                  name="Priya Sharma", role="MARKETER", phone="9000000004"),
         ]
         db.add_all(users)
@@ -52,7 +53,7 @@ async def seed():
             ("Vikram Das", "vikram@student.com"),
         ], start=1):
             s = User(
-                email=email, password=pwd_context.hash("welcome123"),
+                email=email, password=get_password_hash("welcome123"),
                 name=name, role="STUDENT", student_id=f"APC-2026-{i:04d}",
                 phone=f"98000000{i:02d}",
             )

@@ -99,6 +99,12 @@ export default function StudentAttendancePage() {
         setIsScanning(false);
     };
 
+    const [scanResult, setScanResult] = useState<{
+        success: boolean;
+        message: string;
+        session?: any;
+    } | null>(null);
+
     const onScanSuccess = async (decodedText: string) => {
         // Stop scanning immediately on success
         if (qrCodeRef.current) {
@@ -111,13 +117,23 @@ export default function StudentAttendancePage() {
             const data = await res.json();
 
             if (res.ok) {
-                alert(data.message || 'Attendance marked successfully!');
+                setScanResult({
+                    success: true,
+                    message: data.message,
+                    session: data.session_info
+                });
                 loadAttendance();
             } else {
-                alert(`Scanning Failed: ${data.detail || 'Invalid QR'}`);
+                setScanResult({
+                    success: false,
+                    message: data.detail || 'Invalid QR Code'
+                });
             }
         } catch (err) {
-            alert('Failed to connect to server.');
+            setScanResult({
+                success: false,
+                message: 'Failed to connect to server. Please try again.'
+            });
         }
     };
 
@@ -171,22 +187,24 @@ export default function StudentAttendancePage() {
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Punch Machine</h2>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '24px', maxWidth: '400px', marginInline: 'auto' }}>
-                    Click the button below to scan the general QR code and record your work hours.
+                    Scan the institute's official QR code to record your arrival and departure.
                 </p>
-                <button
-                    className="btn btn-primary"
-                    onClick={startScanner}
-                    style={{
-                        padding: '16px 32px',
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                        boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)',
-                        borderRadius: '16px'
-                    }}
-                >
-                    ⚡ Punch In / Out
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                        className="btn btn-primary"
+                        onClick={startScanner}
+                        style={{
+                            padding: '16px 32px',
+                            fontSize: '1.1rem',
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                            boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)',
+                            borderRadius: '16px'
+                        }}
+                    >
+                        ⚡ Punch In / Out
+                    </button>
+                </div>
             </div>
 
             <div className="grid-4 mb-24">
@@ -256,6 +274,62 @@ export default function StudentAttendancePage() {
                         )}
 
                         <button className="btn btn-danger" style={{ width: '100%', marginTop: '24px', minHeight: '52px', fontSize: '15px', borderRadius: '14px' }} onClick={stopScanner}>✕ Cancel Scanning</button>
+                    </div>
+                </div>
+            )}
+
+            {scanResult && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002, padding: '16px', backdropFilter: 'blur(12px)' }}
+                    onClick={() => setScanResult(null)}>
+                    <div className="animate-in" style={{ background: '#09090b', borderRadius: '32px', padding: '48px 32px', maxWidth: '400px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                        onClick={e => e.stopPropagation()}>
+
+                        <div style={{
+                            width: '80px', height: '80px', borderRadius: '50%',
+                            background: scanResult.success ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: scanResult.success ? '#22c55e' : '#ef4444',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '40px', margin: '0 auto 24px',
+                            border: `2px solid ${scanResult.success ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                        }}>
+                            {scanResult.success ? '✓' : '✕'}
+                        </div>
+
+                        <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
+                            {scanResult.success ? (scanResult.session?.punch_type === 'IN' ? 'Punched In!' : 'Punched Out!') : 'Scan Failed'}
+                        </h2>
+
+                        <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
+                            {scanResult.message}
+                        </p>
+
+                        {scanResult.success && scanResult.session && (
+                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '24px', marginBottom: '32px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                    <span style={{ color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Arrival</span>
+                                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                {scanResult.session.logout_time && (
+                                    <>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                            <span style={{ color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Departure</span>
+                                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '16px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>Duration Logged</span>
+                                            <span style={{ color: '#0ea5e9', fontSize: '16px', fontWeight: 900 }}>
+                                                {Math.floor(scanResult.session.total_minutes / 60)}h {scanResult.session.total_minutes % 60}m
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        <button className="btn btn-primary" style={{ width: '100%', borderRadius: '14px', padding: '16px', fontWeight: 700, fontSize: '15px' }} onClick={() => setScanResult(null)}>
+                            Continue
+                        </button>
                     </div>
                 </div>
             )}

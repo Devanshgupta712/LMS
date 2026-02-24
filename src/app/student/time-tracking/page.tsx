@@ -80,6 +80,12 @@ export default function StudentTimeTrackingPage() {
         setShowScanner(false);
     };
 
+    const [scanResult, setScanResult] = useState<{
+        success: boolean;
+        message: string;
+        session?: any;
+    } | null>(null);
+
     const onScanSuccess = async (decodedText: string) => {
         if (qrCodeRef.current) {
             await stopScanner();
@@ -91,13 +97,23 @@ export default function StudentTimeTrackingPage() {
             const data = await res.json();
 
             if (res.ok) {
-                alert(data.message || 'Time recorded successfully!');
+                setScanResult({
+                    success: true,
+                    message: data.message,
+                    session: data.session_info
+                });
                 loadData();
             } else {
-                alert(`Error: ${data.detail || 'Invalid QR'}`);
+                setScanResult({
+                    success: false,
+                    message: data.detail || 'Invalid QR Code'
+                });
             }
         } catch (err) {
-            alert('Server connection failed.');
+            setScanResult({
+                success: false,
+                message: 'Connection failed. Please try again.'
+            });
         }
     };
 
@@ -162,9 +178,15 @@ export default function StudentTimeTrackingPage() {
                 <div className="stat-card accent">
                     <div className="stat-icon accent">✨</div>
                     <div className="stat-info">
-                        <h3>Track Status</h3>
-                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : 'var(--text-muted)', fontSize: '1.1rem', fontWeight: 700 }}>
-                            {isActive ? '🟢 ACTIVE' : '⚪ IDLE'}
+                        <h3>Today's Total</h3>
+                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : (timeLogs[0]?.total_minutes ? 'var(--accent)' : 'var(--text-muted)'), fontSize: '1.2rem', fontWeight: 800 }}>
+                            {isActive ? (
+                                <span className="animate-pulse">Active...</span>
+                            ) : (
+                                timeLogs.length > 0 && new Date(timeLogs[0].date).toDateString() === new Date().toDateString() && timeLogs[0].total_minutes
+                                    ? `${Math.floor(timeLogs[0].total_minutes / 60)}h ${timeLogs[0].total_minutes % 60}m`
+                                    : '0h 0m'
+                            )}
                         </div>
                     </div>
                 </div>
@@ -226,6 +248,62 @@ export default function StudentTimeTrackingPage() {
                         )}
 
                         <button className="btn btn-danger" style={{ width: '100%', marginTop: '24px', borderRadius: '12px' }} onClick={stopScanner}>✕ Close Scanner</button>
+                    </div>
+                </div>
+            )}
+
+            {scanResult && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002, padding: '16px', backdropFilter: 'blur(10px)' }}
+                    onClick={() => setScanResult(null)}>
+                    <div className="animate-in" style={{ background: '#0f172a', borderRadius: '32px', padding: '40px 32px', maxWidth: '400px', width: '100%', border: '1px solid rgba(255,255,255,0.12)', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                        onClick={e => e.stopPropagation()}>
+
+                        <div style={{
+                            width: '80px', height: '80px', borderRadius: '50%',
+                            background: scanResult.success ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: scanResult.success ? '#22c55e' : '#ef4444',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '40px', margin: '0 auto 24px',
+                            border: `2px solid ${scanResult.success ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                        }}>
+                            {scanResult.success ? '✓' : '✕'}
+                        </div>
+
+                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
+                            {scanResult.success ? (scanResult.session?.punch_type === 'IN' ? 'Punched In!' : 'Punched Out!') : 'Scan Failed'}
+                        </h2>
+
+                        <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
+                            {scanResult.message}
+                        </p>
+
+                        {scanResult.success && scanResult.session && (
+                            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '20px', marginBottom: '32px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                    <span style={{ color: '#64748b', fontSize: '13px' }}>Arrival</span>
+                                    <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                {scanResult.session.logout_time && (
+                                    <>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                            <span style={{ color: '#64748b', fontSize: '13px' }}>Departure</span>
+                                            <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '12px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>Total Duration</span>
+                                            <span style={{ color: 'var(--accent)', fontSize: '15px', fontWeight: 800 }}>
+                                                {Math.floor(scanResult.session.total_minutes / 60)}h {scanResult.session.total_minutes % 60}m
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        <button className="btn btn-primary" style={{ width: '100%', borderRadius: '14px', padding: '14px' }} onClick={() => setScanResult(null)}>
+                            Close
+                        </button>
                     </div>
                 </div>
             )}

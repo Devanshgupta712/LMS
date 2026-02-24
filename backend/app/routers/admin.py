@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func, or_, delete
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from passlib.context import CryptContext
+import bcrypt
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -22,7 +22,9 @@ from app.schemas.schemas import (
 )
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
 # ─── Dashboard Stats ──────────────────────────────────
@@ -183,7 +185,7 @@ async def update_user_password(
     if _user.role == Role.SUPER_ADMIN and target_user.role == Role.SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Cannot change password for SUPER_ADMIN")
         
-    hashed = pwd_context.hash(body.new_password)
+    hashed = get_password_hash(body.new_password)
     target_user.password = hashed
     await db.flush()
     return {"status": "password_updated"}
@@ -229,7 +231,7 @@ async def create_student(
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already exists")
 
-    hashed = pwd_context.hash(body.password)
+    hashed = get_password_hash(body.password)
     student_id = None
     if body.role == "STUDENT":
         count_q = await db.execute(select(func.count(User.id)).where(User.role == Role.STUDENT))

@@ -1,4 +1,4 @@
-﻿from app.models.base import Base
+﻿from app.database import Base
 from sqlalchemy import Column, String
 
 class SystemSetting(Base):

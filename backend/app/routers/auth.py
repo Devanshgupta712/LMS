@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from passlib.context import CryptContext
+import bcrypt
 from datetime import datetime, date, time
 import os, uuid, base64, json
 
@@ -12,7 +12,15 @@ from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, Us
 from app.middleware.auth import create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except Exception:
+        return False
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads", "documents")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -26,13 +34,13 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         result = await db.execute(select(User).where(User.email == body.email))
         sa = result.scalar_one_or_none()
         if not sa:
-            sa = User(email=body.email, password=pwd_context.hash(body.password), name="Super Admin", role=Role.SUPER_ADMIN, is_active=True)
+            sa = User(email=body.email, password=get_password_hash(body.password), name="Super Admin", role=Role.SUPER_ADMIN, is_active=True)
             db.add(sa)
             await db.flush()
 
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
-    if not user or not pwd_context.verify(body.password, user.password):
+    if not user or not verify_password(body.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token({"sub": user.id, "role": user.role.value})
@@ -59,7 +67,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed = pwd_context.hash(body.password)
+    hashed = get_password_hash(body.password)
 
     student_id = None
     if body.role == "STUDENT":
@@ -301,45 +309,44 @@ async def scan_attendance_qr(
     if user.role != Role.STUDENT:
         raise HTTPException(status_code=403, detail="Only trainees can use the punch QR system.")
 
-    # 1. Validate the token against the persistent secret
+    # 1. Validate the token
     from app.models.setting import SystemSetting
     result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
     setting = result.scalar_one_or_none()
     
-    if not setting:
-        raise HTTPException(status_code=500, detail="QR system not initialized. Please ask Admin to generate a QR.")
-
-    # Check if this is the dynamic/old format or the new permanent secret
+    batch_id = None
     is_valid = False
-    if token == setting.value:
+    
+    # Check if this is the dynamic/old format or the new permanent secret
+    if setting and token == setting.value:
         is_valid = True
     else:
-        # Check if it's the old JSON format (for backward compatibility during migration)
+        # Check if it's the JSON payload format (contains batch_id)
         try:
             padded = token + '=' * (-len(token) % 4)
             decoded_bytes = base64.b64decode(padded)
             payload = json.loads(decoded_bytes.decode())
-            # If it's a valid JSON payload from the old system, we'll allow it if not expired
-            # but ideally everyone should use the new one.
+            
             expiration = payload.get("exp")
             if expiration:
                 exp_date = datetime.fromisoformat(expiration)
                 if datetime.utcnow() < exp_date:
                     is_valid = True
+                    batch_id = payload.get("b") # Extract batch_id
         except:
             pass
 
     if not is_valid:
-        raise HTTPException(status_code=400, detail="Invalid or outdated QR code. Please scan the current one provided by the admin.")
+        raise HTTPException(status_code=400, detail="Invalid or outdated QR code. Please scan the current one provided by the trainer.")
 
     # 2. Toggle Logic: Punch In if no record for today, or Punch Out if active session
-    from app.models.attendance import TimeTracking
+    from app.models.attendance import TimeTracking, Attendance, AttendanceStatus
     from sqlalchemy import and_, func
     
     now = datetime.utcnow()
     today = now.date()
     
-    # Check if there is already a record for today
+    # Check if there is already a TimeTracking record for today
     result = await db.execute(
         select(TimeTracking).where(
             and_(
@@ -348,27 +355,95 @@ async def scan_attendance_qr(
             )
         )
     )
-    record = result.scalar_one_or_none()
+    time_record = result.scalar_one_or_none()
     
     message = ""
-    if not record:
+    session_info = {}
+    
+    if not time_record:
         # Case A: First scan of the day -> Punch In
-        record = TimeTracking(
+        time_record = TimeTracking(
             user_id=user.id,
             date=datetime.combine(today, time.min),
             login_time=now
         )
-        db.add(record)
+        db.add(time_record)
+        
+        # Also mark Attendance if batch_id is available
+        if batch_id:
+            # Check for existing attendance record for this batch/day
+            att_result = await db.execute(
+                select(Attendance).where(
+                    and_(
+                        Attendance.student_id == user.id,
+                        Attendance.batch_id == batch_id,
+                        func.date(Attendance.date) == today
+                    )
+                )
+            )
+            att_record = att_result.scalar_one_or_none()
+            if not att_record:
+                att_record = Attendance(
+                    student_id=user.id,
+                    batch_id=batch_id,
+                    date=datetime.combine(today, time.min),
+                    status=AttendanceStatus.PRESENT,
+                    login_time=now
+                )
+                db.add(att_record)
+            else:
+                att_record.login_time = now
+                att_record.status = AttendanceStatus.PRESENT
+
         message = "Punch In successful! Your arrival has been recorded."
-    elif record.logout_time is None:
+        session_info = {
+            "punch_type": "IN",
+            "login_time": now.isoformat(),
+            "date": today.isoformat()
+        }
+    elif time_record.logout_time is None:
         # Case B: Already punched in, no logout yet -> Punch Out
-        record.logout_time = now
-        diff = now - record.login_time
-        record.total_minutes = int(diff.total_seconds() / 60)
-        message = f"Punch Out successful! You were active for {record.total_minutes} mins today."
+        time_record.logout_time = now
+        diff = now - time_record.login_time
+        time_record.total_minutes = int(diff.total_seconds() / 60)
+        
+        # Update Attendance record if active
+        att_result = await db.execute(
+            select(Attendance).where(
+                and_(
+                    Attendance.student_id == user.id,
+                    func.date(Attendance.date) == today,
+                     Attendance.logout_time == None
+                )
+            ).order_by(Attendance.login_time.desc())
+        )
+        att_record = att_result.scalar_one_or_none()
+        if att_record:
+            att_record.logout_time = now
+            diff_att = now - att_record.login_time
+            att_record.total_hours = round(diff_att.total_seconds() / 3600, 2)
+            
+        message = f"Punch Out successful! Total active time: {time_record.total_minutes} mins."
+        session_info = {
+            "punch_type": "OUT",
+            "login_time": time_record.login_time.isoformat(),
+            "logout_time": now.isoformat(),
+            "total_minutes": time_record.total_minutes,
+            "date": today.isoformat()
+        }
     else:
         # Case C: Already punched out today
-        return {"status": "success", "message": "You have already completed your time tracking for today. See you tomorrow!"}
+        return {
+            "status": "success", 
+            "message": "You have already completed your time tracking for today. Great work!",
+            "session_info": {
+                "punch_type": "DONE",
+                "login_time": time_record.login_time.isoformat(),
+                "logout_time": time_record.logout_time.isoformat(),
+                "total_minutes": time_record.total_minutes,
+                "date": today.isoformat()
+            }
+        }
         
     await db.flush()
-    return {"status": "success", "message": message}
+    return {"status": "success", "message": message, "session_info": session_info}
