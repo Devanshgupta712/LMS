@@ -318,6 +318,10 @@ async def scan_attendance_qr(
     payload_type = payload.get("type")
     
     if payload_type in ["GENERAL_LOGIN", "PUNCH_IN", "PUNCH_OUT"]:
+        # Only trainees (students) can use the punch QR system
+        if user.role != Role.STUDENT:
+            raise HTTPException(status_code=403, detail="Only trainees can use the punch QR system.")
+
         from app.models.attendance import TimeTracking
         from sqlalchemy import and_, func
         

@@ -72,7 +72,7 @@ export default function TimeTrackingPage() {
 
     const loadUsers = async () => {
         try {
-            const data = await apiGet('/api/admin/users');
+            const data = await apiGet('/api/admin/students?role=STUDENT');
             setUsers(data || []);
         } catch (err) {
             console.error('Failed to load users:', err);
