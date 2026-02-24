@@ -108,47 +108,79 @@ export default function StudentTimeTrackingPage() {
         <div className="animate-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Work Hours Tracking</h1>
-                    <p className="page-subtitle">Scan QR to log your entry and exit times</p>
+                    <h1 className="page-title">My Work Hours</h1>
+                    <p className="page-subtitle">Track your daily punch-in and punch-out activities</p>
                 </div>
-                <button className="btn btn-primary" onClick={startScanner} style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)' }}>
-                    ⏱️ Scan for Work Hours
-                </button>
+            </div>
+
+            <div className="card-glass mb-24" style={{
+                border: '2px solid var(--border)',
+                padding: '32px',
+                textAlign: 'center',
+                background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6))',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Punch Machine</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '24px', maxWidth: '400px', marginInline: 'auto' }}>
+                    Click the button below to scan the general QR code and record your current punch time.
+                </p>
+
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                        className="btn btn-primary"
+                        onClick={startScanner}
+                        style={{
+                            padding: '16px 32px',
+                            fontSize: '1.1rem',
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                            boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)',
+                            borderRadius: '16px'
+                        }}
+                    >
+                        ⚡ Punch In / Out
+                    </button>
+                </div>
             </div>
 
             <div className="grid-3 mb-24">
                 <div className="stat-card primary">
-                    <div className="stat-icon primary">🕒</div>
+                    <div className="stat-icon primary">⏳</div>
                     <div className="stat-info">
-                        <h3>Avg. Daily Hours</h3>
+                        <h3>Avg. Work Hours</h3>
                         <div className="stat-value">{stats.avgHours}</div>
                     </div>
                 </div>
                 <div className="stat-card success">
-                    <div className="stat-icon success">📅</div>
+                    <div className="stat-icon success">🗓️</div>
                     <div className="stat-info">
-                        <h3>Days Tracked</h3>
+                        <h3>Days Logged</h3>
                         <div className="stat-value">{timeLogs.length}</div>
                     </div>
                 </div>
                 <div className="stat-card accent">
-                    <div className="stat-icon accent">⚡</div>
+                    <div className="stat-icon accent">✨</div>
                     <div className="stat-info">
-                        <h3>Current Status</h3>
-                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : 'var(--text-muted)', fontSize: '1.2rem' }}>
-                            {isActive ? '● Currently Active' : '○ Not Logged In'}
+                        <h3>Track Status</h3>
+                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : 'var(--text-muted)', fontSize: '1.1rem', fontWeight: 700 }}>
+                            {isActive ? '🟢 ACTIVE' : '⚪ IDLE'}
                         </div>
                     </div>
                 </div>
             </div>
 
             <div className="card">
-                <h3 className="font-semibold mb-16">Time Logs History</h3>
-                {loading ? <p>Fetching logs...</p> : timeLogs.length === 0 ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 className="font-semibold">Punch History</h3>
+                    <div className="badge badge-outline">Latest first</div>
+                </div>
+
+                {loading ? <p>Loading punch data...</p> : timeLogs.length === 0 ? (
                     <div className="empty-state">
-                        <div className="empty-icon">⏱️</div>
-                        <h3>No time logs found</h3>
-                        <p>Your work hours will appear here once you start scanning.</p>
+                        <div className="empty-icon">📂</div>
+                        <h3>No punch records</h3>
+                        <p>Use the Punch Machine above to record your work hours.</p>
                     </div>
                 ) : (
                     <div className="table-responsive">
@@ -156,19 +188,19 @@ export default function StudentTimeTrackingPage() {
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Login Time</th>
-                                    <th>Logout Time</th>
-                                    <th>Total Duration</th>
+                                    <th>Punch In</th>
+                                    <th>Punch Out</th>
+                                    <th>Duration</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {timeLogs.map(log => (
-                                    <tr key={log.id}>
-                                        <td>{new Date(log.date).toLocaleDateString(undefined, { dateStyle: 'medium' })}</td>
-                                        <td className="text-success font-medium">{new Date(log.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                                        <td className="text-danger font-medium">{log.logout_time ? new Date(log.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                                        <td style={{ fontWeight: 600 }}>
-                                            {log.total_minutes ? `${Math.floor(log.total_minutes / 60)}h ${log.total_minutes % 60}m` : (log.logout_time ? '0m' : 'In Progress...')}
+                                    <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <td>{new Date(log.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+                                        <td className="text-success" style={{ fontWeight: 600 }}>{new Date(log.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td className="text-danger" style={{ fontWeight: 600 }}>{log.logout_time ? new Date(log.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                                        <td style={{ fontWeight: 700, color: 'var(--accent)' }}>
+                                            {log.total_minutes ? `${Math.floor(log.total_minutes / 60)}h ${log.total_minutes % 60}m` : (log.logout_time ? '0m' : <span className="animate-pulse">Tracking...</span>)}
                                         </td>
                                     </tr>
                                 ))}
