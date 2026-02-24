@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Apptech Careers LMS API",
     description="Learning Management System backend for Apptech Careers",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
