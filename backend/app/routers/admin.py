@@ -1,0 +1,434 @@
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select, func, or_, delete
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from passlib.context import CryptContext
+from pydantic import BaseModel
+
+from app.database import get_db
+from app.middleware.auth import get_current_user, require_roles
+from app.models.user import User, Role
+from app.models.course import Course, Batch, BatchStudent
+from app.models.registration import Registration
+from app.models.attendance import LeaveRequest
+from app.models.notification import Notification
+from app.schemas.schemas import (
+    CourseCreate, CourseOut, BatchCreate, BatchOut,
+    StudentCreate, StudentOut, LeaveAction, LeaveOut,
+    RegistrationCreate, RegistrationOut, DashboardStats,
+    UserOut, AdminPasswordChangeRequest
+)
+
+router = APIRouter(prefix="/api/admin", tags=["Admin"])
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+# ─── Dashboard Stats ──────────────────────────────────
+@router.get("/dashboard")
+async def dashboard_stats(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    students = await db.execute(select(func.count(User.id)).where(User.role == Role.STUDENT))
+    courses = await db.execute(select(func.count(Course.id)))
+    batches = await db.execute(select(func.count(Batch.id)))
+    from app.models.lead import Lead
+    leads = await db.execute(select(func.count(Lead.id)))
+    from app.models.placement import Job
+    jobs = await db.execute(select(func.count(Job.id)).where(Job.is_active == True))
+    pending = await db.execute(select(func.count(LeaveRequest.id)).where(LeaveRequest.status == "PENDING"))
+
+    return DashboardStats(
+        total_students=students.scalar() or 0,
+        total_courses=courses.scalar() or 0,
+        total_batches=batches.scalar() or 0,
+        total_leads=leads.scalar() or 0,
+        active_jobs=jobs.scalar() or 0,
+        pending_leaves=pending.scalar() or 0,
+    )
+
+
+# ─── Courses ──────────────────────────────────────────
+@router.get("/courses")
+async def list_courses(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Course).order_by(Course.created_at.desc())
+    )
+    courses = result.scalars().all()
+    out = []
+    for c in courses:
+        batches_q = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == c.id))
+        regs_q = await db.execute(select(func.count(Registration.id)).where(Registration.course_id == c.id))
+        out.append(CourseOut(
+            id=c.id, name=c.name, description=c.description,
+            duration=c.duration, fee=c.fee, is_active=c.is_active,
+            created_at=c.created_at,
+            batch_count=batches_q.scalar() or 0,
+            student_count=regs_q.scalar() or 0,
+        ))
+    return out
+
+
+@router.post("/courses", status_code=201)
+async def create_course(
+    body: CourseCreate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    course = Course(name=body.name, description=body.description, duration=body.duration, fee=body.fee)
+    db.add(course)
+    await db.flush()
+    await db.refresh(course)
+    return CourseOut(
+        id=course.id, name=course.name, description=course.description,
+        duration=course.duration, fee=course.fee, is_active=course.is_active,
+        created_at=course.created_at,
+    )
+
+
+# ─── Batches ──────────────────────────────────────────
+@router.get("/batches")
+async def list_batches(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Batch).order_by(Batch.created_at.desc()))
+    batches = result.scalars().all()
+    out = []
+    for b in batches:
+        course = await db.get(Course, b.course_id)
+        trainer = await db.get(User, b.trainer_id) if b.trainer_id else None
+        stu_q = await db.execute(select(func.count(BatchStudent.id)).where(BatchStudent.batch_id == b.id))
+        out.append(BatchOut(
+            id=b.id, name=b.name, start_date=b.start_date, end_date=b.end_date,
+            is_active=b.is_active,
+            schedule_time=b.schedule_time,
+            course_name=course.name if course else "",
+            trainer_name=trainer.name if trainer else None,
+            student_count=stu_q.scalar() or 0,
+        ))
+    return out
+
+
+@router.post("/batches", status_code=201)
+async def create_batch(
+    body: BatchCreate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    batch = Batch(
+        course_id=body.course_id, name=body.name,
+        start_date=datetime.fromisoformat(body.start_date),
+        end_date=datetime.fromisoformat(body.end_date),
+        schedule_time=body.schedule_time,
+        trainer_id=body.trainer_id or None,
+    )
+    db.add(batch)
+    await db.flush()
+    await db.refresh(batch)
+    course = await db.get(Course, batch.course_id)
+    return BatchOut(
+        id=batch.id, name=batch.name, start_date=batch.start_date,
+        end_date=batch.end_date, is_active=batch.is_active,
+        schedule_time=batch.schedule_time,
+        course_name=course.name if course else "",
+    )
+
+
+# ─── Students ─────────────────────────────────────────
+
+@router.get("/users")
+async def list_users(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    result = await db.execute(select(User).order_by(User.created_at.desc()))
+    users = result.scalars().all()
+    return [UserOut.model_validate(u) for u in users]
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+@router.patch("/users/{user_id}/status")
+async def update_user_status(
+    user_id: str,
+    body: UserStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    target_user = await db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target_user.role == Role.SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Cannot modify SUPER_ADMIN status")
+    
+    target_user.is_active = body.is_active
+    await db.flush()
+    return {"status": "updated", "is_active": target_user.is_active}
+
+
+@router.patch("/users/{user_id}/password")
+async def update_user_password(
+    user_id: str,
+    body: AdminPasswordChangeRequest,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    target_user = await db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if _user.role == Role.ADMIN and target_user.role in [Role.SUPER_ADMIN, Role.ADMIN]:
+        raise HTTPException(status_code=403, detail="Admins cannot change passwords for other Admins or Super Admins")
+        
+    if _user.role == Role.SUPER_ADMIN and target_user.role == Role.SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Cannot change password for SUPER_ADMIN")
+        
+    hashed = pwd_context.hash(body.new_password)
+    target_user.password = hashed
+    await db.flush()
+    return {"status": "password_updated"}
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN)) # Only Super Admin can delete
+):
+    target_user = await db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target_user.role == Role.SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Cannot delete SUPER_ADMIN")
+    
+    await db.delete(target_user)
+    await db.flush()
+    return {"status": "deleted"}
+
+# ─── Students ─────────────────────────────────────────
+@router.get("/students")
+async def list_students(role: str = "STUDENT", all: str = "", db: AsyncSession = Depends(get_db)):
+    if all == "true":
+        result = await db.execute(select(User).order_by(User.created_at.desc()))
+    else:
+        result = await db.execute(
+            select(User).where(User.role == role).order_by(User.created_at.desc())
+        )
+    users = result.scalars().all()
+    return [StudentOut.model_validate(u) for u in users]
+
+
+@router.post("/students", status_code=201)
+async def create_student(
+    body: StudentCreate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+):
+    # Check duplicate
+    result = await db.execute(select(User).where(User.email == body.email))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    hashed = pwd_context.hash(body.password)
+    student_id = None
+    if body.role == "STUDENT":
+        count_q = await db.execute(select(func.count(User.id)).where(User.role == Role.STUDENT))
+        count = count_q.scalar() or 0
+        student_id = f"APC-{datetime.now().year}-{count + 1:04d}"
+
+    user = User(
+        email=body.email, password=hashed, name=body.name,
+        phone=body.phone, role=body.role, student_id=student_id,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+    return StudentOut.model_validate(user)
+
+
+# ─── Registrations ────────────────────────────────────
+@router.get("/registrations")
+async def list_registrations(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Registration).order_by(Registration.created_at.desc()))
+    regs = result.scalars().all()
+    out = []
+    for r in regs:
+        student = await db.get(User, r.student_id)
+        course = await db.get(Course, r.course_id)
+        batch = await db.get(Batch, r.batch_id) if r.batch_id else None
+        out.append(RegistrationOut(
+            id=r.id,
+            student_name=student.name if student else "",
+            student_email=student.email if student else "",
+            student_sid=student.student_id if student else None,
+            course_name=course.name if course else "",
+            batch_name=batch.name if batch else None,
+            fee_amount=r.fee_amount, fee_paid=r.fee_paid,
+            status=r.status, created_at=r.created_at,
+        ))
+    return out
+
+
+@router.post("/registrations", status_code=201)
+async def create_registration(
+    body: RegistrationCreate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    reg = Registration(
+        student_id=body.student_id, course_id=body.course_id,
+        batch_id=body.batch_id, fee_amount=body.fee_amount, fee_paid=body.fee_paid,
+    )
+    db.add(reg)
+    await db.flush()
+    await db.refresh(reg)
+    student = await db.get(User, reg.student_id)
+    course = await db.get(Course, reg.course_id)
+    return RegistrationOut(
+        id=reg.id, student_name=student.name if student else "",
+        course_name=course.name if course else "",
+        fee_amount=reg.fee_amount, fee_paid=reg.fee_paid,
+        status=reg.status, created_at=reg.created_at,
+    )
+
+
+# ─── Leaves ───────────────────────────────────────────
+@router.get("/leaves")
+async def list_leaves(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(LeaveRequest).order_by(LeaveRequest.created_at.desc()))
+    leaves = result.scalars().all()
+    out = []
+    for l in leaves:
+        user = await db.get(User, l.user_id)
+        approver = await db.get(User, l.approved_by_id) if l.approved_by_id else None
+        out.append(LeaveOut(
+            id=l.id,
+            user_name=user.name if user else "",
+            user_role=user.role.value if user else "",
+            user_student_id=user.student_id if user else None,
+            start_date=l.start_date, end_date=l.end_date,
+            reason=l.reason, status=l.status.value,
+            approved_by_name=approver.name if approver else None,
+            created_at=l.created_at,
+        ))
+    return out
+
+
+@router.patch("/leaves")
+async def action_leave(
+    body: LeaveAction,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+):
+    leave = await db.get(LeaveRequest, body.id)
+    if not leave:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    leave.status = body.status
+    if body.approved_by_id:
+        leave.approved_by_id = body.approved_by_id
+    await db.flush()
+    return {"status": "updated"}
+
+
+# ─── Notifications ────────────────────────────────────
+class SendNotificationRequest(BaseModel):
+    title: str
+    message: str
+    target: str  # "ALL", "USER", or "ROLE"
+    user_id: str | None = None
+    role: str | None = None
+
+@router.get("/notifications")
+async def list_notifications(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    # Group by title and message for SQLite compatibility to mimic distinct on specific columns
+    result = await db.execute(
+        select(Notification)
+        .where(Notification.reference_id.in_(["admin_broadcast", "admin_direct"]))
+        .group_by(Notification.title, Notification.message)
+        .order_by(Notification.created_at.desc())
+        .limit(50)
+    )
+    notifs = result.scalars().all()
+    return [
+        {
+            "id": n.id, "title": n.title, "message": n.message,
+            "read": n.read, "created_at": n.created_at.isoformat() if n.created_at else None,
+        }
+        for n in notifs
+    ]
+
+@router.delete("/notifications/all")
+async def delete_all_notifications(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    from app.models.notification import Notification
+    await db.execute(
+        delete(Notification).where(
+            Notification.reference_id.in_(["admin_broadcast", "admin_direct"])
+        )
+    )
+    await db.flush()
+    return {"status": "deleted_all"}
+
+@router.delete("/notifications/{notification_id}")
+async def delete_notification(
+    notification_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    from app.models.notification import Notification
+    result = await db.execute(
+        delete(Notification).where(
+            Notification.id == notification_id,
+            Notification.reference_id.in_(["admin_broadcast", "admin_direct"])
+        )
+    )
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    await db.flush()
+    return {"status": "deleted"}
+
+@router.post("/notifications/send", status_code=201)
+async def send_notification(
+    body: SendNotificationRequest,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    from app.models.notification import Notification
+
+    if body.target == "ALL":
+        result = await db.execute(select(User).where(User.is_active == True))
+        users = result.scalars().all()
+        for u in users:
+            n = Notification(user_id=u.id, title=body.title, message=body.message, type="SYSTEM", reference_id="admin_broadcast")
+            db.add(n)
+        await db.flush()
+        return {"status": "sent", "count": len(users)}
+        
+    elif body.target == "ROLE" and body.role:
+        result = await db.execute(select(User).where(User.is_active == True, User.role == body.role))
+        users = result.scalars().all()
+        if not users:
+            raise HTTPException(status_code=404, detail=f"No active users found with role {body.role}")
+        
+        for u in users:
+            n = Notification(user_id=u.id, title=body.title, message=body.message, type="SYSTEM", reference_id="admin_broadcast")
+            db.add(n)
+        await db.flush()
+        return {"status": "sent", "count": len(users)}
+
+    elif body.target == "USER" and body.user_id:
+        user = await db.get(User, body.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        n = Notification(user_id=user.id, title=body.title, message=body.message, type="SYSTEM", reference_id="admin_direct")
+
+        db.add(n)
+        await db.flush()
+        return {"status": "sent", "count": 1}
+        
+    raise HTTPException(status_code=400, detail="Invalid target or missing parameters")

@@ -1,0 +1,498 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../backend/apptech_lms.db"
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TRAINER
+  STUDENT
+  MARKETER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  CONVERTED
+  LOST
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  ON_LEAVE
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum JobApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW
+  SELECTED
+  REJECTED
+}
+
+enum AssessmentType {
+  CODING
+  APTITUDE
+}
+
+enum MessageChannel {
+  EMAIL
+  WHATSAPP
+  IN_APP
+}
+
+// ─── Users ───────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  role          Role      @default(STUDENT)
+  avatar        String?
+  studentId     String?   @unique
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  trainerBatches    Batch[]              @relation("BatchTrainer")
+  studentBatches    BatchStudent[]
+  leadsAssigned     Lead[]               @relation("LeadAssignee")
+  leadsCreated      Lead[]               @relation("LeadCreator")
+  registrations     Registration[]
+  documents         Document[]
+  attendance        Attendance[]
+  leaveRequests     LeaveRequest[]       @relation("LeaveRequester")
+  leavesApproved    LeaveRequest[]       @relation("LeaveApprover")
+  tasksAssigned     Task[]
+  feedback          Feedback[]           @relation("FeedbackStudent")
+  feedbackGiven     Feedback[]           @relation("FeedbackCreator")
+  jobApplications   JobApplication[]
+  assessmentSubs    AssessmentSubmission[]
+  mockInterviews    MockInterview[]
+  notifications     Notification[]
+  commPractice      CommunicationPractice[]
+  sentMessages      Message[]            @relation("MessageSender")
+  receivedMessages  Message[]            @relation("MessageRecipient")
+  timeTracking      TimeTracking[]
+  leadActivities    LeadActivity[]
+
+  @@map("users")
+}
+
+// ─── Courses & Batches ───────────────────────────────────
+
+model Course {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  duration    String?
+  fee         Float     @default(0)
+  materials   String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  batches       Batch[]
+  registrations Registration[]
+  assessments   Assessment[]
+
+  @@map("courses")
+}
+
+model Batch {
+  id          String    @id @default(uuid())
+  courseId     String
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  scheduleTime String?
+  trainerId   String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  course      Course          @relation(fields: [courseId], references: [id])
+  trainer     User?           @relation("BatchTrainer", fields: [trainerId], references: [id])
+  students    BatchStudent[]
+  attendance  Attendance[]
+  projects    Project[]
+  videos      Video[]
+  feedback    Feedback[]
+  registrations Registration[]
+
+  @@map("batches")
+}
+
+model BatchStudent {
+  id        String   @id @default(uuid())
+  batchId   String
+  studentId String
+  joinedAt  DateTime @default(now())
+
+  batch   Batch @relation(fields: [batchId], references: [id])
+  student User  @relation(fields: [studentId], references: [id])
+
+  @@unique([batchId, studentId])
+  @@map("batch_students")
+}
+
+// ─── Marketing ───────────────────────────────────────────
+
+model Lead {
+  id          String      @id @default(uuid())
+  name        String
+  email       String?
+  phone       String?
+  source      String?
+  status      LeadStatus  @default(NEW)
+  notes       String?
+  assignedToId String?
+  createdById  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  assignedTo  User?          @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  createdBy   User?          @relation("LeadCreator", fields: [createdById], references: [id])
+  activities  LeadActivity[]
+
+  @@map("leads")
+}
+
+model LeadActivity {
+  id          String    @id @default(uuid())
+  leadId      String
+  type        String    // CALL, EMAIL, WHATSAPP, NOTE
+  message     String?
+  channel     MessageChannel?
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  response    String?
+  userId      String?
+  createdAt   DateTime  @default(now())
+
+  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id])
+
+  @@map("lead_activities")
+}
+
+// ─── Admin / Registration ────────────────────────────────
+
+model Registration {
+  id          String    @id @default(uuid())
+  studentId   String
+  courseId     String
+  batchId     String?
+  feeAmount   Float     @default(0)
+  feePaid     Float     @default(0)
+  receiptUrl  String?
+  status      String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  student   User    @relation(fields: [studentId], references: [id])
+  course    Course  @relation(fields: [courseId], references: [id])
+  batch     Batch?  @relation(fields: [batchId], references: [id])
+
+  @@map("registrations")
+}
+
+model Document {
+  id          String    @id @default(uuid())
+  studentId   String
+  type        String    // ID_PROOF, PHOTO, CERTIFICATE, etc.
+  fileName    String
+  fileUrl     String
+  verified    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@map("documents")
+}
+
+// ─── Attendance & Leave ──────────────────────────────────
+
+model Attendance {
+  id          String           @id @default(uuid())
+  studentId   String
+  batchId     String
+  date        DateTime
+  status      AttendanceStatus @default(PRESENT)
+  loginTime   DateTime?
+  logoutTime  DateTime?
+  totalHours  Float?
+  remarks     String?
+  createdAt   DateTime         @default(now())
+
+  student User  @relation(fields: [studentId], references: [id])
+  batch   Batch @relation(fields: [batchId], references: [id])
+
+  @@unique([studentId, batchId, date])
+  @@map("attendance")
+}
+
+model LeaveRequest {
+  id          String      @id @default(uuid())
+  userId      String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  status      LeaveStatus @default(PENDING)
+  approvedById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user       User  @relation("LeaveRequester", fields: [userId], references: [id])
+  approvedBy User? @relation("LeaveApprover", fields: [approvedById], references: [id])
+
+  @@map("leave_requests")
+}
+
+model TimeTracking {
+  id          String    @id @default(uuid())
+  userId      String
+  date        DateTime
+  loginTime   DateTime
+  logoutTime  DateTime?
+  totalMinutes Int?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("time_tracking")
+}
+
+// ─── Training (Projects & Tasks) ─────────────────────────
+
+model Project {
+  id          String    @id @default(uuid())
+  batchId     String
+  title       String
+  description String?
+  deadline    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  batch Batch  @relation(fields: [batchId], references: [id])
+  tasks Task[]
+
+  @@map("projects")
+}
+
+model Task {
+  id            String     @id @default(uuid())
+  projectId     String
+  studentId     String?
+  title         String
+  description   String?
+  deadline      DateTime?
+  status        TaskStatus @default(PENDING)
+  violationFlag Boolean    @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  student User?   @relation(fields: [studentId], references: [id])
+
+  @@map("tasks")
+}
+
+// ─── Videos ──────────────────────────────────────────────
+
+model Video {
+  id          String    @id @default(uuid())
+  batchId     String
+  title       String
+  description String?
+  videoUrl    String
+  duration    String?
+  timeline    String?   // JSON string of chapters
+  createdAt   DateTime  @default(now())
+
+  batch Batch @relation(fields: [batchId], references: [id])
+
+  @@map("videos")
+}
+
+// ─── Feedback ────────────────────────────────────────────
+
+model Feedback {
+  id          String    @id @default(uuid())
+  studentId   String
+  batchId     String
+  week        Int
+  rating      Int       @default(0)
+  comments    String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  student   User  @relation("FeedbackStudent", fields: [studentId], references: [id])
+  batch     Batch @relation(fields: [batchId], references: [id])
+  createdBy User? @relation("FeedbackCreator", fields: [createdById], references: [id])
+
+  @@unique([studentId, batchId, week])
+  @@map("feedback")
+}
+
+// ─── Placement ───────────────────────────────────────────
+
+model Job {
+  id          String    @id @default(uuid())
+  title       String
+  company     String
+  description String?
+  location    String?
+  salary      String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  applications JobApplication[]
+
+  @@map("jobs")
+}
+
+model JobApplication {
+  id              String               @id @default(uuid())
+  jobId           String
+  studentId       String
+  resumeUrl       String?
+  videoResumeUrl  String?
+  status          JobApplicationStatus @default(APPLIED)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  job     Job  @relation(fields: [jobId], references: [id])
+  student User @relation(fields: [studentId], references: [id])
+
+  @@unique([jobId, studentId])
+  @@map("job_applications")
+}
+
+// ─── Assessments ─────────────────────────────────────────
+
+model Assessment {
+  id          String          @id @default(uuid())
+  title       String
+  type        AssessmentType
+  courseId     String?
+  questions   String          // JSON string
+  duration    Int?            // minutes
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+
+  course      Course?                @relation(fields: [courseId], references: [id])
+  submissions AssessmentSubmission[]
+
+  @@map("assessments")
+}
+
+model AssessmentSubmission {
+  id            String    @id @default(uuid())
+  assessmentId  String
+  studentId     String
+  answers       String    // JSON string
+  score         Float?
+  submittedAt   DateTime  @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assessmentId, studentId])
+  @@map("assessment_submissions")
+}
+
+// ─── Mock Interviews ─────────────────────────────────────
+
+model MockInterview {
+  id          String    @id @default(uuid())
+  studentId   String
+  scheduledAt DateTime
+  feedback    String?
+  score       Float?
+  reportUrl   String?
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@map("mock_interviews")
+}
+
+// ─── Communication Practice ──────────────────────────────
+
+model CommunicationPractice {
+  id           String    @id @default(uuid())
+  studentId    String
+  type         String    // SPEECH, PRESENTATION, GROUP_DISCUSSION
+  recordingUrl String?
+  feedback     String?
+  score        Float?
+  createdAt    DateTime  @default(now())
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@map("communication_practice")
+}
+
+// ─── Notifications ───────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean   @default(false)
+  link      String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// ─── Messaging ───────────────────────────────────────────
+
+model Message {
+  id           String         @id @default(uuid())
+  senderId     String
+  recipientId  String?
+  channel      MessageChannel @default(IN_APP)
+  subject      String?
+  content      String
+  sentAt       DateTime       @default(now())
+  readAt       DateTime?
+
+  sender    User  @relation("MessageSender", fields: [senderId], references: [id])
+  recipient User? @relation("MessageRecipient", fields: [recipientId], references: [id])
+
+  @@map("messages")
+}

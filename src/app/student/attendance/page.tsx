@@ -1,0 +1,224 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { apiGet, apiPost, getStoredUser } from '@/lib/api';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+
+interface AttendanceRecord {
+    id: string;
+    date: string;
+    status: string;
+    remarks: string | null;
+}
+
+export default function StudentAttendancePage() {
+    const [records, setRecords] = useState<AttendanceRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showScanner, setShowScanner] = useState(false);
+    const [scanMsg, setScanMsg] = useState('');
+    const [isScanning, setIsScanning] = useState(false);
+    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const user = getStoredUser();
+
+    useEffect(() => {
+        if (user) {
+            loadAttendance();
+        }
+    }, []);
+
+    const loadAttendance = async () => {
+        try {
+            setLoading(true);
+            const data = await apiGet(`/api/training/attendance?student_id=${user.id}`);
+            setRecords(data);
+        } catch (err) {
+            console.error('Failed to load attendance:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const qrCodeRef = useRef<any>(null);
+
+    const startScanner = async () => {
+        const { Html5Qrcode } = await import('html5-qrcode');
+        setShowScanner(true);
+        setScanMsg('');
+        setIsScanning(true);
+
+        // Small delay to ensure the 'reader' div is in the DOM
+        setTimeout(async () => {
+            try {
+                const html5QrCode = new Html5Qrcode("reader");
+                qrCodeRef.current = html5QrCode;
+
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                };
+
+                // Explicitly request back camera (environment)
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    onScanSuccess,
+                    undefined // Ignore manual errors
+                );
+            } catch (err: any) {
+                console.error("Scanner startup error:", err);
+                setScanMsg(`Camera Error: ${err?.message || 'Access denied'}`);
+                setIsScanning(false);
+            }
+        }, 300);
+    };
+
+    const stopScanner = async () => {
+        if (qrCodeRef.current && qrCodeRef.current.isScanning) {
+            try {
+                await qrCodeRef.current.stop();
+            } catch (err) {
+                console.error("Failed to stop scanner:", err);
+            }
+        }
+        qrCodeRef.current = null;
+        setShowScanner(false);
+        setIsScanning(false);
+    };
+
+    const onScanSuccess = async (decodedText: string) => {
+        // Stop scanning immediately on success
+        if (qrCodeRef.current) {
+            await stopScanner();
+        }
+
+        try {
+            setScanMsg('Processing QR code...');
+            const res = await apiPost('/api/auth/attendance/scan', { qr_token: decodedText });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert(data.message || 'Attendance marked successfully!');
+                loadAttendance();
+            } else {
+                alert(`Scanning Failed: ${data.detail || 'Invalid QR'}`);
+            }
+        } catch (err) {
+            alert('Failed to connect to server.');
+        }
+    };
+
+    const onScanFailure = () => {
+        // Handle scan failure if needed
+    };
+
+    const downloadCSV = () => {
+        if (records.length === 0) return;
+        const rows = [['Date', 'Status', 'Remarks']];
+        records.forEach(r => {
+            rows.push([r.date.split('T')[0], r.status, r.remarks || '']);
+        });
+        const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `my_attendance_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const presentDays = records.filter(r => r.status === 'PRESENT').length;
+    const statsPercentage = records.length > 0 ? Math.round((presentDays / records.length) * 100) : 0;
+
+    return (
+        <div className="animate-in">
+            <div className="page-header">
+                <div>
+                    <h1 className="page-title">My Attendance</h1>
+                    <p className="page-subtitle">Track your attendance record and scan QR codes</p>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button className="btn btn-primary" onClick={startScanner} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                        📱 Scan QR Code
+                    </button>
+                    <button className="btn btn-ghost" onClick={downloadCSV} disabled={records.length === 0}>
+                        📥 Download CSV
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid-4 mb-24">
+                <div className="stat-card primary"><div className="stat-icon primary">✅</div><div className="stat-info"><h3>Present</h3><div className="stat-value">{presentDays}</div></div></div>
+                <div className="stat-card danger"><div className="stat-icon danger">❌</div><div className="stat-info"><h3>Absent</h3><div className="stat-value">{records.filter(r => r.status === 'ABSENT').length}</div></div></div>
+                <div className="stat-card success"><div className="stat-icon success">📊</div><div className="stat-info"><h3>Percentage</h3><div className="stat-value">{statsPercentage}%</div></div></div>
+                <div className="stat-card accent"><div className="stat-icon accent">📅</div><div className="stat-info"><h3>Total Sessions</h3><div className="stat-value">{records.length}</div></div></div>
+            </div>
+
+            <div className="card">
+                <h3 className="font-semibold mb-16">Attendance History</h3>
+                {loading ? <p>Loading attendance...</p> : records.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="empty-icon">📅</div>
+                        <h3>No attendance records</h3>
+                        <p>Your marked attendance will appear here.</p>
+                    </div>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {records.map(r => (
+                                    <tr key={r.id}>
+                                        <td>{new Date(r.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</td>
+                                        <td>
+                                            <span className={`badge ${r.status === 'PRESENT' ? 'badge-success' : r.status === 'ABSENT' ? 'badge-danger' : 'badge-warning'}`}>
+                                                {r.status}
+                                            </span>
+                                        </td>
+                                        <td className="text-muted">{r.remarks || '-'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* QR Scanner Modal — Mobile-Optimized */}
+            {showScanner && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.98)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, padding: '16px' }}
+                    onClick={stopScanner}>
+                    <div style={{ background: '#09090b', borderRadius: '24px', padding: '24px', maxWidth: '420px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 0 50px rgba(0,0,0,0.5)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: '32px', marginBottom: '16px' }}>📱</div>
+                        <h2 style={{ fontSize: '22px', margin: '0 0 8px', color: '#fff', fontWeight: 700 }}>Scan Attendance</h2>
+                        <p style={{ color: '#94a3b8', fontSize: '14px', margin: '0 0 24px' }}>Center the QR code in the box below</p>
+
+                        <div id="reader" style={{ overflow: 'hidden', borderRadius: '16px', border: '2px solid var(--primary)', background: '#000', minHeight: '300px' }}></div>
+
+                        {scanMsg && (
+                            <div style={{
+                                marginTop: '20px', padding: '14px', borderRadius: '14px', fontSize: '14px', fontWeight: 600,
+                                background: scanMsg.includes('Error') ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                                color: scanMsg.includes('Error') ? '#f87171' : '#4ade80',
+                                border: `1px solid ${scanMsg.includes('Error') ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`
+                            }}>
+                                {scanMsg}
+                            </div>
+                        )}
+
+                        <button className="btn btn-danger" style={{ width: '100%', marginTop: '24px', minHeight: '52px', fontSize: '15px', borderRadius: '14px' }} onClick={stopScanner}>✕ Cancel Scanning</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
