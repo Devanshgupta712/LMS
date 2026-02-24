@@ -84,14 +84,17 @@ export default function TimeTrackingPage() {
     const fetchQrConfig = async () => {
         try {
             const data = await apiGet('/api/training/qr-config');
-            setQrSecret(data.qr_secret);
-            setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data.qr_secret}`);
+            if (data?.qr_secret) {
+                setQrSecret(data.qr_secret);
+                setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.qr_secret)}`);
+            }
         } catch (err) {
             console.error('Failed to fetch QR config:', err);
         }
     };
 
     const handleOpenQrModal = async () => {
+        setQrUrl(''); // Reset to prevent showing old QR
         await fetchQrConfig();
         setShowQrModal(true);
     };
@@ -99,12 +102,15 @@ export default function TimeTrackingPage() {
     const handleRegenerateQr = async () => {
         if (!confirm('This will invalidate all current QR codes printed or displayed elsewhere. Trainees must scan the NEW code. Continue?')) return;
         try {
+            setQrUrl('');
             const res = await apiPost('/api/training/qr-config/regenerate', {});
             if (!res.ok) throw new Error('Regeneration failed');
             const data = await res.json();
-            setQrSecret(data.qr_secret);
-            setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data.qr_secret}`);
-            alert('New QR code generated successfully.');
+            if (data?.qr_secret) {
+                setQrSecret(data.qr_secret);
+                setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.qr_secret)}`);
+                alert('New QR code generated successfully.');
+            }
         } catch (err) {
             alert('Failed to regenerate QR code.');
         }
@@ -379,11 +385,19 @@ export default function TimeTrackingPage() {
                             background: '#fff',
                             padding: '24px',
                             borderRadius: '16px',
-                            display: 'inline-block',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             margin: '0 auto 20px',
-                            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                            minWidth: '250px',
+                            minHeight: '250px'
                         }}>
-                            <img src={qrUrl} alt="Permanent Punch QR" width={250} height={250} style={{ display: 'block' }} />
+                            {qrUrl ? (
+                                <img src={qrUrl} alt="Permanent Punch QR" width={250} height={250} style={{ display: 'block' }} />
+                            ) : (
+                                <div className="animate-pulse" style={{ color: 'var(--text-muted)' }}>Generating QR...</div>
+                            )}
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px' }}>
