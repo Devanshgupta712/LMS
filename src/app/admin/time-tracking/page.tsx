@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
 
 interface TimeLog {
     id: string;
@@ -10,10 +10,18 @@ interface TimeLog {
     logout_time: string | null;
     total_minutes: number | null;
     user: {
+        id: string;
         name: string;
         email: string;
         student_id: string | null;
     };
+}
+
+interface UserSummary {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
 }
 
 export default function TimeTrackingPage() {
@@ -24,9 +32,30 @@ export default function TimeTrackingPage() {
     const [showQrModal, setShowQrModal] = useState(false);
     const [qrUrl, setQrUrl] = useState('');
 
+    // Management State
+    const [showManualModal, setShowManualModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingLog, setEditingLog] = useState<TimeLog | null>(null);
+    const [users, setUsers] = useState<UserSummary[]>([]);
+    const [formLoading, setFormLoading] = useState(false);
+
+    // Form State
+    const [formData, setFormData] = useState({
+        user_id: '',
+        date: new Date().toISOString().split('T')[0],
+        login_time: '',
+        logout_time: ''
+    });
+
     useEffect(() => {
         loadData();
     }, [selectedDate]);
+
+    useEffect(() => {
+        if (showManualModal) {
+            loadUsers();
+        }
+    }, [showManualModal]);
 
     const loadData = async () => {
         try {
@@ -41,16 +70,89 @@ export default function TimeTrackingPage() {
         }
     };
 
+    const loadUsers = async () => {
+        try {
+            const data = await apiGet('/api/admin/users');
+            setUsers(data || []);
+        } catch (err) {
+            console.error('Failed to load users:', err);
+        }
+    };
+
     const generateQrCode = () => {
-        // Expiration 24 hours from now
         const expDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-        const payload = {
-            type: "GENERAL_LOGIN",
-            exp: expDate
-        };
+        const payload = { type: "GENERAL_LOGIN", exp: expDate };
         const token = btoa(JSON.stringify(payload));
         setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${token}`);
         setShowQrModal(true);
+    };
+
+    const formatTimeForInput = (isoString: string | null) => {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toTimeString().slice(0, 5); // HH:mm
+    };
+
+    const handleAddManual = () => {
+        setFormData({
+            user_id: '',
+            date: selectedDate,
+            login_time: '09:00',
+            logout_time: '18:00'
+        });
+        setShowManualModal(true);
+    };
+
+    const handleEdit = (log: TimeLog) => {
+        setEditingLog(log);
+        setFormData({
+            user_id: log.user.id,
+            date: log.date.split('T')[0],
+            login_time: formatTimeForInput(log.login_time),
+            logout_time: formatTimeForInput(log.logout_time)
+        });
+        setShowEditModal(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this log?')) return;
+        try {
+            await apiDelete(`/api/training/time-tracking/${id}`);
+            loadData();
+        } catch (err) {
+            alert('Failed to delete log');
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFormLoading(true);
+        try {
+            // Convert HH:mm to ISO
+            const login_iso = new Date(`${formData.date}T${formData.login_time}`).toISOString();
+            const logout_iso = formData.logout_time ? new Date(`${formData.date}T${formData.logout_time}`).toISOString() : null;
+
+            if (showEditModal && editingLog) {
+                await apiPatch(`/api/training/time-tracking/${editingLog.id}`, {
+                    login_time: login_iso,
+                    logout_time: logout_iso
+                });
+            } else {
+                await apiPost('/api/training/time-tracking', {
+                    user_id: formData.user_id,
+                    date: formData.date,
+                    login_time: login_iso,
+                    logout_time: logout_iso
+                });
+            }
+            setShowManualModal(false);
+            setShowEditModal(false);
+            loadData();
+        } catch (err) {
+            alert('Operation failed. Please check inputs.');
+        } finally {
+            setFormLoading(false);
+        }
     };
 
     const formatTime = (isoString: string | null) => {
@@ -70,9 +172,9 @@ export default function TimeTrackingPage() {
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                     <h1 className="page-title">Time Tracking</h1>
-                    <p className="page-subtitle">Monitor student and trainer login hours</p>
+                    <p className="page-subtitle">Monitor and manage trainee work hours</p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <input
                         type="date"
                         value={selectedDate}
@@ -80,6 +182,9 @@ export default function TimeTrackingPage() {
                         className="form-control"
                         style={{ width: 'auto' }}
                     />
+                    <button className="btn btn-ghost" onClick={handleAddManual}>
+                        ➕ Manual Entry
+                    </button>
                     <button className="btn btn-primary" onClick={generateQrCode} style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)' }}>
                         📸 Show General QR
                     </button>
@@ -117,6 +222,7 @@ export default function TimeTrackingPage() {
                                     <th>Logout Time</th>
                                     <th>Total Duration</th>
                                     <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -145,6 +251,12 @@ export default function TimeTrackingPage() {
                                                 <span className="badge badge-warning">Active Now</span>
                                             )}
                                         </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(log)}>✏️</button>
+                                                <button className="btn btn-ghost btn-sm text-danger" onClick={() => handleDelete(log.id)}>🗑️</button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -152,6 +264,76 @@ export default function TimeTrackingPage() {
                     </div>
                 )}
             </div>
+
+            {/* Manual Entry / Edit Modal */}
+            {(showManualModal || showEditModal) && (
+                <div className="modal-backdrop" onClick={() => { setShowManualModal(false); setShowEditModal(false); }}>
+                    <div className="modal card" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+                        <h3 className="mb-24">{showEditModal ? 'Edit Time Log' : 'Add Manual Entry'}</h3>
+                        <form onSubmit={handleSubmit}>
+                            {!showEditModal && (
+                                <div className="form-group mb-16">
+                                    <label>Select Trainee</label>
+                                    <select
+                                        className="form-control"
+                                        required
+                                        value={formData.user_id}
+                                        onChange={e => setFormData({ ...formData, user_id: e.target.value })}
+                                    >
+                                        <option value="">-- Choose Trainee --</option>
+                                        {users.map(u => (
+                                            <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            <div className="form-group mb-16">
+                                <label>Date</label>
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    required
+                                    disabled={showEditModal}
+                                    value={formData.date}
+                                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid-2 mb-24">
+                                <div className="form-group">
+                                    <label>Punch In Time</label>
+                                    <input
+                                        type="time"
+                                        className="form-control"
+                                        required
+                                        value={formData.login_time}
+                                        onChange={e => setFormData({ ...formData, login_time: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Punch Out Time</label>
+                                    <input
+                                        type="time"
+                                        className="form-control"
+                                        value={formData.logout_time}
+                                        onChange={e => setFormData({ ...formData, logout_time: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button type="button" className="btn btn-ghost" onClick={() => { setShowManualModal(false); setShowEditModal(false); }} style={{ flex: 1 }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary" disabled={formLoading} style={{ flex: 2 }}>
+                                    {formLoading ? 'Saving...' : 'Save Log'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* General QR Modal */}
             {showQrModal && (

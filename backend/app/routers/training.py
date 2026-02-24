@@ -701,3 +701,93 @@ async def get_time_tracking(
 
     return {"logs": out_logs, "stats": stats}
 
+@router.post("/time-tracking")
+async def create_time_tracking(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_user),
+):
+    if admin.role == Role.STUDENT:
+        raise HTTPException(status_code=403, detail="Students cannot manually add logs")
+        
+    from app.models.attendance import TimeTracking
+    from app.models.user import User
+    
+    user_id = body.get("user_id")
+    date_str = body.get("date")
+    login_str = body.get("login_time")
+    logout_str = body.get("logout_time")
+    
+    if not all([user_id, date_str, login_str]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+        
+    target_user = await db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    date_obj = datetime.fromisoformat(date_str).replace(hour=0, minute=0, second=0, microsecond=0)
+    login_time = datetime.fromisoformat(login_str)
+    logout_time = datetime.fromisoformat(logout_str) if logout_str else None
+    
+    total_minutes = None
+    if logout_time:
+        diff = logout_time - login_time
+        total_minutes = int(diff.total_seconds() / 60)
+        
+    log = TimeTracking(
+        user_id=user_id,
+        date=date_obj,
+        login_time=login_time,
+        logout_time=logout_time,
+        total_minutes=total_minutes
+    )
+    db.add(log)
+    await db.flush()
+    return {"status": "success", "id": log.id}
+
+@router.patch("/time-tracking/{log_id}")
+async def update_time_tracking(
+    log_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_user),
+):
+    if admin.role == Role.STUDENT:
+        raise HTTPException(status_code=403, detail="Students cannot edit logs")
+        
+    from app.models.attendance import TimeTracking
+    log = await db.get(TimeTracking, log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+        
+    if "login_time" in body:
+        log.login_time = datetime.fromisoformat(body["login_time"])
+    if "logout_time" in body:
+        log.logout_time = datetime.fromisoformat(body["logout_time"]) if body["logout_time"] else None
+        
+    if log.login_time and log.logout_time:
+        diff = log.logout_time - log.login_time
+        log.total_minutes = int(diff.total_seconds() / 60)
+    else:
+        log.total_minutes = None
+        
+    await db.flush()
+    return {"status": "success"}
+
+@router.delete("/time-tracking/{log_id}")
+async def delete_time_tracking(
+    log_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_user),
+):
+    if admin.role == Role.STUDENT:
+        raise HTTPException(status_code=403, detail="Students cannot delete logs")
+        
+    from app.models.attendance import TimeTracking
+    log = await db.get(TimeTracking, log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+        
+    await db.delete(log)
+    await db.flush()
+    return {"status": "success"}
