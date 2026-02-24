@@ -2,9 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
+    // Use configured API URL, or fall back to the production Render backend
     const apiDestination = process.env.NEXT_PUBLIC_API_URL
       ? `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`
-      : "http://127.0.0.1:8000/api/:path*";
+      : "https://lms-api-bkuw.onrender.com/api/:path*";
 
     return [
       {
