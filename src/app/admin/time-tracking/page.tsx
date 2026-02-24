@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPatch, apiDelete, apiFetch } from '@/lib/api';
 
 interface TimeLog {
     id: string;
@@ -81,38 +81,53 @@ export default function TimeTrackingPage() {
 
     const [qrSecret, setQrSecret] = useState('');
 
+    const [qrError, setQrError] = useState('');
+
     const fetchQrConfig = async () => {
         try {
-            const data = await apiGet('/api/training/qr-config');
+            setQrError('');
+            const res = await apiFetch('/api/training/qr-config');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Server error: ${res.status}`);
+            }
+            const data = await res.json();
             if (data?.qr_secret) {
                 setQrSecret(data.qr_secret);
                 setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.qr_secret)}`);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to fetch QR config:', err);
+            setQrError(err.message || 'Failed to connect to backend.');
         }
     };
 
     const handleOpenQrModal = async () => {
-        setQrUrl(''); // Reset to prevent showing old QR
-        await fetchQrConfig();
+        setQrUrl('');
+        setQrError('');
         setShowQrModal(true);
+        await fetchQrConfig();
     };
 
     const handleRegenerateQr = async () => {
         if (!confirm('This will invalidate all current QR codes printed or displayed elsewhere. Trainees must scan the NEW code. Continue?')) return;
         try {
             setQrUrl('');
+            setQrError('');
             const res = await apiPost('/api/training/qr-config/regenerate', {});
-            if (!res.ok) throw new Error('Regeneration failed');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Regeneration failed: ${res.status}`);
+            }
             const data = await res.json();
             if (data?.qr_secret) {
                 setQrSecret(data.qr_secret);
                 setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.qr_secret)}`);
                 alert('New QR code generated successfully.');
             }
-        } catch (err) {
-            alert('Failed to regenerate QR code.');
+        } catch (err: any) {
+            alert(err.message || 'Failed to regenerate QR code.');
+            setQrError(err.message || 'Regeneration failed.');
         }
     };
 
@@ -395,6 +410,10 @@ export default function TimeTrackingPage() {
                         }}>
                             {qrUrl ? (
                                 <img src={qrUrl} alt="Permanent Punch QR" width={250} height={250} style={{ display: 'block' }} />
+                            ) : qrError ? (
+                                <div style={{ color: '#ef4444', padding: '20px', fontSize: '14px' }}>
+                                    ⚠️ {qrError}
+                                </div>
                             ) : (
                                 <div className="animate-pulse" style={{ color: 'var(--text-muted)' }}>Generating QR...</div>
                             )}
