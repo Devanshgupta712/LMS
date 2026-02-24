@@ -10,6 +10,7 @@ from app.database import engine, Base
 from app.models import *  # noqa: F401, F403
 
 from app.routers import auth, admin, marketing, training, placement
+from app.seed import seed as run_seed
 
 
 @asynccontextmanager
@@ -56,3 +57,13 @@ app.include_router(placement.router)
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "app": "Apptech Careers LMS"}
+
+
+@app.get("/api/seed-db")
+async def trigger_seed():
+    """Temporary endpoint to seed DB since Shell is paid on Render"""
+    try:
+        await run_seed()
+        return {"status": "success", "message": "Database seeded!"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
