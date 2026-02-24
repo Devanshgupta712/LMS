@@ -10,6 +10,13 @@ if db_url.startswith("postgres://"):
 elif db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+# Remove 'sslmode' from query parameters as it's not supported by asyncpg and causes crashes
+if "?" in db_url:
+    base_url, query = db_url.split("?", 1)
+    params = query.split("&")
+    params = [p for p in params if not p.startswith("sslmode=")]
+    db_url = f"{base_url}?{'&'.join(params)}" if params else base_url
+
 if db_url.startswith("sqlite"):
     engine = create_async_engine(
         db_url, 
@@ -17,7 +24,7 @@ if db_url.startswith("sqlite"):
         connect_args={"check_same_thread": False}
     )
 else:
-    # Managed Postgres often requires SSL
+    # Managed Postgres requires SSL, but asyncpg uses 'ssl' instead of 'sslmode'
     engine = create_async_engine(
         db_url, 
         echo=False,
