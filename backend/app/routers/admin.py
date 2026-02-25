@@ -21,6 +21,9 @@ from app.schemas.schemas import (
     UserOut, AdminPasswordChangeRequest
 )
 
+class AssignBatchRequest(BaseModel):
+    batch_id: str
+
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 def get_password_hash(password: str) -> str:
@@ -261,6 +264,67 @@ async def create_student(
     await db.flush()
     await db.refresh(user)
     return StudentOut.model_validate(user)
+
+
+@router.post("/users/{user_id}/assign-batch")
+async def assign_student_batch(
+    user_id: str,
+    body: AssignBatchRequest,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    # 1. Verify student
+    student = await db.get(User, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # 2. Verify batch
+    batch = await db.get(Batch, body.batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    
+    # 3. Check if already in this batch
+    existing = await db.execute(
+        select(BatchStudent).where(
+            BatchStudent.batch_id == body.batch_id,
+            BatchStudent.student_id == user_id
+        )
+    )
+    if existing.scalar_one_or_none():
+        return {"status": "success", "message": "Student is already in this batch"}
+    
+    # 4. Link Student to Batch
+    link = BatchStudent(batch_id=body.batch_id, student_id=user_id)
+    db.add(link)
+    
+    # 5. Ensure Registration exists for this course/student
+    # (Attendance and other systems often rely on Registration records)
+    reg_result = await db.execute(
+        select(Registration).where(
+            Registration.student_id == user_id,
+            Registration.course_id == batch.course_id
+        )
+    )
+    reg = reg_result.scalar_one_or_none()
+    
+    if not reg:
+        # Create a default registration if missing
+        reg = Registration(
+            student_id=user_id,
+            course_id=batch.course_id,
+            batch_id=body.batch_id,
+            fee_amount=0.0,
+            fee_paid=0.0,
+            status="CONFIRMED"
+        )
+        db.add(reg)
+    else:
+        # Update existing registration with this batch if it was empty
+        if not reg.batch_id:
+            reg.batch_id = body.batch_id
+            
+    await db.flush()
+    return {"status": "success", "message": f"Student assigned to batch {batch.name}"}
 
 
 # ─── Registrations ────────────────────────────────────

@@ -13,6 +13,8 @@ export default function UsersPage() {
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [passwordModal, setPasswordModal] = useState({ show: false, targetUser: null as UserItem | null, newPassword: '' });
+    const [assignModal, setAssignModal] = useState({ show: false, targetUser: null as UserItem | null, batchId: '' });
+    const [batches, setBatches] = useState<{ id: string; name: string }[]>([]);
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'TRAINER', phone: '' });
 
     useEffect(() => {
@@ -22,7 +24,17 @@ export default function UsersPage() {
             setIsAdmin(user.role === 'ADMIN');
         }
         loadUsers();
+        loadBatches();
     }, []);
+
+    const loadBatches = async () => {
+        try {
+            const data = await apiGet('/api/admin/batches');
+            setBatches(data);
+        } catch (err) {
+            console.error("Error loading batches:", err);
+        }
+    };
 
     const loadUsers = async () => {
         try { setUsers(await apiGet('/api/admin/students?all=true')); } catch { } finally { setLoading(false); }
@@ -80,6 +92,21 @@ export default function UsersPage() {
         }
     };
 
+    const handleAssignBatch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!assignModal.targetUser || !assignModal.batchId) return;
+        try {
+            await apiPost(`/api/admin/users/${assignModal.targetUser.id}/assign-batch`, {
+                batch_id: assignModal.batchId
+            });
+            setAssignModal({ show: false, targetUser: null, batchId: '' });
+            alert('Batch assigned successfully!');
+            loadUsers();
+        } catch (err: any) {
+            alert('Error assigning batch: ' + (err.message || 'Unknown error'));
+        }
+    };
+
     return (
         <div className="animate-in">
             <div className="page-header">
@@ -118,8 +145,16 @@ export default function UsersPage() {
                                                 disabled={(isAdmin && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) || (isSuperAdmin && u.role === 'SUPER_ADMIN')}
                                                 style={{ opacity: ((isAdmin && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) || (isSuperAdmin && u.role === 'SUPER_ADMIN')) ? 0.3 : 1 }}
                                             >
-                                                Change Password
+                                                Password
                                             </button>
+                                            {u.role === 'STUDENT' && (
+                                                <button
+                                                    className="btn btn-sm btn-accent"
+                                                    onClick={() => setAssignModal({ show: true, targetUser: u, batchId: '' })}
+                                                >
+                                                    Assign Batch
+                                                </button>
+                                            )}
                                             <button
                                                 className={`btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'}`}
                                                 onClick={() => handleToggleStatus(u)}
@@ -191,6 +226,34 @@ export default function UsersPage() {
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
                                 <button type="button" className="btn btn-ghost" onClick={() => setPasswordModal({ show: false, targetUser: null, newPassword: '' })}>Cancel</button>
                                 <button type="submit" className="btn btn-primary">Save Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {assignModal.show && assignModal.targetUser && (
+                <div className="modal-overlay" onClick={() => setAssignModal({ show: false, targetUser: null, batchId: '' })}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h2 className="modal-title">Assign Batch to {assignModal.targetUser.name}</h2>
+                        <form onSubmit={handleAssignBatch} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div className="form-group">
+                                <label>Select Batch</label>
+                                <select
+                                    className="form-input"
+                                    required
+                                    value={assignModal.batchId}
+                                    onChange={e => setAssignModal({ ...assignModal, batchId: e.target.value })}
+                                >
+                                    <option value="">-- Choose a Batch --</option>
+                                    {batches.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                <button type="button" className="btn btn-ghost" onClick={() => setAssignModal({ show: false, targetUser: null, batchId: '' })}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Assign Batch</button>
                             </div>
                         </form>
                     </div>
