@@ -84,6 +84,7 @@ export default function StudentTimeTrackingPage() {
         success: boolean;
         message: string;
         session?: any;
+        status?: string;
     } | null>(null);
 
     const onScanSuccess = async (decodedText: string) => {
