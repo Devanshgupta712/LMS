@@ -360,7 +360,9 @@ async def scan_attendance_qr(
     from sqlalchemy import and_, func
     
     now = datetime.now(timezone.utc)
-    today = now.date()
+    # Use IST for determining "Today" (UTC+5:30)
+    ist_now = now + timedelta(hours=5, minutes=30)
+    today = ist_now.date()
     
     # Check if there is already a TimeTracking record for today
     result = await db.execute(
@@ -369,9 +371,9 @@ async def scan_attendance_qr(
                 TimeTracking.user_id == user.id,
                 func.date(TimeTracking.date) == today
             )
-        )
+        ).order_by(TimeTracking.login_time.desc())
     )
-    time_record = result.scalar_one_or_none()
+    time_record = result.scalars().first()
     
     message = ""
     session_info = {}
@@ -385,6 +387,12 @@ async def scan_attendance_qr(
         )
         db.add(time_record)
         
+        # If batch_id is missing (Universal QR), try to find the student's batch
+        if not batch_id and role_val == "STUDENT":
+            from app.models.course import BatchStudent
+            bs_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
+            batch_id = bs_result.scalars().first()
+
         # Also mark Attendance if batch_id is available
         if batch_id:
             # Check for existing attendance record for this batch/day
@@ -395,9 +403,9 @@ async def scan_attendance_qr(
                         Attendance.batch_id == batch_id,
                         func.date(Attendance.date) == today
                     )
-                )
+                ).order_by(Attendance.login_time.desc())
             )
-            att_record = att_result.scalar_one_or_none()
+            att_record = att_result.scalars().first()
             if not att_record:
                 att_record = Attendance(
                     student_id=user.id,
@@ -432,11 +440,11 @@ async def scan_attendance_qr(
                 and_(
                     Attendance.student_id == user.id,
                     func.date(Attendance.date) == today,
-                     Attendance.logout_time == None
+                    Attendance.logout_time == None
                 )
             ).order_by(Attendance.login_time.desc())
         )
-        att_record = att_result.scalar_one_or_none()
+        att_record = att_result.scalars().first()
         if att_record:
             att_record.logout_time = now
             diff_att = now - att_record.login_time
@@ -456,8 +464,8 @@ async def scan_attendance_qr(
     else:
         # Case C: Already punched out today
         return {
-            "status": "success", 
-            "message": "You have already completed your time tracking for today. Great work!",
+            "status": "DONE", 
+            "message": "Today's attendance session is already completed.",
             "session_info": {
                 "punch_type": "DONE",
                 "login_time": time_record.login_time.isoformat(),

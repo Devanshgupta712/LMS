@@ -185,12 +185,14 @@ async def generate_qr_token(
     if _user.role == Role.TRAINER and batch.trainer_id != _user.id:
         raise HTTPException(status_code=403, detail="You can only generate QR codes for your own batches.")
         
-    # Create simple token representing today's attendance session for this batch
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # Create simple token representing today's attendance session for this batch (IST)
+    now = datetime.now(timezone.utc)
+    ist_now = now + timedelta(hours=5, minutes=30)
+    today_str = ist_now.strftime("%Y-%m-%d")
     payload = {
         "b": batch_id,
         "d": today_str,
-        "exp": (datetime.now(timezone.utc) + timedelta(hours=12)).isoformat()
+        "exp": (ist_now + timedelta(hours=12)).isoformat()
     }
     
     # Simple base64 encoding
