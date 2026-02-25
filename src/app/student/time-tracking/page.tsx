@@ -111,10 +111,11 @@ export default function StudentTimeTrackingPage() {
                     message: data.detail || 'Invalid QR Code'
                 });
             }
-        } catch (err) {
+        } catch (err: any) {
+            console.error('Scan error:', err);
             setScanResult({
                 success: false,
-                message: 'Connection failed. Please try again.'
+                message: `Connection Error: ${err.message || 'Unknown error'}. Please check your internet or contact admin.`
             });
         }
     };
