@@ -86,7 +86,8 @@ export default function AttendancePage() {
         if (!confirm('Are you certain? The old QR code will immediately stop working for all trainees.')) return;
         try {
             const res = await apiPost('/api/training/qr/global/rotate', {});
-            setGlobalQrModal({ token: res.qr_token });
+            const data = await res.json();
+            setGlobalQrModal({ token: data.qr_token });
         } catch {
             alert('Failed to regenerate Global QR Code.');
         }
