@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_roles
@@ -75,8 +75,23 @@ async def get_attendance(
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Attendance)
-    if batch_id:
+    
+    # Restrict Trainees (Trainers) to only see their own batch attendance
+    from app.models.user import Role
+    if hasattr(_user, 'role') and _user.role == Role.TRAINER:
+        # Get batches owned by this trainer
+        batch_ids_result = await db.execute(select(Batch.id).where(Batch.trainer_id == _user.id))
+        owned_batch_ids = [r[0] for r in batch_ids_result.all()]
+        
+        if batch_id:
+            if batch_id not in owned_batch_ids:
+                raise HTTPException(status_code=403, detail="You do not have permission to access attendance for this batch.")
+            query = query.where(Attendance.batch_id == batch_id)
+        else:
+            query = query.where(Attendance.batch_id.in_(owned_batch_ids))
+    elif batch_id:
         query = query.where(Attendance.batch_id == batch_id)
+
     if student_id:
         query = query.where(Attendance.student_id == student_id)
     if date:
@@ -109,8 +124,21 @@ async def export_attendance(
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
     query = select(Attendance)
-    if batch_id:
+    
+    # Restrict Trainees (Trainers) to only export their own batch attendance
+    if _user.role == Role.TRAINER:
+        batch_ids_result = await db.execute(select(Batch.id).where(Batch.trainer_id == _user.id))
+        owned_batch_ids = [r[0] for r in batch_ids_result.all()]
+        
+        if batch_id:
+            if batch_id not in owned_batch_ids:
+                raise HTTPException(status_code=403, detail="You do not have permission to export attendance for this batch.")
+            query = query.where(Attendance.batch_id == batch_id)
+        else:
+            query = query.where(Attendance.batch_id.in_(owned_batch_ids))
+    elif batch_id:
         query = query.where(Attendance.batch_id == batch_id)
+
     if start_date:
         query = query.where(Attendance.date >= datetime.strptime(start_date, "%Y-%m-%d"))
     if end_date:
@@ -149,17 +177,20 @@ async def generate_qr_token(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER))
 ):
-    # Verify batch exists
+    # Verify batch exists and trainer ownership
     batch = await db.get(Batch, batch_id)
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
+    
+    if _user.role == Role.TRAINER and batch.trainer_id != _user.id:
+        raise HTTPException(status_code=403, detail="You can only generate QR codes for your own batches.")
         
     # Create simple token representing today's attendance session for this batch
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     payload = {
         "b": batch_id,
         "d": today_str,
-        "exp": (datetime.utcnow() + timedelta(hours=12)).isoformat()
+        "exp": (datetime.now(timezone.utc) + timedelta(hours=12)).isoformat()
     }
     
     # Simple base64 encoding
@@ -323,6 +354,12 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
+    # Verify trainer owns the batch
+    if user.role == Role.TRAINER:
+        batch = await db.get(Batch, body.get("batch_id"))
+        if not batch or batch.trainer_id != user.id:
+            raise HTTPException(status_code=403, detail="You can only create projects for your own batches.")
+
     project = Project(
         title=body["title"], description=body.get("description"),
         tech_stack=body.get("tech_stack"), github_url=body.get("github_url"),
@@ -379,6 +416,12 @@ async def create_task(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
+    # Verify trainer owns the batch
+    if user.role == Role.TRAINER:
+        batch = await db.get(Batch, body.get("batch_id"))
+        if not batch or batch.trainer_id != user.id:
+            raise HTTPException(status_code=403, detail="You can only create tasks for your own batches.")
+
     task = Task(
         title=body["title"], description=body.get("description"),
         batch_id=body.get("batch_id"), assigned_by=user.id,
@@ -455,6 +498,12 @@ async def create_assignment(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
+    # Verify trainer owns the batch
+    if user.role == Role.TRAINER:
+        batch = await db.get(Batch, body.get("batch_id"))
+        if not batch or batch.trainer_id != user.id:
+            raise HTTPException(status_code=403, detail="You can only create assignments for your own batches.")
+
     assignment = Assignment(
         title=body["title"], description=body.get("description"),
         type=body.get("type", "CODING"),

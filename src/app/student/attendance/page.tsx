@@ -116,11 +116,12 @@ export default function StudentAttendancePage() {
             const res = await apiPost('/api/auth/attendance/scan', { qr_token: decodedText });
             const data = await res.json();
 
-            if (res.ok) {
+            if (res.ok || data.status === 'DONE') {
                 setScanResult({
                     success: true,
                     message: data.message,
-                    session: data.session_info
+                    session: data.session_info,
+                    status: data.status
                 });
                 loadAttendance();
             } else {
@@ -235,7 +236,7 @@ export default function StudentAttendancePage() {
                             <tbody>
                                 {records.map(r => (
                                     <tr key={r.id}>
-                                        <td>{new Date(r.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</td>
+                                        <td>{new Date(r.date).toLocaleDateString('en-IN', { dateStyle: 'long' })}</td>
                                         <td>
                                             <span className={`badge ${r.status === 'PRESENT' ? 'badge-success' : r.status === 'ABSENT' ? 'badge-danger' : 'badge-warning'}`}>
                                                 {r.status}
@@ -296,8 +297,18 @@ export default function StudentAttendancePage() {
                         </div>
 
                         <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
-                            {scanResult.success ? (scanResult.session?.punch_type === 'IN' ? 'Punched In!' : 'Punched Out!') : 'Scan Failed'}
+                            {scanResult.success ? (
+                                scanResult.status === 'DONE' ? 'Day Completed!' :
+                                    (scanResult.session?.punch_type === 'IN' ? 'Punched In!' : 'Punched Out!')
+                            ) : 'Scan Failed'}
                         </h2>
+
+                        {scanResult.success && scanResult.session && (
+                            <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{scanResult.session.user_name}</div>
+                                <div style={{ fontSize: '13px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{scanResult.session.role} • {scanResult.session.student_id}</div>
+                            </div>
+                        )}
 
                         <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
                             {scanResult.message}
@@ -307,19 +318,19 @@ export default function StudentAttendancePage() {
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '24px', marginBottom: '32px', border: '1px solid rgba(255,255,255,0.08)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                     <span style={{ color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Arrival</span>
-                                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 {scanResult.session.logout_time && (
                                     <>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                             <span style={{ color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Departure</span>
-                                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
                                         <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '16px 0' }} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>Duration Logged</span>
                                             <span style={{ color: '#0ea5e9', fontSize: '16px', fontWeight: 900 }}>
-                                                {Math.floor(scanResult.session.total_minutes / 60)}h {scanResult.session.total_minutes % 60}m
+                                                {scanResult.session.duration || (scanResult.session.total_minutes ? `${Math.floor(scanResult.session.total_minutes / 60)}h ${scanResult.session.total_minutes % 60}m` : '0m')}
                                             </span>
                                         </div>
                                     </>

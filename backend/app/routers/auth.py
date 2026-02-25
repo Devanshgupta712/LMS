@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timezone, timedelta
 import os, uuid, base64, json
 
 from app.database import get_db
@@ -335,7 +335,11 @@ async def scan_attendance_qr(
             expiration = payload.get("exp")
             if expiration:
                 exp_date = datetime.fromisoformat(expiration)
-                if datetime.utcnow() < exp_date:
+                # Ensure comparison is between aware or naive but not both
+                if exp_date.tzinfo is None:
+                    exp_date = exp_date.replace(tzinfo=timezone.utc)
+                
+                if datetime.now(timezone.utc) < exp_date:
                     is_valid = True
                     batch_id = payload.get("b") # Extract batch_id
         except:
@@ -355,7 +359,7 @@ async def scan_attendance_qr(
     from app.models.attendance import TimeTracking, Attendance, AttendanceStatus
     from sqlalchemy import and_, func
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today = now.date()
     
     # Check if there is already a TimeTracking record for today
@@ -376,7 +380,7 @@ async def scan_attendance_qr(
         # Case A: First scan of the day -> Punch In
         time_record = TimeTracking(
             user_id=user.id,
-            date=datetime.combine(today, time.min),
+            date=datetime.combine(today, time.min, tzinfo=timezone.utc),
             login_time=now
         )
         db.add(time_record)
@@ -398,7 +402,7 @@ async def scan_attendance_qr(
                 att_record = Attendance(
                     student_id=user.id,
                     batch_id=batch_id,
-                    date=datetime.combine(today, time.min),
+                    date=datetime.combine(today, time.min, tzinfo=timezone.utc),
                     status=AttendanceStatus.PRESENT,
                     login_time=now
                 )
@@ -411,7 +415,10 @@ async def scan_attendance_qr(
         session_info = {
             "punch_type": "IN",
             "login_time": now.isoformat(),
-            "date": today.isoformat()
+            "date": today.isoformat(),
+            "user_name": user.name,
+            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+            "student_id": user.student_id or user.id
         }
     elif time_record.logout_time is None:
         # Case B: Already punched in, no logout yet -> Punch Out
@@ -441,7 +448,10 @@ async def scan_attendance_qr(
             "login_time": time_record.login_time.isoformat(),
             "logout_time": now.isoformat(),
             "total_minutes": time_record.total_minutes,
-            "date": today.isoformat()
+            "date": today.isoformat(),
+            "user_name": user.name,
+            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+            "student_id": user.student_id or user.id
         }
     else:
         # Case C: Already punched out today
@@ -453,7 +463,10 @@ async def scan_attendance_qr(
                 "login_time": time_record.login_time.isoformat(),
                 "logout_time": time_record.logout_time.isoformat(),
                 "total_minutes": time_record.total_minutes,
-                "date": today.isoformat()
+                "date": today.isoformat(),
+                "user_name": user.name,
+                "role": user.role.value if hasattr(user.role, 'value') else user.role,
+                "student_id": user.student_id or user.id
             }
         }
         

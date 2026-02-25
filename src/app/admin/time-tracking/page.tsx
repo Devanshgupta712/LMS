@@ -230,8 +230,11 @@ export default function TimeTrackingPage() {
                         ➕ Manual Entry
                     </button>
                     <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #10b981, #6366f1)', padding: '8px 20px', borderRadius: '12px' }}>
-                        🎁 Punch Machine QR
+                        🎁 Machine Modal
                     </button>
+                    <a href="/admin/time-tracking/qr" target="_blank" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', padding: '8px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                        🖥️ Full Screen QR
+                    </a>
                     <button className="btn btn-ghost" onClick={loadData}>
                         🔄 Refresh
                     </button>
