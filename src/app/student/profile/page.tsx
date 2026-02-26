@@ -42,6 +42,12 @@ export default function StudentProfilePage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const user = getStoredUser();
 
+    // Password change state
+    const [showPasswordChange, setShowPasswordChange] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+    const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [changingPassword, setChangingPassword] = useState(false);
+
     useEffect(() => { loadAll(); }, []);
 
     const loadAll = async () => {
@@ -206,6 +212,98 @@ export default function StudentProfilePage() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Change Password Section */}
+            <div className="card mb-24" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '20px' }}>🔒</span>
+                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Change Password</h3>
+                    </div>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setShowPasswordChange(!showPasswordChange); setPasswordMsg(null); }}>
+                        {showPasswordChange ? '✕ Close' : '✏️ Change'}
+                    </button>
+                </div>
+
+                {showPasswordChange && (
+                    <div style={{ marginTop: '20px', maxWidth: '400px' }}>
+                        {passwordMsg && (
+                            <div style={{
+                                padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px',
+                                background: passwordMsg.type === 'success' ? '#10b98118' : '#ef444418',
+                                color: passwordMsg.type === 'success' ? '#10b981' : '#ef4444',
+                                border: `1px solid ${passwordMsg.type === 'success' ? '#10b98140' : '#ef444440'}`
+                            }}>
+                                {passwordMsg.text}
+                            </div>
+                        )}
+                        <div className="form-group" style={{ marginBottom: '12px' }}>
+                            <label className="form-label">Current Password</label>
+                            <input
+                                className="form-input"
+                                type="password"
+                                value={passwordForm.current_password}
+                                onChange={e => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+                                placeholder="Enter current password"
+                            />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: '12px' }}>
+                            <label className="form-label">New Password</label>
+                            <input
+                                className="form-input"
+                                type="password"
+                                value={passwordForm.new_password}
+                                onChange={e => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
+                                placeholder="Enter new password (min 6 chars)"
+                            />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: '16px' }}>
+                            <label className="form-label">Confirm New Password</label>
+                            <input
+                                className="form-input"
+                                type="password"
+                                value={passwordForm.confirm_password}
+                                onChange={e => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
+                                placeholder="Re-enter new password"
+                            />
+                        </div>
+                        <button
+                            className="btn btn-primary"
+                            disabled={changingPassword}
+                            onClick={async () => {
+                                setPasswordMsg(null);
+                                if (passwordForm.new_password !== passwordForm.confirm_password) {
+                                    setPasswordMsg({ type: 'error', text: 'New passwords do not match' });
+                                    return;
+                                }
+                                if (passwordForm.new_password.length < 6) {
+                                    setPasswordMsg({ type: 'error', text: 'New password must be at least 6 characters' });
+                                    return;
+                                }
+                                try {
+                                    setChangingPassword(true);
+                                    const res = await apiPost('/api/auth/change-password', {
+                                        current_password: passwordForm.current_password,
+                                        new_password: passwordForm.new_password,
+                                    });
+                                    if (!res.ok) {
+                                        const err = await res.json().catch(() => ({}));
+                                        throw new Error(err.detail || 'Failed to change password');
+                                    }
+                                    setPasswordMsg({ type: 'success', text: 'Password changed successfully!' });
+                                    setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
+                                } catch (err: any) {
+                                    setPasswordMsg({ type: 'error', text: err.message || 'Failed to change password' });
+                                } finally {
+                                    setChangingPassword(false);
+                                }
+                            }}
+                        >
+                            {changingPassword ? 'Changing...' : '🔐 Update Password'}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Documents Section */}

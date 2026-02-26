@@ -147,6 +147,29 @@ async def update_profile(
     return {"status": "updated", "name": user.name, "phone": user.phone}
 
 
+@router.post("/change-password")
+async def change_own_password(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Allow any authenticated user to change their own password."""
+    current_password = body.get("current_password", "")
+    new_password = body.get("new_password", "")
+    
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Both current_password and new_password are required")
+    
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    
+    if not verify_password(current_password, user.password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    user.password = get_password_hash(new_password)
+    await db.flush()
+    return {"status": "password_changed"}
+
 # ─── Document endpoints ──────────────────────────────
 @router.get("/documents")
 async def list_documents(
