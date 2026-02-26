@@ -29,7 +29,7 @@ export default function TimeTrackingPage() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [logs, setLogs] = useState<TimeLog[]>([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ avgHours: '0h', activeToday: 0, onTime: 0, late: 0 });
+    const [stats, setStats] = useState({ avgHours: '0h', activeToday: 0, onTime: 0, late: 0, absent: 0 });
     const [showQrModal, setShowQrModal] = useState(false);
     const [qrUrl, setQrUrl] = useState('');
 
@@ -63,7 +63,7 @@ export default function TimeTrackingPage() {
             setLoading(true);
             const data = await apiGet(`/api/training/time-tracking?date=${selectedDate}`);
             setLogs(data.logs || []);
-            setStats(data.stats || { avgHours: '0h', activeToday: 0, onTime: 0, late: 0 });
+            setStats(data.stats || { avgHours: '0h', activeToday: 0, onTime: 0, late: 0, absent: 0 });
         } catch (err) {
             console.error('Failed to load time tracking data:', err);
         } finally {
@@ -242,11 +242,12 @@ export default function TimeTrackingPage() {
                 </div>
             </div>
 
-            <div className="grid-4 mb-24">
+            <div className="grid-4 mb-24" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
                 <div className="stat-card primary"><div className="stat-icon primary">⏱️</div><div className="stat-info"><h3>Avg. Daily Hours</h3><div className="stat-value">{stats.avgHours}</div></div></div>
-                <div className="stat-card accent"><div className="stat-icon accent">👥</div><div className="stat-info"><h3>Active Today</h3><div className="stat-value">{stats.activeToday}</div></div></div>
+                <div className="stat-card accent"><div className="stat-icon accent">👥</div><div className="stat-info"><h3>Active Now</h3><div className="stat-value">{stats.activeToday}</div></div></div>
                 <div className="stat-card success"><div className="stat-icon success">✅</div><div className="stat-info"><h3>On Time</h3><div className="stat-value">{stats.onTime}</div></div></div>
                 <div className="stat-card danger"><div className="stat-icon danger">⚠️</div><div className="stat-info"><h3>Late Arrivals</h3><div className="stat-value">{stats.late}</div></div></div>
+                <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}><div className="stat-icon" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>🚫</div><div className="stat-info"><h3>Absent</h3><div className="stat-value">{stats.absent}</div></div></div>
             </div>
 
             <div className="card">
@@ -431,7 +432,27 @@ export default function TimeTrackingPage() {
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            <button className="btn btn-ghost" onClick={() => window.print()} style={{ flex: 1 }}>🖨️ Print</button>
+                            <button className="btn btn-ghost" onClick={() => {
+                                const printWindow = window.open('', '_blank');
+                                if (printWindow && qrUrl) {
+                                    printWindow.document.write(`
+                                        <html><head><title>Punch Machine QR</title>
+                                        <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui,sans-serif;}
+                                        h1{font-size:28px;margin-bottom:8px;} p{color:#666;margin-bottom:24px;font-size:16px;}
+                                        img{border:8px solid #000;border-radius:16px;}
+                                        .info{margin-top:24px;font-size:14px;color:#888;}
+                                        @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
+                                        </head><body>
+                                        <h1>Apptech Careers — Punch Machine</h1>
+                                        <p>Scan to Punch In / Out</p>
+                                        <img src="${qrUrl.replace('250x250', '400x400')}" width="400" height="400" />
+                                        <p class="info">Everyone can scan (except Super Admin) • Location restricted</p>
+                                        </body></html>
+                                    `);
+                                    printWindow.document.close();
+                                    setTimeout(() => { printWindow.print(); }, 500);
+                                }
+                            }} style={{ flex: 1 }}>🖨️ Print</button>
                             <button className="btn btn-danger" onClick={handleRegenerateQr} style={{ flex: 1 }}>🔄 Regenerate</button>
                         </div>
 

@@ -73,7 +73,7 @@ async def get_punch_settings(
 ):
     """Get office geolocation settings for punch radius restriction."""
     settings = {}
-    for key in ["office_latitude", "office_longitude", "office_radius_meters"]:
+    for key in ["office_latitude", "office_longitude", "office_radius_meters", "late_threshold_time"]:
         result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
         setting = result.scalar_one_or_none()
         settings[key] = setting.value if setting else None
@@ -81,7 +81,8 @@ async def get_punch_settings(
     return {
         "latitude": float(settings["office_latitude"]) if settings["office_latitude"] else None,
         "longitude": float(settings["office_longitude"]) if settings["office_longitude"] else None,
-        "radius_meters": float(settings["office_radius_meters"]) if settings["office_radius_meters"] else 200.0
+        "radius_meters": float(settings["office_radius_meters"]) if settings["office_radius_meters"] else 200.0,
+        "late_threshold_time": settings["late_threshold_time"] or "10:00"
     }
 
 
@@ -96,6 +97,7 @@ async def update_punch_settings(
         "office_latitude": str(body.get("latitude", "")),
         "office_longitude": str(body.get("longitude", "")),
         "office_radius_meters": str(body.get("radius_meters", "200")),
+        "late_threshold_time": str(body.get("late_threshold_time", "10:00")),
     }
     
     for key, value in updates.items():
@@ -906,7 +908,7 @@ async def get_time_tracking(
         })
         
     # Stats (simple example for admin)
-    stats = {"avgHours": "0h", "activeToday": 0, "onTime": 0, "late": 0}
+    stats = {"avgHours": "0h", "activeToday": 0, "onTime": 0, "late": 0, "absent": 0}
     if user.role != Role.STUDENT and date:
         active_count = len([r for r in records if r.logout_time is None])
         completed = [r for r in records if r.total_minutes is not None]
@@ -915,19 +917,43 @@ async def get_time_tracking(
         stats["activeToday"] = active_count
         stats["avgHours"] = f"{avg_mins/60:.1f}h"
         
-        # Calculate On Time vs Late based on 10:00 AM IST threshold
+        # Get configurable late threshold from settings (default 10:00 AM)
+        late_hour = 10
+        late_minute = 0
+        try:
+            threshold_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "late_threshold_time"))
+            threshold_setting = threshold_result.scalar_one_or_none()
+            if threshold_setting and threshold_setting.value:
+                parts = threshold_setting.value.split(":")
+                late_hour = int(parts[0])
+                late_minute = int(parts[1]) if len(parts) > 1 else 0
+        except:
+            pass
+        
+        # Calculate On Time vs Late (login_time is already stored as IST-naive)
         on_time = 0
         late = 0
         for r in records:
-            # Convert UTC login_time to IST for hour calculation
-            ist_login = r.login_time + timedelta(hours=5, minutes=30)
-            if ist_login.hour < 10:
-                on_time += 1
-            else:
-                late += 1
+            if r.login_time:
+                if r.login_time.hour < late_hour or (r.login_time.hour == late_hour and r.login_time.minute <= late_minute):
+                    on_time += 1
+                else:
+                    late += 1
         
         stats["onTime"] = on_time
         stats["late"] = late
+        
+        # Count absent = total active users (non-SUPER_ADMIN) minus those who punched in today
+        try:
+            from app.models.user import Role as UserRole
+            total_users_result = await db.execute(
+                select(func.count(User.id)).where(User.role != UserRole.SUPER_ADMIN)
+            )
+            total_users = total_users_result.scalar() or 0
+            punched_in_count = len(records)
+            stats["absent"] = max(0, total_users - punched_in_count)
+        except:
+            stats["absent"] = 0
 
     return {"logs": out_logs, "stats": stats}
 
