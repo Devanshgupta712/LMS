@@ -889,17 +889,13 @@ async def get_time_tracking(
     records = result.scalars().all()
     
     out_logs = []
-    IST_OFFSET = timedelta(hours=5, minutes=30)
     for r in records:
         student = await db.get(User, r.user_id)
-        # Convert stored UTC times to IST for display
-        login_ist = (r.login_time + IST_OFFSET) if r.login_time else None
-        logout_ist = (r.logout_time + IST_OFFSET) if r.logout_time else None
         out_logs.append({
             "id": r.id,
             "date": r.date.isoformat(),
-            "login_time": login_ist.isoformat() if login_ist else None,
-            "logout_time": logout_ist.isoformat() if logout_ist else None,
+            "login_time": r.login_time.isoformat() if r.login_time else None,
+            "logout_time": r.logout_time.isoformat() if r.logout_time else None,
             "total_minutes": r.total_minutes,
             "user": {
                 "name": student.name if student else "Unknown",
