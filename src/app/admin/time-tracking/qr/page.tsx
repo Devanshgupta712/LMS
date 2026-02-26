@@ -56,7 +56,7 @@ export default function AdminQrDisplayPage() {
                         Punch Machine
                     </h1>
                     <p style={{ fontSize: '1.25rem', color: '#94a3b8', fontWeight: 500 }}>
-                        Scan to Record Attendance & Work Hours
+                        Scan to Record Your Work Hours
                     </p>
                 </div>
 
@@ -97,9 +97,9 @@ export default function AdminQrDisplayPage() {
                         <div style={{ color: '#64748b', fontSize: '12px' }}>Scan before you leave for the day</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>📊</div>
-                        <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>Local Time</div>
-                        <div style={{ color: '#64748b', fontSize: '12px' }}>Records follow Indian Standard Time</div>
+                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>📍</div>
+                        <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>Location Restricted</div>
+                        <div style={{ color: '#64748b', fontSize: '12px' }}>Must scan within institute radius</div>
                     </div>
                 </div>
 

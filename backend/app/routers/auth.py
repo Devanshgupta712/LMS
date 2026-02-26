@@ -293,6 +293,18 @@ async def get_my_notifications(
 
 import json
 import base64
+import math
+
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two GPS coordinates in meters using haversine formula."""
+    R = 6371000  # Earth radius in meters
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 @router.post("/attendance/scan")
 async def scan_attendance_qr(
@@ -304,67 +316,78 @@ async def scan_attendance_qr(
     if not token:
         raise HTTPException(status_code=400, detail="Missing QR token")
         
-    # Standard check: Trainees (Students/Trainers) can use the punch QR system
     from app.models.user import Role
-    # Handle both Enum and string representations
     role_val = str(user.role.value if hasattr(user.role, 'value') else user.role).strip().upper()
-    if role_val not in ["STUDENT", "TRAINER"]:
+
+    # Super Admins are exempt from punch-in
+    if role_val == "SUPER_ADMIN":
         raise HTTPException(
             status_code=403, 
-            detail=f"Only Trainee (Student/Trainer) accounts can scan QR codes for attendance. You are currently logged in with a '{role_val}' account."
+            detail="Super Admins are exempt from punch-in requirements."
         )
 
-    # 1. Validate the token
+    # --- Geolocation radius check ---
     from app.models.setting import SystemSetting
+    scan_lat = body.get("latitude")
+    scan_lng = body.get("longitude")
+    
+    if scan_lat is not None and scan_lng is not None:
+        # Fetch office location settings
+        loc_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_latitude"))
+        lat_setting = loc_result.scalar_one_or_none()
+        loc_result2 = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_longitude"))
+        lng_setting = loc_result2.scalar_one_or_none()
+        loc_result3 = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_radius_meters"))
+        radius_setting = loc_result3.scalar_one_or_none()
+        
+        if lat_setting and lng_setting:
+            office_lat = float(lat_setting.value)
+            office_lng = float(lng_setting.value)
+            allowed_radius = float(radius_setting.value) if radius_setting else 200.0
+            
+            distance = haversine_distance(float(scan_lat), float(scan_lng), office_lat, office_lng)
+            if distance > allowed_radius:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"You are {int(distance)}m away from the office. QR scan is only allowed within {int(allowed_radius)}m radius. Please move closer to the institute."
+                )
+
+    # --- Validate QR token ---
     result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
     setting = result.scalar_one_or_none()
     
-    batch_id = None
     is_valid = False
     
-    # Check if this is the dynamic/old format or the new permanent secret
+    # Check against the persistent global QR secret
     if setting and token == setting.value:
         is_valid = True
     else:
-        # Check if it's the JSON payload format (contains batch_id)
+        # Fallback: check old JSON payload format (batch-specific QR)
         try:
             padded = token + '=' * (-len(token) % 4)
             decoded_bytes = base64.b64decode(padded)
             payload = json.loads(decoded_bytes.decode())
-            
             expiration = payload.get("exp")
             if expiration:
                 exp_date = datetime.fromisoformat(expiration)
-                # Ensure comparison is between aware or naive but not both
                 if exp_date.tzinfo is None:
                     exp_date = exp_date.replace(tzinfo=timezone.utc)
-                
                 if datetime.now(timezone.utc) < exp_date:
                     is_valid = True
-                    batch_id = payload.get("b") # Extract batch_id
         except:
             pass
 
     if not is_valid:
-        raise HTTPException(status_code=400, detail="Invalid or outdated QR code. Please scan the current one provided by the trainer.")
+        raise HTTPException(status_code=400, detail="Invalid or expired QR code. Please scan the current one displayed at the institute.")
 
-    # 1.5 Verify Batch exists to prevent 500 Foreign Key Integrity Errors
-    from app.models.course import Batch
-    if batch_id:
-        batch = await db.get(Batch, batch_id)
-        if not batch:
-            raise HTTPException(status_code=400, detail="The training batch associated with this QR code is invalid or has been deleted.")
-
-    # 2. Toggle Logic: Punch In if no record for today, or Punch Out if active session
-    from app.models.attendance import TimeTracking, Attendance, AttendanceStatus
+    # --- Punch In/Out Toggle (TimeTracking only) ---
+    from app.models.attendance import TimeTracking
     from sqlalchemy import and_, func
     
-    now = datetime.now(timezone.utc)
-    # Use IST for determining "Today" (UTC+5:30)
-    ist_now = now + timedelta(hours=5, minutes=30)
-    today = ist_now.date()
+    IST = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(IST)
+    today = now.date()
     
-    # Check if there is already a TimeTracking record for today
     result = await db.execute(
         select(TimeTracking).where(
             and_(
@@ -379,98 +402,60 @@ async def scan_attendance_qr(
     session_info = {}
     
     if not time_record:
-        # Case A: First scan of the day -> Punch In
+        # Case A: Punch In
         time_record = TimeTracking(
             user_id=user.id,
-            date=datetime.combine(today, time.min, tzinfo=timezone.utc),
+            date=datetime.combine(today, time.min, tzinfo=IST),
             login_time=now
         )
         db.add(time_record)
         
-        # If batch_id is missing (Universal QR), try to find the student's batch
-        if not batch_id and role_val == "STUDENT":
-            from app.models.course import BatchStudent
-            bs_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
-            batch_id = bs_result.scalars().first()
-
-        # Also mark Attendance if batch_id is available
-        if batch_id:
-            # Check for existing attendance record for this batch/day
-            att_result = await db.execute(
-                select(Attendance).where(
-                    and_(
-                        Attendance.student_id == user.id,
-                        Attendance.batch_id == batch_id,
-                        func.date(Attendance.date) == today
-                    )
-                ).order_by(Attendance.login_time.desc())
-            )
-            att_record = att_result.scalars().first()
-            if not att_record:
-                att_record = Attendance(
-                    student_id=user.id,
-                    batch_id=batch_id,
-                    date=datetime.combine(today, time.min, tzinfo=timezone.utc),
-                    status=AttendanceStatus.PRESENT,
-                    login_time=now
-                )
-                db.add(att_record)
-            else:
-                att_record.login_time = now
-                att_record.status = AttendanceStatus.PRESENT
-
         message = "Punch In successful! Your arrival has been recorded."
         session_info = {
             "punch_type": "IN",
-            "login_time": now.replace(tzinfo=timezone.utc).isoformat(),
+            "login_time": now.isoformat(),
             "date": today.isoformat(),
             "user_name": user.name,
             "role": role_val,
             "student_id": user.student_id or user.id
         }
     elif time_record.logout_time is None:
-        # Case B: Already punched in, no logout yet -> Punch Out
+        # Case B: Punch Out
         time_record.logout_time = now
         diff = now - time_record.login_time
         time_record.total_minutes = int(diff.total_seconds() / 60)
         
-        # Update Attendance record if active
-        att_result = await db.execute(
-            select(Attendance).where(
-                and_(
-                    Attendance.student_id == user.id,
-                    func.date(Attendance.date) == today,
-                    Attendance.logout_time == None
-                )
-            ).order_by(Attendance.login_time.desc())
-        )
-        att_record = att_result.scalars().first()
-        if att_record:
-            att_record.logout_time = now
-            diff_att = now - att_record.login_time
-            att_record.total_hours = round(diff_att.total_seconds() / 3600, 2)
+        hours = time_record.total_minutes // 60
+        mins = time_record.total_minutes % 60
+        duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
             
-        message = f"Punch Out successful! Total active time: {time_record.total_minutes} mins."
+        message = f"Punch Out successful! Duration: {duration_str}."
         session_info = {
             "punch_type": "OUT",
-            "login_time": time_record.login_time.replace(tzinfo=timezone.utc).isoformat(),
-            "logout_time": now.replace(tzinfo=timezone.utc).isoformat(),
+            "login_time": time_record.login_time.isoformat(),
+            "logout_time": now.isoformat(),
             "total_minutes": time_record.total_minutes,
+            "duration": duration_str,
             "date": today.isoformat(),
             "user_name": user.name,
             "role": role_val,
             "student_id": user.student_id or user.id
         }
     else:
-        # Case C: Already punched out today
+        # Case C: Already completed today
+        hours = (time_record.total_minutes or 0) // 60
+        mins = (time_record.total_minutes or 0) % 60
+        duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
+        
         return {
             "status": "DONE", 
-            "message": "Today's attendance session is already completed.",
+            "message": f"Today's session is already completed. Duration: {duration_str}.",
             "session_info": {
                 "punch_type": "DONE",
-                "login_time": time_record.login_time.replace(tzinfo=timezone.utc).isoformat(),
-                "logout_time": time_record.logout_time.replace(tzinfo=timezone.utc).isoformat(),
+                "login_time": time_record.login_time.isoformat(),
+                "logout_time": time_record.logout_time.isoformat(),
                 "total_minutes": time_record.total_minutes,
+                "duration": duration_str,
                 "date": today.isoformat(),
                 "user_name": user.name,
                 "role": role_val,

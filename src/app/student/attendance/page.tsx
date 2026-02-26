@@ -27,6 +27,7 @@ export default function StudentAttendancePage() {
     const [scanMsg, setScanMsg] = useState('');
     const [isScanning, setIsScanning] = useState(false);
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
     const user = getStoredUser();
 
     useEffect(() => {
@@ -58,6 +59,15 @@ export default function StudentAttendancePage() {
         setShowScanner(true);
         setScanMsg('');
         setIsScanning(true);
+
+        // Request geolocation for radius check
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => setUserLocation(null),
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        }
 
         // Small delay to ensure the 'reader' div is in the DOM
         setTimeout(async () => {
@@ -114,7 +124,12 @@ export default function StudentAttendancePage() {
 
         try {
             setScanMsg('Processing QR code...');
-            const res = await apiPost('/api/auth/attendance/scan', { qr_token: decodedText });
+            const scanBody: any = { qr_token: decodedText };
+            if (userLocation) {
+                scanBody.latitude = userLocation.lat;
+                scanBody.longitude = userLocation.lng;
+            }
+            const res = await apiPost('/api/auth/attendance/scan', scanBody);
             let data;
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {

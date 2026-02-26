@@ -14,6 +14,7 @@ interface TimeLog {
         name: string;
         email: string;
         student_id: string | null;
+        role?: string;
     };
 }
 
@@ -263,11 +264,12 @@ export default function TimeTrackingPage() {
                         <table className="table">
                             <thead>
                                 <tr>
-                                    <th>Trainee</th>
+                                    <th>Name</th>
+                                    <th>Role</th>
                                     <th>ID</th>
-                                    <th>Login Time</th>
-                                    <th>Logout Time</th>
-                                    <th>Total Duration</th>
+                                    <th>Punch In</th>
+                                    <th>Punch Out</th>
+                                    <th>Duration</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -278,6 +280,11 @@ export default function TimeTrackingPage() {
                                         <td>
                                             <div style={{ fontWeight: 500 }}>{log.user.name}</div>
                                             <div className="text-sm text-muted">{log.user.email}</div>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${log.user.role === 'ADMIN' ? 'badge-primary' : log.user.role === 'TRAINER' ? 'badge-success' : log.user.role === 'STUDENT' ? 'badge-info' : 'badge-warning'}`} style={{ fontSize: '11px' }}>
+                                                {log.user.role?.replace('_', ' ') || 'N/A'}
+                                            </span>
                                         </td>
                                         <td>{log.user.student_id || '-'}</td>
                                         <td>
@@ -391,11 +398,12 @@ export default function TimeTrackingPage() {
                         </div>
 
                         <div className="text-sm text-muted mb-20" style={{ textAlign: 'left', padding: '12px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
-                            <p style={{ marginBottom: '8px' }}><strong>Universal Toggle Code:</strong></p>
+                            <p style={{ marginBottom: '8px' }}><strong>Universal Punch QR Code:</strong></p>
                             <ul style={{ paddingLeft: '20px', listStyleType: 'disc' }}>
                                 <li>Scan 1st: <strong>Punch In</strong></li>
                                 <li>Scan 2nd: <strong>Punch Out</strong></li>
-                                <li>Only <strong>Trainees</strong> can use this.</li>
+                                <li><strong>Everyone</strong> can use this (except Super Admin).</li>
+                                <li>Location restricted to institute radius.</li>
                             </ul>
                         </div>
 

@@ -18,6 +18,7 @@ export default function StudentTimeTrackingPage() {
     const [showScanner, setShowScanner] = useState(false);
     const [scanMsg, setScanMsg] = useState('');
     const qrCodeRef = useRef<any>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
     const user = getStoredUser();
 
     useEffect(() => {
@@ -43,6 +44,15 @@ export default function StudentTimeTrackingPage() {
         const { Html5Qrcode } = await import('html5-qrcode');
         setShowScanner(true);
         setScanMsg('');
+
+        // Request geolocation for radius check
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => setUserLocation(null),
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        }
 
         setTimeout(async () => {
             try {
@@ -94,7 +104,12 @@ export default function StudentTimeTrackingPage() {
 
         try {
             setScanMsg('Processing pulse...');
-            const res = await apiPost('/api/auth/attendance/scan', { qr_token: decodedText });
+            const scanBody: any = { qr_token: decodedText };
+            if (userLocation) {
+                scanBody.latitude = userLocation.lat;
+                scanBody.longitude = userLocation.lng;
+            }
+            const res = await apiPost('/api/auth/attendance/scan', scanBody);
             let data;
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {

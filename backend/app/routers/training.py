@@ -66,6 +66,53 @@ async def regenerate_qr_config(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/punch-settings")
+async def get_punch_settings(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    """Get office geolocation settings for punch radius restriction."""
+    settings = {}
+    for key in ["office_latitude", "office_longitude", "office_radius_meters"]:
+        result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
+        setting = result.scalar_one_or_none()
+        settings[key] = setting.value if setting else None
+    
+    return {
+        "latitude": float(settings["office_latitude"]) if settings["office_latitude"] else None,
+        "longitude": float(settings["office_longitude"]) if settings["office_longitude"] else None,
+        "radius_meters": float(settings["office_radius_meters"]) if settings["office_radius_meters"] else 200.0
+    }
+
+
+@router.post("/punch-settings")
+async def update_punch_settings(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    """Save office geolocation and radius for punch restriction."""
+    updates = {
+        "office_latitude": str(body.get("latitude", "")),
+        "office_longitude": str(body.get("longitude", "")),
+        "office_radius_meters": str(body.get("radius_meters", "200")),
+    }
+    
+    for key, value in updates.items():
+        if not value:
+            continue
+        result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
+        setting = result.scalar_one_or_none()
+        if setting:
+            setting.value = value
+        else:
+            setting = SystemSetting(key=key, value=value)
+            db.add(setting)
+    
+    await db.commit()
+    return {"status": "success", "message": "Punch settings saved successfully."}
+
+
 # ─── Attendance ───────────────────────────────────────
 @router.get("/batches/{batch_id}/students")
 async def get_batch_students(
@@ -100,6 +147,7 @@ async def get_attendance(
     student_id: str = "",
     date: str = "",
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ):
     query = select(Attendance)
     
@@ -841,18 +889,23 @@ async def get_time_tracking(
     records = result.scalars().all()
     
     out_logs = []
+    IST_OFFSET = timedelta(hours=5, minutes=30)
     for r in records:
         student = await db.get(User, r.user_id)
+        # Convert stored UTC times to IST for display
+        login_ist = (r.login_time + IST_OFFSET) if r.login_time else None
+        logout_ist = (r.logout_time + IST_OFFSET) if r.logout_time else None
         out_logs.append({
             "id": r.id,
             "date": r.date.isoformat(),
-            "login_time": r.login_time.isoformat(),
-            "logout_time": r.logout_time.isoformat() if r.logout_time else None,
+            "login_time": login_ist.isoformat() if login_ist else None,
+            "logout_time": logout_ist.isoformat() if logout_ist else None,
             "total_minutes": r.total_minutes,
             "user": {
                 "name": student.name if student else "Unknown",
                 "email": student.email if student else "",
-                "student_id": student.student_id if student else None
+                "student_id": student.student_id if student else None,
+                "role": student.role.value if student and hasattr(student.role, 'value') else (str(student.role) if student else "Unknown")
             }
         })
         
