@@ -384,8 +384,9 @@ async def scan_attendance_qr(
     from app.models.attendance import TimeTracking
     from sqlalchemy import and_, func
     
-    IST = timezone(timedelta(hours=5, minutes=30))
-    now = datetime.now(IST)
+    # Calculate IST as naive datetime (DB stores naive)
+    utc_now = datetime.utcnow()
+    now = utc_now + timedelta(hours=5, minutes=30)
     today = now.date()
     
     result = await db.execute(
@@ -405,7 +406,7 @@ async def scan_attendance_qr(
         # Case A: Punch In
         time_record = TimeTracking(
             user_id=user.id,
-            date=datetime.combine(today, time.min, tzinfo=IST),
+            date=datetime.combine(today, time.min),
             login_time=now
         )
         db.add(time_record)
