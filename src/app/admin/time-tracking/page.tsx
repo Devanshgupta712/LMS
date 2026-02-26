@@ -48,6 +48,12 @@ export default function TimeTrackingPage() {
         logout_time: ''
     });
 
+    // Export State
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportStartDate, setExportStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    const [exportEndDate, setExportEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [exporting, setExporting] = useState(false);
+
     useEffect(() => {
         loadData();
     }, [selectedDate]);
@@ -238,6 +244,9 @@ export default function TimeTrackingPage() {
                     </a>
                     <button className="btn btn-ghost" onClick={loadData}>
                         🔄 Refresh
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setShowExportModal(true)} style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)', padding: '8px 20px', borderRadius: '12px' }}>
+                        📥 Download Report
                     </button>
                 </div>
             </div>
@@ -459,6 +468,81 @@ export default function TimeTrackingPage() {
                         <p className="text-xs text-muted mt-16 italic">
                             Regenerating will invalidate old codes immediately.
                         </p>
+                    </div>
+                </div>
+            )}
+            {showExportModal && (
+                <div className="modal-backdrop" onClick={() => setShowExportModal(false)}>
+                    <div className="modal card" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h3 style={{ margin: 0 }}>📥 Download Attendance Report</h3>
+                            <button className="btn btn-ghost" onClick={() => setShowExportModal(false)} style={{ padding: '4px 8px' }}>✕</button>
+                        </div>
+
+                        <div className="text-sm text-muted mb-20" style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
+                            <p style={{ marginBottom: '4px' }}><strong>CSV report includes:</strong></p>
+                            <ul style={{ paddingLeft: '20px', listStyleType: 'disc', margin: 0 }}>
+                                <li>Grouped by role (Admin, Trainer, Student)</li>
+                                <li>Students sub-grouped by batch</li>
+                                <li>On Time / Late status for each entry</li>
+                            </ul>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                            <div>
+                                <label className="form-label">Start Date</label>
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    value={exportStartDate}
+                                    onChange={e => setExportStartDate(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="form-label">End Date</label>
+                                <input
+                                    type="date"
+                                    className="form-control"
+                                    value={exportEndDate}
+                                    onChange={e => setExportEndDate(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            className="btn btn-primary"
+                            disabled={exporting}
+                            style={{ width: '100%', background: 'linear-gradient(135deg, #f59e0b, #ef4444)', padding: '12px', borderRadius: '12px', fontSize: '15px' }}
+                            onClick={async () => {
+                                try {
+                                    setExporting(true);
+                                    const token = localStorage.getItem('token');
+                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/training/time-tracking/export?start_date=${exportStartDate}&end_date=${exportEndDate}`, {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    if (!res.ok) {
+                                        const err = await res.json().catch(() => ({}));
+                                        throw new Error(err.detail || 'Export failed');
+                                    }
+                                    const blob = await res.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `attendance_${exportStartDate}_to_${exportEndDate}.csv`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    window.URL.revokeObjectURL(url);
+                                    setShowExportModal(false);
+                                } catch (err: any) {
+                                    alert(err.message || 'Failed to export');
+                                } finally {
+                                    setExporting(false);
+                                }
+                            }}
+                        >
+                            {exporting ? 'Generating...' : '📥 Download CSV'}
+                        </button>
                     </div>
                 </div>
             )}

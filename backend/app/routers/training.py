@@ -957,6 +957,156 @@ async def get_time_tracking(
 
     return {"logs": out_logs, "stats": stats}
 
+@router.get("/time-tracking/export")
+async def export_time_tracking(
+    start_date: str = "",
+    end_date: str = "",
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    """Export time tracking data as CSV grouped by role and batch."""
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    from app.models.attendance import TimeTracking
+    from app.models.course import BatchStudent, Batch
+    from sqlalchemy import and_, func
+    
+    # Parse dates
+    if not start_date or not end_date:
+        raise HTTPException(status_code=400, detail="start_date and end_date are required (YYYY-MM-DD)")
+    
+    s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    
+    # Fetch all records in range
+    result = await db.execute(
+        select(TimeTracking).where(
+            and_(
+                func.date(TimeTracking.date) >= s_date,
+                func.date(TimeTracking.date) <= e_date
+            )
+        ).order_by(TimeTracking.date, TimeTracking.login_time)
+    )
+    records = result.scalars().all()
+    
+    # Get late threshold setting
+    late_hour, late_minute = 10, 0
+    try:
+        threshold_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "late_threshold_time"))
+        threshold_setting = threshold_result.scalar_one_or_none()
+        if threshold_setting and threshold_setting.value:
+            parts = threshold_setting.value.split(":")
+            late_hour = int(parts[0])
+            late_minute = int(parts[1]) if len(parts) > 1 else 0
+    except:
+        pass
+    
+    # Group records by user, enrich with user info
+    user_records = {}
+    for r in records:
+        if r.user_id not in user_records:
+            u = await db.get(User, r.user_id)
+            if not u:
+                continue
+            role_val = u.role.value if hasattr(u.role, 'value') else str(u.role)
+            
+            # Find batch for students
+            batch_name = "N/A"
+            if role_val == "STUDENT":
+                bs_result = await db.execute(
+                    select(BatchStudent.batch_id).where(BatchStudent.student_id == u.id)
+                )
+                batch_id = bs_result.scalars().first()
+                if batch_id:
+                    batch = await db.get(Batch, batch_id)
+                    batch_name = batch.name if batch else "Unknown Batch"
+            
+            user_records[r.user_id] = {
+                "user": u,
+                "role": role_val,
+                "batch_name": batch_name,
+                "logs": []
+            }
+        
+        # Determine on-time/late
+        status = "N/A"
+        if r.login_time:
+            if r.login_time.hour < late_hour or (r.login_time.hour == late_hour and r.login_time.minute <= late_minute):
+                status = "On Time"
+            else:
+                status = "Late"
+        
+        duration_mins = r.total_minutes or 0
+        hours = duration_mins // 60
+        mins = duration_mins % 60
+        duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
+        
+        user_records[r.user_id]["logs"].append({
+            "date": r.date.strftime("%Y-%m-%d") if r.date else "",
+            "login_time": r.login_time.strftime("%I:%M %p") if r.login_time else "-",
+            "logout_time": r.logout_time.strftime("%I:%M %p") if r.logout_time else "-",
+            "duration": duration_str,
+            "status": status
+        })
+    
+    # Group by role
+    admins = {uid: data for uid, data in user_records.items() if data["role"] == "ADMIN"}
+    trainers = {uid: data for uid, data in user_records.items() if data["role"] == "TRAINER"}
+    students = {uid: data for uid, data in user_records.items() if data["role"] == "STUDENT"}
+    marketers = {uid: data for uid, data in user_records.items() if data["role"] == "MARKETER"}
+    
+    # Group students by batch
+    students_by_batch = {}
+    for uid, data in students.items():
+        bn = data["batch_name"]
+        if bn not in students_by_batch:
+            students_by_batch[bn] = {}
+        students_by_batch[bn][uid] = data
+    
+    # Build CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow([f"Attendance Report: {start_date} to {end_date}"])
+    writer.writerow([f"Late Threshold: {late_hour:02d}:{late_minute:02d}"])
+    writer.writerow([])
+    
+    def write_section(title, group):
+        if not group:
+            return
+        writer.writerow([f"=== {title} ==="])
+        writer.writerow(["Name", "ID", "Date", "Punch In", "Punch Out", "Duration", "Status"])
+        for uid, data in group.items():
+            u = data["user"]
+            for log in data["logs"]:
+                writer.writerow([
+                    u.name,
+                    u.student_id or u.id[:8],
+                    log["date"],
+                    log["login_time"],
+                    log["logout_time"],
+                    log["duration"],
+                    log["status"]
+                ])
+        writer.writerow([])
+    
+    write_section("ADMINS", admins)
+    write_section("TRAINERS", trainers)
+    write_section("MARKETERS", marketers)
+    
+    for batch_name, batch_students in students_by_batch.items():
+        write_section(f"STUDENTS - {batch_name}", batch_students)
+    
+    output.seek(0)
+    filename = f"attendance_{start_date}_to_{end_date}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 @router.post("/time-tracking")
 async def create_time_tracking(
     body: dict,
