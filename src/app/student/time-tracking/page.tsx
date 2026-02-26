@@ -95,9 +95,16 @@ export default function StudentTimeTrackingPage() {
         try {
             setScanMsg('Processing pulse...');
             const res = await apiPost('/api/auth/attendance/scan', { qr_token: decodedText });
-            const data = await res.json();
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                throw new Error(text || `Server error: ${res.status}`);
+            }
 
-            if (res.ok || data.status === 'DONE') {
+            if (res.ok || (data && data.status === 'DONE')) {
                 setScanResult({
                     success: true,
                     message: data.message,
@@ -222,8 +229,8 @@ export default function StudentTimeTrackingPage() {
                                 {timeLogs.map(log => (
                                     <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                         <td>{new Date(log.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</td>
-                                        <td className="text-success" style={{ fontWeight: 600 }}>{new Date(log.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</td>
-                                        <td className="text-danger" style={{ fontWeight: 600 }}>{log.logout_time ? new Date(log.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                                        <td className="text-success" style={{ fontWeight: 600 }}>{new Date(log.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</td>
+                                        <td className="text-danger" style={{ fontWeight: 600 }}>{log.logout_time ? new Date(log.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}</td>
                                         <td style={{ fontWeight: 700, color: 'var(--accent)' }}>
                                             {log.total_minutes ? `${Math.floor(log.total_minutes / 60)}h ${log.total_minutes % 60}m` : (log.logout_time ? '0m' : <span className="animate-pulse">Tracking...</span>)}
                                         </td>
@@ -294,13 +301,13 @@ export default function StudentTimeTrackingPage() {
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '20px', marginBottom: '32px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                     <span style={{ color: '#64748b', fontSize: '13px' }}>Arrival</span>
-                                    <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                 </div>
                                 {scanResult.session.logout_time && (
                                     <>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                             <span style={{ color: '#64748b', fontSize: '13px' }}>Departure</span>
-                                            <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                         </div>
                                         <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '12px 0' }} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>

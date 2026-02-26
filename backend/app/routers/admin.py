@@ -227,7 +227,12 @@ async def delete_user(
 
 # ─── Students ─────────────────────────────────────────
 @router.get("/students")
-async def list_students(role: str = "STUDENT", all: str = "", db: AsyncSession = Depends(get_db)):
+async def list_students(
+    role: str = "STUDENT", 
+    all: str = "", 
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
     if all == "true":
         result = await db.execute(select(User).order_by(User.created_at.desc()))
     else:
@@ -327,30 +332,101 @@ async def assign_student_batch(
     return {"status": "success", "message": f"Student assigned to batch {batch.name}"}
 
 
+@router.get("/students/{user_id}/details")
+async def get_student_details(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    student = await db.get(User, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Get batches
+    batch_links_result = await db.execute(
+        select(BatchStudent, Batch.name, Course.name.label("course_name"))
+        .join(Batch, Batch.id == BatchStudent.batch_id)
+        .join(Course, Course.id == Batch.course_id)
+        .where(BatchStudent.student_id == user_id)
+    )
+    batches = []
+    for row in batch_links_result.all():
+        batches.append({
+            "id": row[0].batch_id,
+            "name": row[1],
+            "course_name": row[2]
+        })
+    
+    # Get registrations
+    reg_result = await db.execute(
+        select(Registration, Course.name)
+        .join(Course, Course.id == Registration.course_id)
+        .where(Registration.student_id == user_id)
+    )
+    registrations = []
+    for row in reg_result.all():
+        registrations.append({
+            "id": row[0].id,
+            "course_id": row[0].course_id,
+            "course_name": row[1],
+            "status": row[0].status
+        })
+
+    return {
+        "user": UserOut.model_validate(student),
+        "batches": batches,
+        "registrations": registrations
+    }
+
+
+@router.delete("/users/{user_id}/batches/{batch_id}")
+async def remove_student_batch(
+    user_id: str,
+    batch_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    result = await db.execute(
+        delete(BatchStudent).where(
+            BatchStudent.student_id == user_id,
+            BatchStudent.batch_id == batch_id
+        )
+    )
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Student-Batch linkage not found")
+    
+    await db.flush()
+    return {"status": "success", "message": "Student removed from batch"}
+
+
 # ─── Registrations ────────────────────────────────────
 @router.get("/registrations")
 async def list_registrations(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Registration).order_by(Registration.created_at.desc()))
-    regs = result.scalars().all()
-    out = []
-    for r in regs:
-        student = await db.get(User, r.student_id)
-        course = await db.get(Course, r.course_id)
-        batch = await db.get(Batch, r.batch_id) if r.batch_id else None
-        out.append(RegistrationOut(
+    result = await db.execute(
+        select(Registration, User.name, User.email, User.student_id, Course.name, Batch.name)
+        .join(User, User.id == Registration.student_id)
+        .join(Course, Course.id == Registration.course_id)
+        .outerjoin(Batch, Batch.id == Registration.batch_id)
+    )
+    regs = []
+    for row in result.all():
+        r, sname, semail, sid, cname, bname = row
+        regs.append(RegistrationOut(
             id=r.id,
-            student_name=student.name if student else "",
-            student_email=student.email if student else "",
-            student_sid=student.student_id if student else None,
-            course_name=course.name if course else "",
-            batch_name=batch.name if batch else None,
-            fee_amount=r.fee_amount, fee_paid=r.fee_paid,
-            status=r.status, created_at=r.created_at,
+            student_name=sname,
+            student_email=semail,
+            student_sid=sid,
+            course_name=cname,
+            batch_name=bname,
+            fee_amount=r.fee_amount,
+            fee_paid=r.fee_paid,
+            status=r.status,
+            created_at=r.created_at
         ))
-    return out
+    return regs
 
 
-@router.post("/registrations", status_code=201)
+@router.post("/registrations")
 async def create_registration(
     body: RegistrationCreate,
     db: AsyncSession = Depends(get_db),

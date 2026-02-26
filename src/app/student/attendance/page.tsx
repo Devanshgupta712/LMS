@@ -115,9 +115,16 @@ export default function StudentAttendancePage() {
         try {
             setScanMsg('Processing QR code...');
             const res = await apiPost('/api/auth/attendance/scan', { qr_token: decodedText });
-            const data = await res.json();
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                throw new Error(text || `Server error: ${res.status}`);
+            }
 
-            if (res.ok || data.status === 'DONE') {
+            if (res.ok || (data && data.status === 'DONE')) {
                 setScanResult({
                     success: true,
                     message: data.message,
@@ -319,14 +326,13 @@ export default function StudentAttendancePage() {
                         {scanResult.success && scanResult.session && (
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '24px', marginBottom: '32px', border: '1px solid rgba(255,255,255,0.08)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                    <span style={{ color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Arrival</span>
-                                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                 </div>
                                 {scanResult.session.logout_time && (
                                     <>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                             <span style={{ color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Departure</span>
-                                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                         </div>
                                         <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '16px 0' }} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>

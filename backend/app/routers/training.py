@@ -67,6 +67,33 @@ async def regenerate_qr_config(
 
 
 # ─── Attendance ───────────────────────────────────────
+@router.get("/batches/{batch_id}/students")
+async def get_batch_students(
+    batch_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user)
+):
+    from app.models.course import BatchStudent
+    from app.models.user import User
+    
+    result = await db.execute(
+        select(User).join(BatchStudent, User.id == BatchStudent.student_id)
+        .where(BatchStudent.batch_id == batch_id)
+        .where(User.role == Role.STUDENT)
+    )
+    students = result.scalars().all()
+    
+    return [
+        {
+            "id": s.id,
+            "name": s.name,
+            "email": s.email,
+            "student_id": s.student_id,
+            "is_active": s.is_active
+        }
+        for s in students
+    ]
+
 @router.get("/attendance")
 async def get_attendance(
     batch_id: str = "",
@@ -838,8 +865,20 @@ async def get_time_tracking(
         
         stats["activeToday"] = active_count
         stats["avgHours"] = f"{avg_mins/60:.1f}h"
-        stats["onTime"] = len([r for r in records if r.login_time.hour < 10])
-        stats["late"] = len([r for r in records if r.login_time.hour >= 10])
+        
+        # Calculate On Time vs Late based on 10:00 AM IST threshold
+        on_time = 0
+        late = 0
+        for r in records:
+            # Convert UTC login_time to IST for hour calculation
+            ist_login = r.login_time + timedelta(hours=5, minutes=30)
+            if ist_login.hour < 10:
+                on_time += 1
+            else:
+                late += 1
+        
+        stats["onTime"] = on_time
+        stats["late"] = late
 
     return {"logs": out_logs, "stats": stats}
 

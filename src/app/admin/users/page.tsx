@@ -13,8 +13,10 @@ export default function UsersPage() {
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [passwordModal, setPasswordModal] = useState({ show: false, targetUser: null as UserItem | null, newPassword: '' });
-    const [assignModal, setAssignModal] = useState({ show: false, targetUser: null as UserItem | null, batchId: '' });
+    const [manageModal, setManageModal] = useState({ show: false, targetUser: null as UserItem | null, details: null as any });
+    const [assignModal, setAssignModal] = useState({ show: false, targetUser: null as UserItem | null, batchId: '', courseId: '' });
     const [batches, setBatches] = useState<{ id: string; name: string }[]>([]);
+    const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'TRAINER', phone: '' });
 
     useEffect(() => {
@@ -25,14 +27,25 @@ export default function UsersPage() {
         }
         loadUsers();
         loadBatches();
+        loadCourses();
     }, []);
+
+    const loadCourses = async () => {
+        try {
+            const data = await apiGet('/api/admin/courses');
+            setCourses(data);
+        } catch (err) {
+            console.error("Error loading courses:", err);
+        }
+    };
 
     const loadBatches = async () => {
         try {
             const data = await apiGet('/api/admin/batches');
             setBatches(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error loading batches:", err);
+            alert("Warning: Failed to load batches. " + (err.message || ""));
         }
     };
 
@@ -94,16 +107,71 @@ export default function UsersPage() {
 
     const handleAssignBatch = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!assignModal.targetUser || !assignModal.batchId) return;
+        const target = assignModal.targetUser || manageModal.targetUser;
+        const batchId = assignModal.batchId;
+        if (!target || !batchId) return;
         try {
-            await apiPost(`/api/admin/users/${assignModal.targetUser.id}/assign-batch`, {
-                batch_id: assignModal.batchId
+            await apiPost(`/api/admin/users/${target.id}/assign-batch`, {
+                batch_id: batchId
             });
-            setAssignModal({ show: false, targetUser: null, batchId: '' });
+            if (assignModal.show) setAssignModal({ show: false, targetUser: null, batchId: '', courseId: '' });
+            if (manageModal.show) handleOpenManage(target); // Refresh details
             alert('Batch assigned successfully!');
             loadUsers();
         } catch (err: any) {
             alert('Error assigning batch: ' + (err.message || 'Unknown error'));
+        }
+    };
+
+    const handleOpenManage = async (user: UserItem) => {
+        setManageModal({ show: true, targetUser: user, details: null });
+        setAssignModal({ show: false, targetUser: null, batchId: '', courseId: '' }); // Clear prev state
+        try {
+            const data = await apiGet(`/api/admin/students/${user.id}/details`);
+            setManageModal(prev => ({ ...prev, details: data }));
+        } catch (err: any) {
+            alert('Error loading user details: ' + (err.message || 'Unknown error'));
+        }
+    };
+
+    const handleRemoveBatch = async (userId: string, batchId: string) => {
+        if (!confirm('Are you sure you want to remove this user from this batch?')) return;
+        try {
+            await apiDelete(`/api/admin/users/${userId}/batches/${batchId}`);
+            if (manageModal.targetUser) handleOpenManage(manageModal.targetUser); // Refresh
+            loadUsers();
+        } catch (err: any) {
+            alert('Error removing batch: ' + (err.message || 'Unknown error'));
+        }
+    };
+
+    const handleAddRegistration = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const target = manageModal.targetUser;
+        if (!target || !assignModal.courseId) return;
+        try {
+            await apiPost('/api/admin/registrations', {
+                student_id: target.id,
+                course_id: assignModal.courseId,
+                fee_amount: 0,
+                fee_paid: 0
+            });
+            handleOpenManage(target);
+            alert('Course registration added!');
+            loadUsers();
+        } catch (err: any) {
+            alert('Error adding registration: ' + (err.message || 'Unknown error'));
+        }
+    };
+
+    const handleRemoveRegistration = async (regId: string) => {
+        if (!confirm('Are you sure you want to delete this course registration?')) return;
+        try {
+            await apiDelete(`/api/admin/registrations/${regId}`);
+            if (manageModal.targetUser) handleOpenManage(manageModal.targetUser);
+            alert('Registration removed!');
+        } catch (err: any) {
+            alert('Error removing registration: ' + (err.message || 'Unknown error'));
         }
     };
 
@@ -148,12 +216,14 @@ export default function UsersPage() {
                                                 Password
                                             </button>
                                             {u.role === 'STUDENT' && (
-                                                <button
-                                                    className="btn btn-sm btn-accent"
-                                                    onClick={() => setAssignModal({ show: true, targetUser: u, batchId: '' })}
-                                                >
-                                                    Assign Batch
-                                                </button>
+                                                <>
+                                                    <button
+                                                        className="btn btn-sm btn-accent"
+                                                        onClick={() => handleOpenManage(u)}
+                                                    >
+                                                        Manage
+                                                    </button>
+                                                </>
                                             )}
                                             <button
                                                 className={`btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'}`}
@@ -232,30 +302,87 @@ export default function UsersPage() {
                 </div>
             )}
 
-            {assignModal.show && assignModal.targetUser && (
-                <div className="modal-overlay" onClick={() => setAssignModal({ show: false, targetUser: null, batchId: '' })}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">Assign Batch to {assignModal.targetUser.name}</h2>
-                        <form onSubmit={handleAssignBatch} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div className="form-group">
-                                <label>Select Batch</label>
-                                <select
-                                    className="form-input"
-                                    required
-                                    value={assignModal.batchId}
-                                    onChange={e => setAssignModal({ ...assignModal, batchId: e.target.value })}
-                                >
-                                    <option value="">-- Choose a Batch --</option>
-                                    {batches.map(b => (
-                                        <option key={b.id} value={b.id}>{b.name}</option>
-                                    ))}
-                                </select>
+            {manageModal.show && manageModal.targetUser && (
+                <div className="modal-overlay" onClick={() => setManageModal({ show: false, targetUser: null, details: null })}>
+                    <div className="modal" style={{ width: '90%', maxWidth: '800px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <div>
+                                <h2 className="modal-title" style={{ marginBottom: '4px' }}>Manage User</h2>
+                                <p className="text-sm text-muted"><strong>{manageModal.targetUser.name}</strong> • {manageModal.targetUser.email}</p>
                             </div>
-                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                                <button type="button" className="btn btn-ghost" onClick={() => setAssignModal({ show: false, targetUser: null, batchId: '' })}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Assign Batch</button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setManageModal({ show: false, targetUser: null, details: null })}>✕</button>
+                        </div>
+
+                        {!manageModal.details ? <p>Loading details...</p> : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                <div className="grid-2" style={{ gap: '24px' }}>
+                                    {/* COURSES / REGISTRATIONS */}
+                                    <div>
+                                        <h3 style={{ marginBottom: '12px', fontSize: '1rem', fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', color: 'var(--text-primary)' }}>Registrations (Courses)</h3>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                                            {manageModal.details.registrations.map((r: any) => (
+                                                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                    <div style={{ fontWeight: 500 }}>{r.course_name}</div>
+                                                    <button className="btn btn-sm btn-ghost text-error" onClick={() => handleRemoveRegistration(r.id)} style={{ padding: '4px 8px' }}>Remove</button>
+                                                </div>
+                                            ))}
+                                            {manageModal.details.registrations.length === 0 && <p className="text-muted text-sm">No registrations found</p>}
+                                        </div>
+                                        <form onSubmit={handleAddRegistration} style={{ display: 'flex', gap: '8px' }}>
+                                            <select
+                                                className="form-input"
+                                                required
+                                                value={assignModal.courseId}
+                                                onChange={e => setAssignModal({ ...assignModal, courseId: e.target.value })}
+                                            >
+                                                <option value="">-- Add Course --</option>
+                                                {courses.filter(c => !manageModal.details.registrations.some((r: any) => r.course_id === c.id)).map(c => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                ))}
+                                            </select>
+                                            <button type="submit" className="btn btn-primary btn-sm">Add</button>
+                                        </form>
+                                    </div>
+
+                                    {/* BATCHES */}
+                                    <div>
+                                        <h3 style={{ marginBottom: '12px', fontSize: '1rem', fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', color: 'var(--text-primary)' }}>Assigned Batches</h3>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                                            {manageModal.details.batches.map((b: any) => (
+                                                <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                    <div>
+                                                        <div style={{ fontWeight: 500 }}>{b.name}</div>
+                                                        <div className="text-xs text-muted">{b.course_name}</div>
+                                                    </div>
+                                                    <button className="btn btn-sm btn-ghost text-error" onClick={() => handleRemoveBatch(manageModal.targetUser!.id, b.id)} style={{ padding: '4px 8px' }}>Remove</button>
+                                                </div>
+                                            ))}
+                                            {manageModal.details.batches.length === 0 && <p className="text-muted text-sm">No batches assigned</p>}
+                                        </div>
+                                        <form onSubmit={handleAssignBatch} style={{ display: 'flex', gap: '8px' }}>
+                                            <select
+                                                className="form-input"
+                                                required
+                                                value={assignModal.batchId}
+                                                onChange={e => setAssignModal({ ...assignModal, batchId: e.target.value })}
+                                            >
+                                                <option value="">-- Assign Batch --</option>
+                                                {batches.length === 0 ? (
+                                                    <option disabled>No batches found</option>
+                                                ) : batches.filter(b => !manageModal.details.batches.some((curr: any) => curr.id === b.id)).map(b => (
+                                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                                ))}
+                                            </select>
+                                            <button type="submit" className="btn btn-primary btn-sm">Add</button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button className="btn btn-ghost" onClick={() => setManageModal({ show: false, targetUser: null, details: null })}>Close</button>
+                                </div>
                             </div>
-                        </form>
+                        )}
                     </div>
                 </div>
             )}

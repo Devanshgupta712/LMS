@@ -52,13 +52,13 @@ export default function DashboardPage() {
             <div className="grid-4 mb-24">
                 {role === 'SUPER_ADMIN' || role === 'ADMIN' ? (
                     <>
-                        <div className="stat-card primary">
+                        <a href="/admin/students" className="stat-card primary" style={{ textDecoration: 'none' }}>
                             <div className="stat-icon primary">🎓</div>
                             <div className="stat-info">
                                 <h3>Total Students</h3>
                                 <div className="stat-value">{stats?.total_students || 0}</div>
                             </div>
-                        </div>
+                        </a>
                         <div className="stat-card accent">
                             <div className="stat-icon accent">📚</div>
                             <div className="stat-info">
@@ -164,6 +164,10 @@ export default function DashboardPage() {
                                 <a href="/admin/students" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
                                     <span className="link-icon">🎓</span>
                                     <span style={{ fontWeight: 600 }}>Manage Students</span>
+                                </a>
+                                <a href="/admin/users" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
+                                    <span className="link-icon">👤</span>
+                                    <span style={{ fontWeight: 600 }}>Manage Users</span>
                                 </a>
                                 <a href="/marketing/leads" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
                                     <span className="link-icon">🎯</span>

@@ -35,7 +35,9 @@ export default function AttendancePage() {
                 .then(data => { setRecords(data); const map: Record<string, string> = {}; data.forEach((r: AttendanceRecord) => { map[r.student_id] = r.status; }); setLocalStatus(map); })
                 .catch(() => { })
                 .finally(() => setLoading(false));
-            apiGet('/api/admin/students').then(setStudents).catch(() => { });
+            if (selectedBatch) {
+                apiGet(`/api/training/batches/${selectedBatch}/students`).then(setStudents).catch(() => { });
+            }
         }
     }, [selectedBatch, selectedDate]);
 

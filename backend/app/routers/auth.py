@@ -422,10 +422,10 @@ async def scan_attendance_qr(
         message = "Punch In successful! Your arrival has been recorded."
         session_info = {
             "punch_type": "IN",
-            "login_time": now.isoformat(),
+            "login_time": now.replace(tzinfo=timezone.utc).isoformat(),
             "date": today.isoformat(),
             "user_name": user.name,
-            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+            "role": role_val,
             "student_id": user.student_id or user.id
         }
     elif time_record.logout_time is None:
@@ -453,12 +453,12 @@ async def scan_attendance_qr(
         message = f"Punch Out successful! Total active time: {time_record.total_minutes} mins."
         session_info = {
             "punch_type": "OUT",
-            "login_time": time_record.login_time.isoformat(),
-            "logout_time": now.isoformat(),
+            "login_time": time_record.login_time.replace(tzinfo=timezone.utc).isoformat(),
+            "logout_time": now.replace(tzinfo=timezone.utc).isoformat(),
             "total_minutes": time_record.total_minutes,
             "date": today.isoformat(),
             "user_name": user.name,
-            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+            "role": role_val,
             "student_id": user.student_id or user.id
         }
     else:
@@ -468,12 +468,12 @@ async def scan_attendance_qr(
             "message": "Today's attendance session is already completed.",
             "session_info": {
                 "punch_type": "DONE",
-                "login_time": time_record.login_time.isoformat(),
-                "logout_time": time_record.logout_time.isoformat(),
+                "login_time": time_record.login_time.replace(tzinfo=timezone.utc).isoformat(),
+                "logout_time": time_record.logout_time.replace(tzinfo=timezone.utc).isoformat(),
                 "total_minutes": time_record.total_minutes,
                 "date": today.isoformat(),
                 "user_name": user.name,
-                "role": user.role.value if hasattr(user.role, 'value') else user.role,
+                "role": role_val,
                 "student_id": user.student_id or user.id
             }
         }
