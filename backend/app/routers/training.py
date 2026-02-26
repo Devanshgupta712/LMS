@@ -1098,6 +1098,45 @@ async def export_time_tracking(
     for batch_name, batch_students in students_by_batch.items():
         write_section(f"STUDENTS - {batch_name}", batch_students)
     
+    # --- ABSENT SECTION ---
+    # Get all active users (non-SUPER_ADMIN)
+    all_users_result = await db.execute(
+        select(User).where(User.role != Role.SUPER_ADMIN)
+    )
+    all_users = all_users_result.scalars().all()
+    
+    # For each day in range, find who didn't punch in
+    from datetime import timedelta as td
+    current_day = s_date
+    absent_rows = []
+    while current_day <= e_date:
+        # Get user IDs who punched in on this day
+        day_result = await db.execute(
+            select(TimeTracking.user_id).where(
+                func.date(TimeTracking.date) == current_day
+            )
+        )
+        punched_ids = set(day_result.scalars().all())
+        
+        for u in all_users:
+            if u.id not in punched_ids:
+                role_val = u.role.value if hasattr(u.role, 'value') else str(u.role)
+                absent_rows.append([
+                    u.name,
+                    u.student_id or u.id[:8],
+                    role_val,
+                    current_day.strftime("%Y-%m-%d"),
+                    "Absent"
+                ])
+        current_day = current_day + td(days=1)
+    
+    if absent_rows:
+        writer.writerow(["=== ABSENT (Did Not Punch In) ==="])
+        writer.writerow(["Name", "ID", "Role", "Date", "Status"])
+        for row in absent_rows:
+            writer.writerow(row)
+        writer.writerow([])
+    
     output.seek(0)
     filename = f"attendance_{start_date}_to_{end_date}.csv"
     
