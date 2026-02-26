@@ -589,3 +589,68 @@ async def send_notification(
         return {"status": "sent", "count": 1}
         
     raise HTTPException(status_code=400, detail="Invalid target or missing parameters")
+
+
+# ─── Database Export ──────────────────────────────────
+@router.get("/db-export")
+async def export_database(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN)),
+):
+    """Export entire database as SQL INSERT statements. SUPER_ADMIN only."""
+    import io
+    from fastapi.responses import StreamingResponse
+    from sqlalchemy import text, inspect as sa_inspect
+    from app.database import engine
+    
+    output = io.StringIO()
+    output.write("-- LMS Database Export\n")
+    output.write(f"-- Generated at: {datetime.now().isoformat()}\n")
+    output.write("-- Format: SQL INSERT statements\n\n")
+    
+    # Get all table names from metadata
+    from app.database import Base
+    table_names = list(Base.metadata.tables.keys())
+    
+    for table_name in sorted(table_names):
+        table = Base.metadata.tables[table_name]
+        columns = [c.name for c in table.columns]
+        
+        # Fetch all rows
+        result = await db.execute(text(f'SELECT * FROM "{table_name}"'))
+        rows = result.fetchall()
+        
+        if not rows:
+            output.write(f"-- Table: {table_name} (0 rows)\n\n")
+            continue
+        
+        output.write(f"-- Table: {table_name} ({len(rows)} rows)\n")
+        
+        for row in rows:
+            values = []
+            for i, val in enumerate(row):
+                if val is None:
+                    values.append("NULL")
+                elif isinstance(val, bool):
+                    values.append("TRUE" if val else "FALSE")
+                elif isinstance(val, (int, float)):
+                    values.append(str(val))
+                else:
+                    # Escape single quotes
+                    escaped = str(val).replace("'", "''")
+                    values.append(f"'{escaped}'")
+            
+            cols_str = ", ".join(f'"{c}"' for c in columns)
+            vals_str = ", ".join(values)
+            output.write(f'INSERT INTO "{table_name}" ({cols_str}) VALUES ({vals_str});\n')
+        
+        output.write("\n")
+    
+    output.seek(0)
+    filename = f"lms_db_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="application/sql",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
