@@ -516,10 +516,7 @@ export default function TimeTrackingPage() {
                             onClick={async () => {
                                 try {
                                     setExporting(true);
-                                    const token = localStorage.getItem('auth_token');
-                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/training/time-tracking/export?start_date=${exportStartDate}&end_date=${exportEndDate}`, {
-                                        headers: { 'Authorization': `Bearer ${token}` }
-                                    });
+                                    const res = await apiFetch(`/api/training/time-tracking/export?start_date=${exportStartDate}&end_date=${exportEndDate}`);
                                     if (!res.ok) {
                                         const err = await res.json().catch(() => ({}));
                                         throw new Error(err.detail || 'Export failed');
