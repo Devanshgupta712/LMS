@@ -516,7 +516,7 @@ export default function TimeTrackingPage() {
                             onClick={async () => {
                                 try {
                                     setExporting(true);
-                                    const token = localStorage.getItem('token');
+                                    const token = localStorage.getItem('auth_token');
                                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/training/time-tracking/export?start_date=${exportStartDate}&end_date=${exportEndDate}`, {
                                         headers: { 'Authorization': `Bearer ${token}` }
                                     });
