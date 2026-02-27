@@ -12,12 +12,6 @@ export default function RegisterPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const [step, setStep] = useState(1);
-    const [otp, setOtp] = useState('');
-    const [otpSent, setOtpSent] = useState(false);
-    const [emailVerified, setEmailVerified] = useState(false);
-    const [verifying, setVerifying] = useState(false);
-
     const courses = [
         'Full Stack Java Development',
         'Full Stack Python Development',
@@ -27,68 +21,9 @@ export default function RegisterPage() {
         'Data Science',
     ];
 
-    const handleSendOtp = async () => {
-        if (!form.name || !form.email) {
-            setError('Name and Email are required');
-            return;
-        }
-        setError('');
-        setVerifying(true);
-        try {
-            const res = await fetch('/api/auth/send-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: form.email }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setError(data.detail || 'Failed to send OTP');
-            } else {
-                setOtpSent(true);
-            }
-        } catch {
-            setError('Network error syncing OTP');
-        } finally {
-            setVerifying(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        if (!otp) {
-            setError('Please enter the OTP');
-            return;
-        }
-        setError('');
-        setVerifying(true);
-        try {
-            const res = await fetch('/api/auth/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: form.email, otp }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setError(data.detail || 'Invalid OTP');
-            } else {
-                setEmailVerified(true);
-                setStep(2);
-                setError('');
-            }
-        } catch {
-            setError('Network error verifying OTP');
-        } finally {
-            setVerifying(false);
-        }
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-
-        if (!emailVerified) {
-            setError('Please verify your email first');
-            return;
-        }
 
         if (form.password !== form.confirmPassword) {
             setError('Passwords do not match');
@@ -229,23 +164,6 @@ export default function RegisterPage() {
                     border: '1px solid #e2e8f0',
                     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
                 }}>
-                    {/* Stepper Indicator */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: step === 1 ? '#0066ff' : '#10b981', fontWeight: 600, fontSize: '13px' }}>
-                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: step === 1 ? '#0066ff' : '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
-                                {step === 1 ? '1' : '✓'}
-                            </div>
-                            Verify Email
-                        </div>
-                        <div style={{ width: '40px', height: '2px', background: step === 2 ? '#10b981' : '#e2e8f0' }} />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: step === 2 ? '#0066ff' : '#8e8ea0', fontWeight: 600, fontSize: '13px' }}>
-                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: step === 2 ? '#0066ff' : '#e2e8f0', color: step === 2 ? '#fff' : '#8e8ea0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
-                                2
-                            </div>
-                            Details
-                        </div>
-                    </div>
-
                     {error && (
                         <div style={{
                             background: 'rgba(255, 23, 68, 0.06)', border: '1px solid rgba(255, 23, 68, 0.2)',
@@ -276,136 +194,88 @@ export default function RegisterPage() {
                         }
                     `}</style>
 
-                    <form onSubmit={step === 1 ? (e) => e.preventDefault() : handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.name ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Full Name *</label>
+                            <input required value={form.name} onChange={e => set('name', e.target.value)} placeholder="Type your full name..." className="input-floating" />
+                        </div>
 
-                        {/* STEP 1: Verify Email */}
-                        {step === 1 && (
-                            <>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.name ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Full Name *</label>
-                                    <input required disabled={emailVerified || otpSent} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Type your full name..." className="input-floating" />
-                                </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
+                            <input required type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="Type your email address..." className="input-floating" />
+                        </div>
 
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
-                                    <input required disabled={emailVerified || otpSent} type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="Type your email address..." className="input-floating" />
-                                </div>
-
-                                {otpSent && !emailVerified && (
-                                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px dashed #cbd5e1', marginTop: '8px', animation: 'slideDown 0.3s ease-out' }}>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#0066ff', marginBottom: '8px', textAlign: 'center' }}>Enter 6-digit Verification Code sent to email</label>
-                                        <input
-                                            value={otp} onChange={e => setOtp(e.target.value)}
-                                            placeholder="------" maxLength={6}
-                                            className="input-floating"
-                                            style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontWeight: 700, padding: '12px' }}
-                                        />
-                                        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                                            <button type="button" onClick={() => setOtpSent(false)} style={{ flex: 1, padding: '12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                                                Change Email
-                                            </button>
-                                            <button type="button" onClick={handleVerifyOtp} disabled={verifying || otp.length < 6} style={{ flex: 2, padding: '12px', background: '#0066ff', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: (verifying || otp.length < 6) ? 'not-allowed' : 'pointer', opacity: (verifying || otp.length < 6) ? 0.7 : 1 }}>
-                                                {verifying ? 'Verifying...' : 'Verify OTP'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {!otpSent && !emailVerified && (
-                                    <button type="button" onClick={handleSendOtp} disabled={verifying || !form.name || !form.email} style={{
-                                        width: '100%', padding: '16px', marginTop: '16px',
-                                        background: 'linear-gradient(135deg, #0044cc, #0066ff)',
-                                        color: '#ffffff', border: 'none', borderRadius: '16px', fontSize: '16px', fontWeight: 700,
-                                        cursor: (verifying || !form.name || !form.email) ? 'not-allowed' : 'pointer', opacity: (verifying || !form.name || !form.email) ? 0.7 : 1,
-                                        boxShadow: '0 4px 16px rgba(0, 102, 255, 0.25)',
-                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                                    }}>
-                                        {verifying ? 'Sending...' : 'Send Verification Code →'}
-                                    </button>
-                                )}
-                            </>
-                        )}
-
-                        {/* STEP 2: Remaining Details */}
-                        {step === 2 && (
-                            <div style={{ animation: 'slideDown 0.3s ease-out', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#047857', padding: '12px', borderRadius: '12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
-                                    <span>✅</span> Email {form.email} verified successfully!
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 1fr', gap: '16px' }}>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Phone</label>
-                                        <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="Optional" className="input-floating" />
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.course ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Interested Curriculum</label>
-                                        <select value={form.course} onChange={e => set('course', e.target.value)} className="input-floating" style={{ appearance: 'none' }}>
-                                            <option value="" disabled style={{ color: '#8e8ea0' }}>Select a track (optional)</option>
-                                            {courses.map(c => <option key={c} value={c} style={{ color: '#1a1a2e', background: '#fff' }}>{c}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.password ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Password *</label>
-                                        <div style={{ position: 'relative' }}>
-                                            <input required type={showPassword ? "text" : "password"} value={form.password} onChange={e => set('password', e.target.value)} placeholder="Min. 6 chars"
-                                                className="input-floating" style={{ paddingRight: '48px' }} />
-                                            <button type="button" onClick={() => setShowPassword(!showPassword)}
-                                                style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#8e8ea0', cursor: 'pointer', padding: '4px', fontSize: '18px', transition: 'color 0.2s' }}
-                                                onMouseOver={(e) => e.currentTarget.style.color = '#1a1a2e'}
-                                                onMouseOut={(e) => e.currentTarget.style.color = '#8e8ea0'}
-                                            >
-                                                {showPassword ? '👁️' : '👁️‍🗨️'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.confirmPassword ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Confirm Password *</label>
-                                        <div style={{ position: 'relative' }}>
-                                            <input required type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} placeholder="Re-type password"
-                                                className="input-floating" style={{ paddingRight: '48px' }} />
-                                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#8e8ea0', cursor: 'pointer', padding: '4px', fontSize: '18px', transition: 'color 0.2s' }}
-                                                onMouseOver={(e) => e.currentTarget.style.color = '#1a1a2e'}
-                                                onMouseOut={(e) => e.currentTarget.style.color = '#8e8ea0'}
-                                            >
-                                                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <button type="submit" disabled={loading} style={{
-                                    width: '100%', padding: '16px', marginTop: '16px',
-                                    background: 'linear-gradient(135deg, #0044cc, #0066ff)',
-                                    color: '#ffffff', border: 'none', borderRadius: '16px', fontSize: '16px', fontWeight: 700,
-                                    cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1,
-                                    boxShadow: '0 4px 16px rgba(0, 102, 255, 0.25)',
-                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', letterSpacing: '0.01em',
-                                }}
-                                    onMouseOver={(e) => {
-                                        if (!loading) {
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 102, 255, 0.35)';
-                                        }
-                                    }}
-                                    onMouseOut={(e) => {
-                                        if (!loading) {
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                            e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 102, 255, 0.25)';
-                                        }
-                                    }}>
-                                    {loading ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                            <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span> Creating Account...
-                                        </div>
-                                    ) : 'Submit Application →'}
-                                </button>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 1fr', gap: '16px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Phone</label>
+                                <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="Optional" className="input-floating" />
                             </div>
-                        )}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.course ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Interested Curriculum</label>
+                                <select value={form.course} onChange={e => set('course', e.target.value)} className="input-floating" style={{ appearance: 'none' }}>
+                                    <option value="" disabled style={{ color: '#8e8ea0' }}>Select a track (optional)</option>
+                                    {courses.map(c => <option key={c} value={c} style={{ color: '#1a1a2e', background: '#fff' }}>{c}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.password ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Password *</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input required type={showPassword ? "text" : "password"} value={form.password} onChange={e => set('password', e.target.value)} placeholder="Min. 6 chars"
+                                        className="input-floating" style={{ paddingRight: '48px' }} />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                                        style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#8e8ea0', cursor: 'pointer', padding: '4px', fontSize: '18px', transition: 'color 0.2s' }}
+                                        onMouseOver={(e) => e.currentTarget.style.color = '#1a1a2e'}
+                                        onMouseOut={(e) => e.currentTarget.style.color = '#8e8ea0'}
+                                    >
+                                        {showPassword ? '👁️' : '👁️‍🗨️'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.confirmPassword ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Confirm Password *</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input required type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} placeholder="Re-type password"
+                                        className="input-floating" style={{ paddingRight: '48px' }} />
+                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#8e8ea0', cursor: 'pointer', padding: '4px', fontSize: '18px', transition: 'color 0.2s' }}
+                                        onMouseOver={(e) => e.currentTarget.style.color = '#1a1a2e'}
+                                        onMouseOut={(e) => e.currentTarget.style.color = '#8e8ea0'}
+                                    >
+                                        {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" disabled={loading} style={{
+                            width: '100%', padding: '16px', marginTop: '16px',
+                            background: 'linear-gradient(135deg, #0044cc, #0066ff)',
+                            color: '#ffffff', border: 'none', borderRadius: '16px', fontSize: '16px', fontWeight: 700,
+                            cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1,
+                            boxShadow: '0 4px 16px rgba(0, 102, 255, 0.25)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', letterSpacing: '0.01em',
+                        }}
+                            onMouseOver={(e) => {
+                                if (!loading) {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 102, 255, 0.35)';
+                                }
+                            }}
+                            onMouseOut={(e) => {
+                                if (!loading) {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 102, 255, 0.25)';
+                                }
+                            }}>
+                            {loading ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span> Creating Account...
+                                </div>
+                            ) : 'Submit Application →'}
+                        </button>
                     </form>
 
                     <div style={{ textAlign: 'center', marginTop: '32px', fontSize: '14px', color: '#555770', fontWeight: 500 }}>
