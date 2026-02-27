@@ -26,48 +26,52 @@ _otp_store: dict[str, dict] = {}
 def _generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
-from typing import Tuple
-
-def _send_fast2sms(phone: str, otp: str) -> Tuple[bool, str]:
-    """Send SMS via Fast2SMS Dev API. Returns (True, "") on success, or (False, "error message") on failure."""
-    import requests
+def _send_email_otp(to_email: str, otp: str) -> bool:
+    """Send OTP via proper Gmail SMTP setup. Returns True on success, False on error."""
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASSWORD")
     
-    # Needs to be configured in .env or hardcoded by the user later
-    api_key = os.getenv("FAST2SMS_API_KEY", "") 
-    if not api_key:
-        logger.warning(f"FAST2SMS_API_KEY is not set. SMS to {phone} not sent.")
-        # In a real setup, we want this to error, but for testing development:
-        print(f"[TESTING MOCK SMS] The OTP for {phone} is {otp}")
-        return True, "" # Mock success for testing without key
-        
-    url = "https://www.fast2sms.com/dev/bulkV2"
-    payload = {
-        "message": f"Your verification OTP is {otp}",
-        "route": "q",
-        "numbers": phone,
-        "flash": "0"
-    }
-    headers = {
-        "authorization": api_key,
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    if not smtp_user or not smtp_pass:
+        logger.warning(f"SMTP configuration missing. Real email to {to_email} will not be sent.")
+        print(f"[TESTING MOCK EMAIL] The OTP for {to_email} is {otp}")
+        return True
+    
+    # Satisfy Pyre2 str typing
+    user: str = str(smtp_user)
+    pwd: str = str(smtp_pass)
+    
+    msg = MIMEMultipart("alternative")
+    msg['Subject'] = "Your AppTechno Registration OTP"
+    msg['From'] = user
+    msg['To'] = to_email
+
+    html_content = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; color: #1a1a2e; padding: 20px;">
+        <div style="background: #ffffff; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; max-width: 500px; margin: 0 auto;">
+            <h2 style="color: #0066ff; margin-top: 0;">AppTechno Check</h2>
+            <p>Your verification code for AppTechno LMS registration is:</p>
+            <div style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #10b981; padding: 20px 0; text-align: center;">
+                {otp}
+            </div>
+            <p style="color: #555770; font-size: 13px;">This code will expire in 10 minutes. Please do not share this code with anyone.</p>
+        </div>
+      </body>
+    </html>
+    """
+    msg.attach(MIMEText(html_content, 'html'))
     
     try:
-        response = requests.post(url, data=payload, headers=headers)
-        if response.status_code == 200 or response.status_code == 400:
-            res_data = response.json()
-            if res_data.get("return") == True:
-                return True, ""
-            else:
-                err_msg = res_data.get("message", "Unknown Fast2SMS API Error")
-                logger.error(f"Fast2SMS API Error: {res_data}")
-                return False, err_msg
-        else:
-            logger.error(f"Fast2SMS HTTP Error {response.status_code}: {response.text}")
-            return False, f"HTTP Error {response.status_code}"
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=10)
+        server.starttls()
+        server.login(user, pwd)
+        server.send_message(msg)
+        server.quit()
+        return True
     except Exception as e:
-        logger.error(f"Failed to send Fast2SMS to {phone}: {e}")
-        return False, str(e)
+        logger.error(f"SMTP Flow Failed: {e}")
+        return False
+
 
 
 
@@ -128,18 +132,21 @@ async def send_otp(body: SendOTPRequest):
     if len(clean_phone) > 10:
         clean_phone = clean_phone[-10:] # get last 10 digits
         
+    # Ensure email is valid and parsed
+    email = body.email.lower()
+    
     otp = _generate_otp()
-    _otp_store[clean_phone] = {
+    _otp_store[email] = {
         "otp": otp,
         "expires": datetime.now(timezone.utc) + timedelta(minutes=10),
         "verified": False
     }
     
-    success, err_msg = _send_fast2sms(clean_phone, otp)
+    success = _send_email_otp(email, otp)
     if success:
-        return {"status": "success", "message": "OTP sent successfully via SMS"}
+        return {"status": "success", "message": "OTP sent successfully via Email"}
     else:
-        raise HTTPException(status_code=400, detail=f"Detailed Error from Fast2SMS: {err_msg}")
+        raise HTTPException(status_code=500, detail="Failed to send OTP Email")
 
 @router.post("/verify-otp")
 async def verify_otp(body: VerifyOTPRequest):

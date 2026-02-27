@@ -271,27 +271,23 @@ export default function RegisterPage() {
                             <input required value={form.name} onChange={e => set('name', e.target.value)} placeholder="Type your full name..." className="input-floating" />
                         </div>
 
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
-                            <input required type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="Type your email address..." className="input-floating" />
-                        </div>
                         <div style={{ position: 'relative' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Phone Number *</label>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <input required type="tel" value={form.phone} onChange={e => { set('phone', e.target.value); setPhoneVerified(false); setPhoneSent(false); }} placeholder="e.g. 9876543210" className="input-floating" disabled={phoneVerified} />
+                                <input required type="email" value={form.email} onChange={e => { set('email', e.target.value); setPhoneVerified(false); setPhoneSent(false); }} placeholder="Type your email address..." className="input-floating" disabled={phoneVerified} />
                                 {!phoneVerified && (
                                     <button
                                         type="button"
                                         onClick={handleSendOtp}
-                                        disabled={phoneLoading || !form.phone}
+                                        disabled={phoneLoading || !form.email}
                                         style={{
                                             padding: '0 16px', background: phoneSent ? '#f5f7fa' : '#0066ff', color: phoneSent ? '#0066ff' : '#ffffff',
                                             border: phoneSent ? '1px solid #0066ff' : 'none', borderRadius: '16px', fontSize: '12px', fontWeight: 600,
-                                            cursor: (phoneLoading || !form.phone) ? 'not-allowed' : 'pointer', opacity: (phoneLoading || !form.phone) ? 0.7 : 1,
+                                            cursor: (phoneLoading || !form.email) ? 'not-allowed' : 'pointer', opacity: (phoneLoading || !form.email) ? 0.7 : 1,
                                             whiteSpace: 'nowrap', transition: 'all 0.2s', height: '100%'
                                         }}
                                     >
-                                        {phoneLoading ? 'Sending...' : (phoneSent ? 'Resend' : 'Send OTP')}
+                                        {phoneLoading ? 'Sending...' : (phoneSent ? 'Resend API' : 'Send Code')}
                                     </button>
                                 )}
                                 {phoneVerified && (
@@ -304,7 +300,7 @@ export default function RegisterPage() {
 
                             {phoneSent && !phoneVerified && (
                                 <div style={{ marginTop: '12px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555770', marginBottom: '8px' }}>Enter SMS Code</label>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555770', marginBottom: '8px' }}>Enter Email OTP Code</label>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <input
                                             value={otp}
@@ -332,6 +328,11 @@ export default function RegisterPage() {
                                     {phoneSuccess && <p style={{ color: '#00c853', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{phoneSuccess}</p>}
                                 </div>
                             )}
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Phone Number *</label>
+                            <input required type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="e.g. 9876543210" className="input-floating" />
                         </div>
 
                         <div>
