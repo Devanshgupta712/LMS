@@ -11,6 +11,12 @@ export default function RegisterPage() {
     const [success, setSuccess] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
+    const [otpLoading, setOtpLoading] = useState(false);
+    const [otpError, setOtpError] = useState('');
+    const [otpSuccess, setOtpSuccess] = useState('');
 
     const courses = [
         'Full Stack Java Development',
@@ -24,6 +30,11 @@ export default function RegisterPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        if (!otpVerified) {
+            setError('Please verify your email address first');
+            return;
+        }
 
         if (form.password !== form.confirmPassword) {
             setError('Passwords do not match');
@@ -58,6 +69,58 @@ export default function RegisterPage() {
             setError('Network error. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSendOtp = async () => {
+        if (!form.email) return;
+        setOtpError('');
+        setOtpSuccess('');
+        setOtpLoading(true);
+        try {
+            const res = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: form.email }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setOtpError(data.detail || 'Failed to send OTP');
+            } else {
+                setOtpSent(true);
+                setOtpSuccess('OTP sent to your email');
+            }
+        } catch {
+            setOtpError('Network error. Please try again.');
+        } finally {
+            setOtpLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (!otp || otp.length < 5) return;
+        setOtpError('');
+        setOtpSuccess('');
+        setOtpLoading(true);
+        try {
+            const res = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: form.email, otp }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setOtpError(data.detail || 'Invalid OTP');
+            } else {
+                setOtpVerified(true);
+                setOtpSuccess('Email verified successfully!');
+                setOtpSent(false); // Hide the OTP input box once verified
+                setError(''); // clear any existing main form errors related to unverified email
+            }
+        } catch {
+            setOtpError('Network error. Please try again.');
+        } finally {
+            setOtpLoading(false);
         }
     };
 
@@ -202,7 +265,60 @@ export default function RegisterPage() {
 
                         <div>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
-                            <input required type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="Type your email address..." className="input-floating" />
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input required type="email" value={form.email} onChange={e => { set('email', e.target.value); setOtpVerified(false); setOtpSent(false); }} placeholder="Type your email address..." className="input-floating" disabled={otpVerified} />
+                                {!otpVerified && (
+                                    <button
+                                        type="button"
+                                        onClick={handleSendOtp}
+                                        disabled={otpLoading || !form.email}
+                                        style={{
+                                            padding: '0 20px', background: otpSent ? '#f5f7fa' : '#0066ff', color: otpSent ? '#0066ff' : '#ffffff',
+                                            border: otpSent ? '1px solid #0066ff' : 'none', borderRadius: '16px', fontSize: '14px', fontWeight: 600,
+                                            cursor: (otpLoading || !form.email) ? 'not-allowed' : 'pointer', opacity: (otpLoading || !form.email) ? 0.7 : 1,
+                                            whiteSpace: 'nowrap', transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {otpLoading ? 'Sending...' : (otpSent ? 'Resend OTP' : 'Send OTP')}
+                                    </button>
+                                )}
+                                {otpVerified && (
+                                    <div style={{ display: 'flex', alignItems: 'center', padding: '0 20px', color: '#00c853', background: '#e8f5e9', borderRadius: '16px', border: '1px solid #b9f6ca', fontWeight: 600, fontSize: '14px' }}>
+                                        ✓ Verified
+                                    </div>
+                                )}
+                            </div>
+
+                            {otpSent && !otpVerified && (
+                                <div style={{ marginTop: '12px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555770', marginBottom: '8px' }}>Enter OTP</label>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            value={otp}
+                                            onChange={e => setOtp(e.target.value)}
+                                            placeholder="6-digit code"
+                                            className="input-floating"
+                                            style={{ letterSpacing: '2px', textAlign: 'center' }}
+                                            maxLength={6}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleVerifyOtp}
+                                            disabled={otpLoading || otp.length < 6}
+                                            style={{
+                                                padding: '0 20px', background: '#10b981', color: '#ffffff',
+                                                border: 'none', borderRadius: '16px', fontSize: '14px', fontWeight: 600,
+                                                cursor: (otpLoading || otp.length < 6) ? 'not-allowed' : 'pointer', opacity: (otpLoading || otp.length < 6) ? 0.7 : 1,
+                                                whiteSpace: 'nowrap', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Verify
+                                        </button>
+                                    </div>
+                                    {otpError && <p style={{ color: '#ff1744', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{otpError}</p>}
+                                    {otpSuccess && <p style={{ color: '#00c853', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{otpSuccess}</p>}
+                                </div>
+                            )}
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 1fr', gap: '16px' }}>

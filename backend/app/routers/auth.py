@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from app.database import get_db
 from app.models.user import User
 from app.models.registration import Document
-from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut
+from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut, SendOTPRequest, VerifyOTPRequest
 from app.middleware.auth import create_access_token, get_current_user
 from app.config import settings
 
@@ -98,8 +98,61 @@ async def mark_notifications_read(db: AsyncSession = Depends(get_db), user: User
 
 
 
+@router.post("/send-otp")
+async def send_otp(body: SendOTPRequest):
+    otp = _generate_otp()
+    _otp_store[body.email] = {
+        "otp": otp,
+        "expires": datetime.now(timezone.utc) + timedelta(minutes=10),
+        "verified": False
+    }
+    
+    html_body = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+        <div style="max-width: 600px; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: auto;">
+          <h2 style="color: #333333; text-align: center;">Email Verification OTP</h2>
+          <p style="color: #555555; font-size: 16px;">Hello,</p>
+          <p style="color: #555555; font-size: 16px;">Your One-Time Password (OTP) for AppTechno Software registration is:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <span style="display: inline-block; font-size: 32px; font-weight: bold; color: #0066ff; background-color: #f0f8ff; padding: 15px 30px; border-radius: 8px; letter-spacing: 4px;">{otp}</span>
+          </div>
+          <p style="color: #555555; font-size: 14px;">This OTP is valid for <strong>10 minutes</strong>. Do not share it with anyone.</p>
+          <hr style="border: none; border-top: 1px solid #eeeeee; margin: 30px 0;" />
+          <p style="color: #999999; font-size: 12px; text-align: center;">If you didn't request this, please ignore this email.</p>
+        </div>
+      </body>
+    </html>
+    """
+    
+    if _send_email(body.email, "AppTechno Registration OTP", html_body):
+        return {"status": "success", "message": "OTP sent successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send OTP email")
+
+@router.post("/verify-otp")
+async def verify_otp(body: VerifyOTPRequest):
+    record = _otp_store.get(body.email)
+    if not record:
+        raise HTTPException(status_code=400, detail="OTP not sent or expired")
+        
+    if datetime.now(timezone.utc) > record["expires"]:
+        del _otp_store[body.email]
+        raise HTTPException(status_code=400, detail="OTP expired")
+        
+    if record["otp"] != body.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+        
+    record["verified"] = True
+    return {"status": "success", "message": "Email verified successfully"}
+
 @router.post("/register", response_model=UserOut)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    if body.role == "STUDENT":
+        record = _otp_store.get(body.email)
+        if not record or not record.get("verified"):
+            raise HTTPException(status_code=400, detail="Email not verified. Please verify your email first.")
+
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -150,6 +203,10 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
                 db.add(bs)
             
             await db.flush()
+
+    # Clean up OTP after successful registration
+    if body.role == "STUDENT" and body.email in _otp_store:
+        del _otp_store[body.email]
 
     return UserOut.model_validate(user)
 

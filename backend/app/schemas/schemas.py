@@ -7,6 +7,13 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class SendOTPRequest(BaseModel):
+    email: EmailStr
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
 class RegisterRequest(BaseModel):
     name: str
     email: str
