@@ -3,15 +3,48 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
 from datetime import datetime, date, time, timezone, timedelta
-import os, uuid, base64, json
+import os, uuid, base64, json, random, smtplib, logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from app.database import get_db
 from app.models.user import User
 from app.models.registration import Document
 from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut
 from app.middleware.auth import create_access_token, get_current_user
+from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
+
+logger = logging.getLogger(__name__)
+
+# ─── In-memory OTP Store ──────────────────────────────
+# Format: { email: { "otp": "123456", "expires": datetime, "verified": bool } }
+_otp_store: dict[str, dict] = {}
+
+def _generate_otp() -> str:
+    return str(random.randint(100000, 999999))
+
+def _send_email(to_email: str, subject: str, html_body: str) -> bool:
+    """Send email via SMTP. Returns True on success."""
+    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        logger.warning(f"SMTP not configured. Email to {to_email} not sent.")
+        return False
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.SMTP_SENDER
+        msg["To"] = to_email
+        msg.attach(MIMEText(html_body, "html"))
+        
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {e}")
+        return False
 
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -61,11 +94,102 @@ async def mark_notifications_read(db: AsyncSession = Depends(get_db), user: User
     return {"status": "success"}
 
 
+# ─── OTP Endpoints ──────────────────────────────
+@router.post("/send-otp")
+async def send_otp(body: dict, db: AsyncSession = Depends(get_db)):
+    """Send a 6-digit OTP to the provided email for verification."""
+    email = body.get("email", "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    # Check if email is already registered
+    result = await db.execute(select(User).where(User.email == email))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Rate limit: only allow resend after 60 seconds
+    existing = _otp_store.get(email)
+    if existing and existing.get("sent_at"):
+        elapsed = (datetime.now() - existing["sent_at"]).total_seconds()
+        if elapsed < 60:
+            raise HTTPException(status_code=429, detail=f"Please wait {int(60 - elapsed)} seconds before requesting another OTP")
+    
+    otp = _generate_otp()
+    _otp_store[email] = {
+        "otp": otp,
+        "expires": datetime.now() + timedelta(minutes=10),
+        "verified": False,
+        "sent_at": datetime.now(),
+    }
+    
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 32px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #0066ff; font-size: 24px; margin: 0;">AppTechno Software</h1>
+            <p style="color: #666; font-size: 14px;">Email Verification</p>
+        </div>
+        <div style="background: #f5f7fa; border-radius: 12px; padding: 24px; text-align: center;">
+            <p style="color: #333; font-size: 16px; margin-bottom: 16px;">Your verification code is:</p>
+            <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #0066ff; background: #fff; border-radius: 8px; padding: 16px; margin: 0 auto; display: inline-block; border: 2px solid #e2e8f0;">
+                {otp}
+            </div>
+            <p style="color: #888; font-size: 13px; margin-top: 16px;">This code expires in 10 minutes.</p>
+        </div>
+        <p style="color: #999; font-size: 12px; text-align: center; margin-top: 24px;">
+            If you didn't request this code, you can safely ignore this email.
+        </p>
+    </div>
+    """
+    
+    email_sent = _send_email(email, "Your AppTechno Verification Code", html_body)
+    
+    if not email_sent:
+        logger.info(f"OTP for {email}: {otp}  (SMTP not configured)")
+        print(f"\n{'='*50}")
+        print(f"EMAIL OTP for {email}: {otp}")
+        print(f"{'='*50}\n")
+    
+    return {"status": "otp_sent", "email": email, "message": "Verification code sent to your email"}
+
+
+@router.post("/verify-otp")
+async def verify_otp(body: dict):
+    """Verify the OTP sent to the email."""
+    email = body.get("email", "").strip().lower()
+    otp = body.get("otp", "").strip()
+    
+    if not email or not otp:
+        raise HTTPException(status_code=400, detail="Email and OTP are required")
+    
+    stored = _otp_store.get(email)
+    if not stored:
+        raise HTTPException(status_code=400, detail="No OTP found for this email. Please request a new one.")
+    
+    if datetime.now() > stored["expires"]:
+        _otp_store.pop(email, None)
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new one.")
+    
+    if stored["otp"] != otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP. Please check and try again.")
+    
+    _otp_store[email]["verified"] = True
+    return {"status": "verified", "email": email}
+
+
 @router.post("/register", response_model=UserOut)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Verify OTP for self-registration (skip if skip_verification is set by Super Admin)
+    skip_verification = getattr(body, 'skip_verification', False)
+    if not skip_verification:
+        email_lower = body.email.strip().lower()
+        stored = _otp_store.get(email_lower)
+        if not stored or not stored.get("verified"):
+            raise HTTPException(status_code=400, detail="Email not verified. Please verify your email with OTP first.")
+        _otp_store.pop(email_lower, None)
 
     hashed = get_password_hash(body.password)
 
@@ -104,7 +228,6 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
             )
             db.add(reg)
             
-            # Auto-enroll in the first active batch to ensure notifications work
             batch_result = await db.execute(select(Batch).where(Batch.course_id == course.id, Batch.is_active == True))
             first_batch = batch_result.scalar_one_or_none()
             if first_batch:

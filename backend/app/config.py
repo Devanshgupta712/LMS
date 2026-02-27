@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
+    # SMTP Email Config (for OTP verification)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""  # e.g. your-email@gmail.com
+    SMTP_PASSWORD: str = ""  # Gmail App Password
+    SMTP_SENDER: str = "AppTechno Software <noreply@apptechno.com>"
+
     class Config:
         # Get the absolute path to the root .env file
         # __file__ is backend/app/config.py
