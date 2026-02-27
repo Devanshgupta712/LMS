@@ -142,8 +142,9 @@ export default function StudentTimeTrackingPage() {
         }
     };
 
-    const isActive = timeLogs.length > 0 && !timeLogs[0].logout_time &&
-        new Date(timeLogs[0].date).toDateString() === new Date().toDateString();
+    const todayLogs = timeLogs.filter(log => new Date(log.date).toDateString() === new Date().toDateString());
+    const isActive = todayLogs.length > 0 && !todayLogs[0].logout_time;
+    const todayTotalMinutes = todayLogs.reduce((sum, log) => sum + (log.total_minutes || 0), 0);
 
     return (
         <div className="animate-in">
@@ -164,7 +165,7 @@ export default function StudentTimeTrackingPage() {
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Punch Machine</h2>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '24px', maxWidth: '400px', marginInline: 'auto' }}>
-                    Scan the institute's official QR code to record your arrival. Scan the same code again when leaving to record your departure.
+                    Scan the institute's official QR code to record your arrival. Scan the same code again when leaving to record your departure. You can punch in and out multiple times a day.
                 </p>
 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -204,12 +205,12 @@ export default function StudentTimeTrackingPage() {
                     <div className="stat-icon accent">✨</div>
                     <div className="stat-info">
                         <h3>Today's Total</h3>
-                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : (timeLogs[0]?.total_minutes ? 'var(--accent)' : 'var(--text-muted)'), fontSize: '1.2rem', fontWeight: 800 }}>
+                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : (todayTotalMinutes ? 'var(--accent)' : 'var(--text-muted)'), fontSize: '1.2rem', fontWeight: 800 }}>
                             {isActive ? (
                                 <span className="animate-pulse">Active...</span>
                             ) : (
-                                timeLogs.length > 0 && new Date(timeLogs[0].date).toDateString() === new Date().toDateString() && timeLogs[0].total_minutes
-                                    ? `${Math.floor(timeLogs[0].total_minutes / 60)}h ${timeLogs[0].total_minutes % 60}m`
+                                todayTotalMinutes > 0
+                                    ? `${Math.floor(todayTotalMinutes / 60)}h ${todayTotalMinutes % 60}m`
                                     : '0h 0m'
                             )}
                         </div>

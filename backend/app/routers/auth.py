@@ -412,7 +412,8 @@ async def scan_attendance_qr(
     now = utc_now + timedelta(hours=5, minutes=30)
     today = now.date()
     
-    result = await db.execute(
+    # Get all sessions for today to calculate session number
+    all_today_result = await db.execute(
         select(TimeTracking).where(
             and_(
                 TimeTracking.user_id == user.id,
@@ -420,13 +421,15 @@ async def scan_attendance_qr(
             )
         ).order_by(TimeTracking.login_time.desc())
     )
-    time_record = result.scalars().first()
+    today_records = all_today_result.scalars().all()
+    time_record = today_records[0] if today_records else None
     
     message = ""
     session_info = {}
     
-    if not time_record:
-        # Case A: Punch In
+    if not time_record or time_record.logout_time is not None:
+        # Case A: Punch In — no record yet OR latest session already completed → start new session
+        session_number = len(today_records) + 1
         time_record = TimeTracking(
             user_id=user.id,
             date=datetime.combine(today, time.min),
@@ -434,17 +437,19 @@ async def scan_attendance_qr(
         )
         db.add(time_record)
         
-        message = "Punch In successful! Your arrival has been recorded."
+        message = f"Punch In successful! Session #{session_number} started."
         session_info = {
             "punch_type": "IN",
             "login_time": now.isoformat(),
             "date": today.isoformat(),
             "user_name": user.name,
             "role": role_val,
-            "student_id": user.student_id or user.id
+            "student_id": user.student_id or user.id,
+            "session_number": session_number
         }
-    elif time_record.logout_time is None:
-        # Case B: Punch Out
+    else:
+        # Case B: Punch Out — latest session is open
+        session_number = len(today_records)
         time_record.logout_time = now
         diff = now - time_record.login_time
         time_record.total_minutes = int(diff.total_seconds() / 60)
@@ -453,7 +458,7 @@ async def scan_attendance_qr(
         mins = time_record.total_minutes % 60
         duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
             
-        message = f"Punch Out successful! Duration: {duration_str}."
+        message = f"Punch Out successful! Session #{session_number} Duration: {duration_str}."
         session_info = {
             "punch_type": "OUT",
             "login_time": time_record.login_time.isoformat(),
@@ -463,28 +468,8 @@ async def scan_attendance_qr(
             "date": today.isoformat(),
             "user_name": user.name,
             "role": role_val,
-            "student_id": user.student_id or user.id
-        }
-    else:
-        # Case C: Already completed today
-        hours = (time_record.total_minutes or 0) // 60
-        mins = (time_record.total_minutes or 0) % 60
-        duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
-        
-        return {
-            "status": "DONE", 
-            "message": f"Today's session is already completed. Duration: {duration_str}.",
-            "session_info": {
-                "punch_type": "DONE",
-                "login_time": time_record.login_time.isoformat(),
-                "logout_time": time_record.logout_time.isoformat(),
-                "total_minutes": time_record.total_minutes,
-                "duration": duration_str,
-                "date": today.isoformat(),
-                "user_name": user.name,
-                "role": role_val,
-                "student_id": user.student_id or user.id
-            }
+            "student_id": user.student_id or user.id,
+            "session_number": session_number
         }
         
     await db.flush()

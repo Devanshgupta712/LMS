@@ -877,8 +877,8 @@ async def get_time_tracking(
     
     query = select(TimeTracking)
     
-    # If user is a student, only let them see their own logs unless specified and admin
-    if user.role == Role.STUDENT:
+    # If user is a student, trainer, or marketer, only let them see their own logs
+    if user.role in (Role.STUDENT, Role.TRAINER, Role.MARKETER):
         query = query.where(TimeTracking.user_id == user.id)
     elif user_id:
         query = query.where(TimeTracking.user_id == user_id)
