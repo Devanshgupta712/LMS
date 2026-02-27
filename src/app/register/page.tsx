@@ -275,72 +275,70 @@ export default function RegisterPage() {
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
                             <input required type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="Type your email address..." className="input-floating" />
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 1fr', gap: '16px' }}>
-                            <div style={{ position: 'relative' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Phone Number *</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <input required type="tel" value={form.phone} onChange={e => { set('phone', e.target.value); setPhoneVerified(false); setPhoneSent(false); }} placeholder="e.g. 9876543210" className="input-floating" disabled={phoneVerified} />
-                                    {!phoneVerified && (
-                                        <button
-                                            type="button"
-                                            onClick={handleSendOtp}
-                                            disabled={phoneLoading || !form.phone}
-                                            style={{
-                                                padding: '0 16px', background: phoneSent ? '#f5f7fa' : '#0066ff', color: phoneSent ? '#0066ff' : '#ffffff',
-                                                border: phoneSent ? '1px solid #0066ff' : 'none', borderRadius: '16px', fontSize: '12px', fontWeight: 600,
-                                                cursor: (phoneLoading || !form.phone) ? 'not-allowed' : 'pointer', opacity: (phoneLoading || !form.phone) ? 0.7 : 1,
-                                                whiteSpace: 'nowrap', transition: 'all 0.2s', height: '100%'
-                                            }}
-                                        >
-                                            {phoneLoading ? 'Sending...' : (phoneSent ? 'Resend' : 'Send OTP')}
-                                        </button>
-                                    )}
-                                    {phoneVerified && (
-                                        <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', color: '#00c853', background: '#e8f5e9', borderRadius: '16px', border: '1px solid #b9f6ca', fontWeight: 600, fontSize: '12px' }}>
-                                            ✓ Verified
-                                        </div>
-                                    )}
-                                </div>
-
-                                {phoneSent && !phoneVerified && (
-                                    <div style={{ marginTop: '12px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555770', marginBottom: '8px' }}>Enter SMS Code</label>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <input
-                                                value={otp}
-                                                onChange={e => setOtp(e.target.value)}
-                                                placeholder="6-digit code"
-                                                className="input-floating"
-                                                style={{ letterSpacing: '2px', textAlign: 'center' }}
-                                                maxLength={6}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handleVerifyOtp}
-                                                disabled={phoneLoading || otp.length < 6}
-                                                style={{
-                                                    padding: '0 20px', background: '#10b981', color: '#ffffff',
-                                                    border: 'none', borderRadius: '16px', fontSize: '14px', fontWeight: 600,
-                                                    cursor: (phoneLoading || otp.length < 6) ? 'not-allowed' : 'pointer', opacity: (phoneLoading || otp.length < 6) ? 0.7 : 1,
-                                                    whiteSpace: 'nowrap', transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                Verify
-                                            </button>
-                                        </div>
-                                        {phoneError && <p style={{ color: '#ff1744', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{phoneError}</p>}
-                                        {phoneSuccess && <p style={{ color: '#00c853', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{phoneSuccess}</p>}
+                        <div style={{ position: 'relative' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Phone Number *</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input required type="tel" value={form.phone} onChange={e => { set('phone', e.target.value); setPhoneVerified(false); setPhoneSent(false); }} placeholder="e.g. 9876543210" className="input-floating" disabled={phoneVerified} />
+                                {!phoneVerified && (
+                                    <button
+                                        type="button"
+                                        onClick={handleSendOtp}
+                                        disabled={phoneLoading || !form.phone}
+                                        style={{
+                                            padding: '0 16px', background: phoneSent ? '#f5f7fa' : '#0066ff', color: phoneSent ? '#0066ff' : '#ffffff',
+                                            border: phoneSent ? '1px solid #0066ff' : 'none', borderRadius: '16px', fontSize: '12px', fontWeight: 600,
+                                            cursor: (phoneLoading || !form.phone) ? 'not-allowed' : 'pointer', opacity: (phoneLoading || !form.phone) ? 0.7 : 1,
+                                            whiteSpace: 'nowrap', transition: 'all 0.2s', height: '100%'
+                                        }}
+                                    >
+                                        {phoneLoading ? 'Sending...' : (phoneSent ? 'Resend' : 'Send OTP')}
+                                    </button>
+                                )}
+                                {phoneVerified && (
+                                    <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', color: '#00c853', background: '#e8f5e9', borderRadius: '16px', border: '1px solid #b9f6ca', fontWeight: 600, fontSize: '12px' }}>
+                                        ✓ Verified
                                     </div>
                                 )}
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.course ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Interested Curriculum</label>
-                                <select value={form.course} onChange={e => set('course', e.target.value)} className="input-floating" style={{ appearance: 'none' }}>
-                                    <option value="" disabled style={{ color: '#8e8ea0' }}>Select a track (optional)</option>
-                                    {courses.map(c => <option key={c} value={c} style={{ color: '#1a1a2e', background: '#fff' }}>{c}</option>)}
-                                </select>
-                            </div>
+
+                            {phoneSent && !phoneVerified && (
+                                <div style={{ marginTop: '12px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555770', marginBottom: '8px' }}>Enter SMS Code</label>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            value={otp}
+                                            onChange={e => setOtp(e.target.value)}
+                                            placeholder="6-digit code"
+                                            className="input-floating"
+                                            style={{ letterSpacing: '2px', textAlign: 'center' }}
+                                            maxLength={6}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleVerifyOtp}
+                                            disabled={phoneLoading || otp.length < 6}
+                                            style={{
+                                                padding: '0 20px', background: '#10b981', color: '#ffffff',
+                                                border: 'none', borderRadius: '16px', fontSize: '14px', fontWeight: 600,
+                                                cursor: (phoneLoading || otp.length < 6) ? 'not-allowed' : 'pointer', opacity: (phoneLoading || otp.length < 6) ? 0.7 : 1,
+                                                whiteSpace: 'nowrap', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            Verify
+                                        </button>
+                                    </div>
+                                    {phoneError && <p style={{ color: '#ff1744', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{phoneError}</p>}
+                                    {phoneSuccess && <p style={{ color: '#00c853', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{phoneSuccess}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.course ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Interested Curriculum</label>
+                            <select value={form.course} onChange={e => set('course', e.target.value)} className="input-floating" style={{ appearance: 'none' }}>
+                                <option value="" disabled style={{ color: '#8e8ea0' }}>Select a track (optional)</option>
+                                {courses.map(c => <option key={c} value={c} style={{ color: '#1a1a2e', background: '#fff' }}>{c}</option>)}
+                            </select>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -411,9 +409,9 @@ export default function RegisterPage() {
                             Log in here
                         </a>
                     </div>
-                </div>
+                </div >
 
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
