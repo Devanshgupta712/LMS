@@ -66,8 +66,8 @@ export default function RegisterPage() {
                 return;
             }
             setSuccess(true);
-        } catch {
-            setError('Network error. Please try again.');
+        } catch (err: any) {
+            setError(err?.message || 'Network error. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -98,7 +98,7 @@ export default function RegisterPage() {
             setPhoneSuccess('Email sent! Please check your inbox.');
         } catch (err: any) {
             console.error("Email Error:", err);
-            setPhoneError('Network error. Failed to send Email.');
+            setPhoneError(err?.message || 'Network error. Failed to send Email.');
         } finally {
             setPhoneLoading(false);
         }
@@ -127,7 +127,7 @@ export default function RegisterPage() {
             setPhoneSent(false); // Hide the OTP input box
             setError('');
         } catch (err: any) {
-            setPhoneError('Network error. Failed to verify Email.');
+            setPhoneError(err?.message || 'Network error. Failed to verify Email.');
         } finally {
             setPhoneLoading(false);
         }
