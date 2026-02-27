@@ -22,7 +22,7 @@ export default function StudentJobsPage() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
                                     <h3 style={{ margin: '0 0 4px', fontSize: '17px' }}>{j.title}</h3>
-                                    <p style={{ margin: 0, color: '#a5b4fc', fontSize: '14px' }}>{j.company}</p>
+                                    <p style={{ margin: 0, color: '#60a5fa', fontSize: '14px' }}>{j.company}</p>
                                 </div>
                                 <span className="badge badge-success">Active</span>
                             </div>

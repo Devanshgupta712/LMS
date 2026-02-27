@@ -23,12 +23,12 @@ const typeConfig: Record<string, { icon: string; color: string; label: string }>
     LATE_SUBMISSION: { icon: '📅', color: '#f97316', label: 'Late Submission' },
     INCOMPLETE_WORK: { icon: '⚠️', color: '#f59e0b', label: 'Incomplete Work' },
     POOR_ACADEMIC_PERFORMANCE: { icon: '📉', color: '#f59e0b', label: 'Poor Academic Performance' },
-    LOW_ATTENDANCE: { icon: '🚫', color: '#8b5cf6', label: 'Low Attendance' },
+    LOW_ATTENDANCE: { icon: '🚫', color: '#2563eb', label: 'Low Attendance' },
     UNAUTHORIZED_ASSISTANCE: { icon: '🤖', color: '#dc2626', label: 'Unauthorized Assistance' },
     HONOR_CODE_VIOLATION: { icon: '⚖️', color: '#9f1239', label: 'Honor Code Violation' },
     DISRUPTIVE_BEHAVIOR: { icon: '🚨', color: '#b91c1c', label: 'Disruptive Behavior' },
     PLAGIARISM: { icon: '📋', color: '#dc2626', label: 'Plagiarism' },
-    CODE_VIOLATION: { icon: '💻', color: '#6366f1', label: 'Code Violation' },
+    CODE_VIOLATION: { icon: '💻', color: '#2563eb', label: 'Code Violation' },
     OTHER: { icon: '❓', color: '#64748b', label: 'Other' },
 };
 const severityConfig: Record<string, { color: string; bg: string }> = {

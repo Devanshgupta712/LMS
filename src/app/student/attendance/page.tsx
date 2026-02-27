@@ -196,7 +196,7 @@ export default function StudentAttendancePage() {
                     <button className="btn btn-ghost" onClick={downloadCSV} disabled={records.length === 0}>
                         📥 Download CSV
                     </button>
-                    <button className="btn btn-primary" onClick={startScanner} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                    <button className="btn btn-primary" onClick={startScanner} style={{ background: 'linear-gradient(135deg, #2563eb, #2563eb)' }}>
                         📱 Scan QR Code
                     </button>
                 </div>

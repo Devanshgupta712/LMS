@@ -47,7 +47,7 @@ export default function CoursesPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Courses</h1>
-                    <p className="page-subtitle">Manage all courses offered at Apptech Careers</p>
+                    <p className="page-subtitle">Manage all courses offered at AppTechno Software</p>
                 </div>
                 <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Course</button>
             </div>

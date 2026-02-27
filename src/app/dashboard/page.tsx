@@ -41,7 +41,7 @@ export default function DashboardPage() {
                     <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.02em' }}>
                         Welcome back, {name.split(' ')[0]} 👋
                     </h1>
-                    <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>Here&apos;s what&apos;s happening today at Apptech Careers</p>
+                    <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>Here&apos;s what&apos;s happening today at AppTechno Software</p>
                 </div>
                 {/* Decorative background circles */}
                 <div style={{ position: 'absolute', right: '-10%', top: '-50%', width: '300px', height: '300px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(40px)' }} />

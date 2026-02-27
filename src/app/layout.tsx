@@ -3,9 +3,9 @@ import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "Apptech Careers LMS",
-  description: "Complete Learning Management System for Apptech Careers Institute - Course management, student tracking, placement support, and more.",
-  keywords: "LMS, Apptech Careers, learning management, education, training",
+  title: "AppTechno Software LMS",
+  description: "Complete Learning Management System for AppTechno Software Institute - Course management, student tracking, placement support, and more.",
+  keywords: "LMS, AppTechno Software, learning management, education, training",
 };
 
 export const viewport = {

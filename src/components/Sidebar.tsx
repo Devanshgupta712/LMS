@@ -108,11 +108,11 @@ const navSections: NavSection[] = [
 ];
 
 const roleColors: Record<string, string> = {
-    SUPER_ADMIN: '#6366f1',
-    ADMIN: '#6366f1',
+    SUPER_ADMIN: '#1a4fa0',
+    ADMIN: '#2563eb',
     TRAINER: '#10b981',
-    MARKETER: '#f59e0b',
-    STUDENT: '#06b6d4',
+    MARKETER: '#edaa1e',
+    STUDENT: '#60a5fa',
 };
 
 import React from 'react';
@@ -120,7 +120,7 @@ import React from 'react';
 export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const accentColor = roleColors[userRole] || '#6366f1';
+    const accentColor = roleColors[userRole] || '#2563eb';
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
@@ -152,9 +152,9 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
             <div className={`sidebar-overlay${isOpen ? ' visible' : ''}`} onClick={onClose} />
             <aside className={`sidebar${isOpen ? ' open' : ''}`}>
                 <div className="sidebar-brand">
-                    <div className="sidebar-logo" style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)` }}>A</div>
+                    <img src="/logo.png" alt="AppTechno" style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'contain', flexShrink: 0 }} />
                     <div className="sidebar-brand-text">
-                        <h2>Apptech Careers</h2>
+                        <h2>AppTechno Software</h2>
                         <span>Learning Management</span>
                     </div>
                 </div>

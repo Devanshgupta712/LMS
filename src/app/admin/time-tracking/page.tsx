@@ -236,10 +236,10 @@ export default function TimeTrackingPage() {
                     <button className="btn btn-ghost" onClick={handleAddManual} style={{ border: '1px solid var(--border)' }}>
                         ➕ Manual Entry
                     </button>
-                    <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #10b981, #6366f1)', padding: '8px 20px', borderRadius: '12px' }}>
+                    <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #10b981, #2563eb)', padding: '8px 20px', borderRadius: '12px' }}>
                         🎁 Machine Modal
                     </button>
-                    <a href="/admin/time-tracking/qr" target="_blank" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', padding: '8px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                    <a href="/admin/time-tracking/qr" target="_blank" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, #2563eb, #2563eb)', padding: '8px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                         🖥️ Full Screen QR
                     </a>
                     <button className="btn btn-ghost" onClick={loadData}>
@@ -452,7 +452,7 @@ export default function TimeTrackingPage() {
                                         .info{margin-top:24px;font-size:14px;color:#888;}
                                         @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
                                         </head><body>
-                                        <h1>Apptech Careers — Punch Machine</h1>
+                                        <h1>AppTechno Software — Punch Machine</h1>
                                         <p>Scan to Punch In / Out</p>
                                         <img src="${qrUrl.replace('250x250', '400x400')}" width="400" height="400" />
                                         <p class="info">Everyone can scan (except Super Admin) • Location restricted</p>

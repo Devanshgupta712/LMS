@@ -84,7 +84,7 @@ export default function PortalSelector() {
 
       <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '24px', background: 'linear-gradient(135deg, #818cf8, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 Apptech Institute</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '20px', background: 'linear-gradient(135deg, #2563eb, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span></div>
         </div>
         <a href="/" style={{
           display: 'flex', alignItems: 'center', gap: '8px', color: '#a1a1aa', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
@@ -100,8 +100,8 @@ export default function PortalSelector() {
       </header>
 
       {/* Decorative Background Elements */}
-      <div style={{ position: 'absolute', top: '10%', right: '10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%', filter: 'blur(80px)' }} />
-      <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%', filter: 'blur(100px)' }} />
+      <div style={{ position: 'absolute', top: '10%', right: '10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(26, 79, 160, 0.25) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%', filter: 'blur(80px)' }} />
+      <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(237, 170, 30, 0.20) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%', filter: 'blur(100px)' }} />
 
       <div style={{ width: '100%', maxWidth: '560px', padding: '24px', margin: '20px', position: 'relative', zIndex: 10 }}>
 
@@ -117,20 +117,19 @@ export default function PortalSelector() {
           position: 'relative', overflow: 'hidden'
         }}>
           {/* Subtle Card Glow */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.5), transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(37,99,235,0.5), transparent)' }} />
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <div style={{
-              width: '72px', height: '72px', borderRadius: '24px',
-              background: 'linear-gradient(135deg, #4f46e5, #9333ea)',
+              width: '80px', height: '80px', borderRadius: '24px',
+              background: 'rgba(255,255,255,0.95)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 24px', fontSize: '32px',
-              boxShadow: '0 10px 30px rgba(147, 51, 234, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)',
-              position: 'relative'
+              margin: '0 auto 24px',
+              boxShadow: '0 10px 30px rgba(26, 79, 160, 0.4), inset 0 2px 4px rgba(255,255,255,0.3)',
+              position: 'relative', padding: '8px'
             }}>
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '24px', background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%)', pointerEvents: 'none' }} />
-              <span style={{ position: 'relative', zIndex: 2 }}>🎓</span>
+              <img src="/logo.png" alt="AppTechno Software" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '16px' }} />
             </div>
             <h1 style={{ color: '#ffffff', fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.04em', background: 'linear-gradient(180deg, #ffffff, #a1a1aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               Welcome back
@@ -161,7 +160,7 @@ export default function PortalSelector() {
 
             <div style={{ position: 'relative' }}>
               <label style={{
-                color: email ? '#a855f7' : '#e2e8f0', fontSize: '13px', fontWeight: 600, display: 'block',
+                color: email ? '#2563eb' : '#e2e8f0', fontSize: '13px', fontWeight: 600, display: 'block',
                 marginBottom: '8px', transition: 'color 0.2s'
               }}>Email Address</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
@@ -172,9 +171,9 @@ export default function PortalSelector() {
                   boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#a855f7';
+                  e.currentTarget.style.borderColor = '#2563eb';
                   e.currentTarget.style.background = 'rgba(0,0,0,0.6)';
-                  e.currentTarget.style.boxShadow = '0 0 0 4px rgba(168, 85, 247, 0.15), inset 0 2px 4px rgba(0,0,0,0.5)';
+                  e.currentTarget.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.15), inset 0 2px 4px rgba(0,0,0,0.5)';
                 }}
                 onBlur={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
@@ -186,7 +185,7 @@ export default function PortalSelector() {
 
             <div style={{ position: 'relative' }}>
               <label style={{
-                color: password ? '#a855f7' : '#e2e8f0', fontSize: '13px', fontWeight: 600, display: 'block',
+                color: password ? '#2563eb' : '#e2e8f0', fontSize: '13px', fontWeight: 600, display: 'block',
                 marginBottom: '8px', transition: 'color 0.2s'
               }}>Password</label>
               <div style={{ position: 'relative' }}>
@@ -198,9 +197,9 @@ export default function PortalSelector() {
                     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#a855f7';
+                    e.currentTarget.style.borderColor = '#2563eb';
                     e.currentTarget.style.background = 'rgba(0,0,0,0.6)';
-                    e.currentTarget.style.boxShadow = '0 0 0 4px rgba(168, 85, 247, 0.15), inset 0 2px 4px rgba(0,0,0,0.5)';
+                    e.currentTarget.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.15), inset 0 2px 4px rgba(0,0,0,0.5)';
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
@@ -220,23 +219,23 @@ export default function PortalSelector() {
 
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
-              background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#ffffff',
+              background: 'linear-gradient(135deg, #1a4fa0, #2563eb)', color: '#ffffff',
               fontSize: '16px', fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
               marginTop: '12px', opacity: loading ? 0.7 : 1,
-              boxShadow: '0 8px 25px rgba(147, 51, 234, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
+              boxShadow: '0 8px 25px rgba(26, 79, 160, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', letterSpacing: '0.01em',
               position: 'relative', overflow: 'hidden'
             }}
               onMouseOver={(e) => {
                 if (!loading) {
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 15px 35px rgba(147, 51, 234, 0.5), inset 0 1px 0 rgba(255,255,255,0.3)';
+                  e.currentTarget.style.boxShadow = '0 15px 35px rgba(26, 79, 160, 0.5), inset 0 1px 0 rgba(255,255,255,0.3)';
                 }
               }}
               onMouseOut={(e) => {
                 if (!loading) {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(147, 51, 234, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(26, 79, 160, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
                 }
               }}
             >
@@ -251,9 +250,9 @@ export default function PortalSelector() {
           <div style={{ textAlign: 'center', marginTop: '32px', fontSize: '14px', color: '#a1a1aa', fontWeight: 500 }}>
             Don&apos;t have an account?{' '}
             <a href="/register" style={{
-              color: '#d8b4fe', textDecoration: 'none', fontWeight: 600,
+              color: '#edaa1e', textDecoration: 'none', fontWeight: 600,
               borderBottom: '1px solid transparent', transition: 'border-color 0.2s', paddingBottom: '2px'
-            }} onMouseOver={e => e.currentTarget.style.borderColor = '#d8b4fe'} onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}>
+            }} onMouseOver={e => e.currentTarget.style.borderColor = '#edaa1e'} onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}>
               Apply as Student
             </a>
           </div>

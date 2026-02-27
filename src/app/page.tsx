@@ -24,7 +24,7 @@ export default function LandingWebsite() {
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ fontSize: 'clamp(16px, 4vw, 24px)', background: 'linear-gradient(135deg, #818cf8, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 Apptech Institute</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '28px', height: '28px', objectFit: 'contain' }} /><span style={{ fontSize: 'clamp(16px, 4vw, 24px)', background: 'linear-gradient(135deg, #2563eb, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '14px', fontWeight: 500, flexWrap: 'wrap' }}>
             <a href="#courses" style={{ color: '#a1a1aa', textDecoration: 'none', transition: 'color 0.2s', display: 'none' }} className="nav-link-desktop">Courses</a>
@@ -45,9 +45,9 @@ export default function LandingWebsite() {
                   color: '#fff', textDecoration: 'none', padding: '8px 14px', fontSize: '13px'
                 }}>Log in</Link>
                 <Link href="/register" style={{
-                  background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                  background: 'linear-gradient(135deg, #1a4fa0, #2563eb)',
                   padding: '8px 20px', borderRadius: '24px', color: '#fff', textDecoration: 'none',
-                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)', fontWeight: 600, fontSize: '13px'
+                  boxShadow: '0 4px 12px rgba(26, 79, 160, 0.3)', fontWeight: 600, fontSize: '13px'
                 }}>Apply Now</Link>
               </div>
             )}
@@ -61,22 +61,22 @@ export default function LandingWebsite() {
         textAlign: 'center', position: 'relative'
       }}>
         {/* Decorative Orbs */}
-        <div style={{ position: 'absolute', top: '10%', left: '15%', width: '300px', height: '300px', background: 'rgba(99, 102, 241, 0.15)', borderRadius: '50%', filter: 'blur(100px)' }} />
-        <div style={{ position: 'absolute', top: '20%', right: '15%', width: '400px', height: '400px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '50%', filter: 'blur(100px)' }} />
+        <div style={{ position: 'absolute', top: '10%', left: '15%', width: '300px', height: '300px', background: 'rgba(26, 79, 160, 0.15)', borderRadius: '50%', filter: 'blur(100px)' }} />
+        <div style={{ position: 'absolute', top: '20%', right: '15%', width: '400px', height: '400px', background: 'rgba(237, 170, 30, 0.10)', borderRadius: '50%', filter: 'blur(100px)' }} />
 
         <div style={{ maxWidth: '800px', position: 'relative', zIndex: 10 }}>
           <div style={{
-            display: 'inline-block', padding: '6px 16px', background: 'rgba(99, 102, 241, 0.1)',
-            border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: '30px', color: '#a5b4fc',
+            display: 'inline-block', padding: '6px 16px', background: 'rgba(26, 79, 160, 0.1)',
+            border: '1px solid rgba(26, 79, 160, 0.2)', borderRadius: '30px', color: '#60a5fa',
             fontSize: '13px', fontWeight: 600, marginBottom: '24px', letterSpacing: '0.05em'
           }}>
-            VOTED #1 TECH ACADEMY 2026
+            AI INSIDE. INNOVATION OUTSIDE.
           </div>
           <h1 style={{ fontSize: 'clamp(32px, 8vw, 72px)', fontWeight: 800, lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em', background: 'linear-gradient(180deg, #fff, #a1a1aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Master the skills that <br /> <span style={{ background: 'linear-gradient(90deg, #818cf8, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>shape the future.</span>
+            IT Training from <br /> <span style={{ background: 'linear-gradient(90deg, #2563eb, #edaa1e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Real Software Companies.</span>
           </h1>
           <p style={{ fontSize: 'clamp(15px, 3vw, 20px)', color: '#a1a1aa', lineHeight: 1.6, marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px', padding: '0 8px' }}>
-            Join thousands of ambitious learners. Our intensive, industry-aligned programs guarantee the knowledge you need to launch a high-paying tech career.
+            Get trained & certified by IT companies, work on live projects, earn a 6-months experience certificate, and get placed with AI-powered placement support.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="#courses" style={{
@@ -101,9 +101,9 @@ export default function LandingWebsite() {
           marginTop: '80px', width: '100%', maxWidth: '1000px', height: '400px',
           background: 'linear-gradient(180deg, rgba(24,24,27,0.8), rgba(9,9,11,1))', border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: '24px 24px 0 0', position: 'relative', borderBottom: 'none',
-          boxShadow: '0 -20px 60px rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          boxShadow: '0 -20px 60px rgba(26,79,160,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
-          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '60%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.5), transparent)' }}></div>
+          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '60%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(37,99,235,0.5), transparent)' }}></div>
           <p style={{ color: '#3f3f46', fontSize: '24px', fontWeight: 800 }}>Interactive Learning Environment</p>
         </div>
       </section>
@@ -118,9 +118,12 @@ export default function LandingWebsite() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
             {[
-              { icon: '💻', title: 'Full Stack Engineering', desc: 'Master React, Next.js, Node, and advanced system design in 6 months.', color: '#6366f1' },
-              { icon: '🧠', title: 'Data Science & AI', desc: 'Deep learning, neural networks, and Python applied to real-world data.', color: '#06b6d4' },
-              { icon: '📈', title: 'Digital Marketing', desc: 'SEO, performance marketing, and analytics to drive extreme growth.', color: '#f59e0b' }
+              { icon: '💻', title: 'Full Stack Java Development', desc: 'Learn Java, Spring Boot, Angular to build enterprise-grade applications with project training from IT companies.', color: '#2563eb' },
+              { icon: '🔥', title: 'Full Stack Python Development', desc: 'Master Python, Django, React for full stack web development with 6-months experience certificate.', color: '#edaa1e' },
+              { icon: '🧪', title: 'Software Testing & Automation', desc: 'Train in Manual, Selenium & API Testing for QA careers with live project experience.', color: '#10b981' },
+              { icon: '🚀', title: 'MERN Stack Development', desc: 'Build modern apps with MongoDB, Express, React, Node.js — end-to-end JavaScript skills.', color: '#06b6d4' },
+              { icon: '📈', title: 'Data Analytics', desc: 'Learn SQL, Power BI, Python to analyze and visualize data with professional dashboard creation.', color: '#f59e0b' },
+              { icon: '🧠', title: 'Data Science', desc: 'Gain skills in machine learning, data modeling and advanced analytics for the AI-powered future.', color: '#60a5fa' }
             ].map((course, i) => (
               <div key={i} style={{
                 background: 'rgba(24, 24, 27, 0.4)', border: '1px solid rgba(255,255,255,0.05)',
@@ -141,10 +144,10 @@ export default function LandingWebsite() {
       {/* About Section */}
       <section id="about" style={{ padding: '100px 24px', background: '#09090b', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ color: '#a855f7', fontWeight: 700, fontSize: '14px', letterSpacing: '0.1em', marginBottom: '16px' }}>OUR MISSION</div>
-          <h2 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 800, marginBottom: '32px', lineHeight: 1.2 }}>Empowering the next generation of builders.</h2>
+          <div style={{ color: '#edaa1e', fontWeight: 700, fontSize: '14px', letterSpacing: '0.1em', marginBottom: '16px' }}>OUR MISSION</div>
+          <h2 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 800, marginBottom: '32px', lineHeight: 1.2 }}>Training the next generation of IT professionals.</h2>
           <p style={{ color: '#a1a1aa', fontSize: 'clamp(16px, 3vw, 20px)', lineHeight: 1.6, marginBottom: '40px' }}>
-            Founded in 2026, Apptech Institute was created to bridge the gap between traditional education and industry demands. We don't just teach code—we train you to solve hard engineering problems, collaborate in agile teams, and build products at scale.
+            AppTechno Careers BTM branch started in the year 2000 has trained more than 70,000 students through various courses & placed every student in reputed MNC's. We are the only training center in Bangalore that has 20+ years of Training & Placement Legacy. We have partnered with IT companies of India and US to train you and develop you to the needs of the IT industry.
           </p>
           <img
             src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80"
@@ -155,19 +158,19 @@ export default function LandingWebsite() {
       </section>
 
       {/* Placements Section */}
-      <section id="placements" style={{ padding: '120px 24px', backgroundColor: '#09090b', backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 60%)' }}>
+      <section id="placements" style={{ padding: '120px 24px', backgroundColor: '#09090b', backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(26, 79, 160, 0.05) 0%, transparent 60%)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 'clamp(32px, 5vw, 80px)', alignItems: 'center' }}>
             <div>
               <div style={{ color: '#34d399', fontWeight: 700, fontSize: '14px', letterSpacing: '0.1em', marginBottom: '16px' }}>CAREER SUPPORT</div>
-              <h2 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 800, marginBottom: '24px', lineHeight: 1.2 }}>95% Placement Rate within 3 months.</h2>
+              <h2 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 800, marginBottom: '24px', lineHeight: 1.2 }}>Unlimited Interviews until Placement.</h2>
               <p style={{ color: '#a1a1aa', fontSize: 'clamp(15px, 2.5vw, 18px)', lineHeight: 1.6, marginBottom: '32px' }}>
-                Our dedicated Placement Cell works tirelessly to connect our skilled graduates with leading tech companies worldwide. We provide 1-on-1 interview prep, resume reviews, and portfolio building.
+                AI-powered placement support with 6-months experience certificate. Pay 50% fees after placement. We provide 1-on-1 interview prep, resume reviews, and portfolio building along with AI English Communication Coach.
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div>
-                  <div style={{ fontSize: '36px', fontWeight: 800, color: '#fff' }}>2,500+</div>
-                  <div style={{ color: '#71717a', fontSize: '14px', fontWeight: 500 }}>Alumni Placed</div>
+                  <div style={{ fontSize: '36px', fontWeight: 800, color: '#fff' }}>70,000+</div>
+                  <div style={{ color: '#71717a', fontSize: '14px', fontWeight: 500 }}>Students Trained</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '36px', fontWeight: 800, color: '#fff' }}>14 LPA</div>
@@ -193,8 +196,8 @@ export default function LandingWebsite() {
       <footer style={{ background: '#09090b', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '60px 24px 40px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center', textAlign: 'center' }}>
           <div>
-            <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>Apptech Institute</div>
-            <div style={{ color: '#71717a', fontSize: '14px' }}>Pioneering Tech Education since 2026.</div>
+            <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>AppTechno Software</div>
+            <div style={{ color: '#71717a', fontSize: '14px' }}>AI Inside. Innovation Outside. Since 2000.</div>
           </div>
           <div style={{ display: 'flex', gap: '24px', fontSize: '14px', color: '#a1a1aa', flexWrap: 'wrap', justifyContent: 'center' }}>
             <a href="#" style={{ cursor: 'pointer', color: '#a1a1aa', textDecoration: 'none' }}>Privacy Policy</a>
