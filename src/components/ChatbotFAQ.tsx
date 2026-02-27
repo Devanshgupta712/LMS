@@ -264,7 +264,14 @@ export default function ChatbotFAQ() {
     };
 
     return (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999 }}>
+        <div className="chatbot-container" style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999 }}>
+            <style jsx>{`
+                @media (max-width: 768px) {
+                    .chatbot-container {
+                        bottom: 80px !important;
+                    }
+                }
+            `}</style>
             {isOpen && (
                 <div style={{
                     position: 'absolute',
@@ -272,8 +279,8 @@ export default function ChatbotFAQ() {
                     right: '0',
                     width: '380px',
                     maxWidth: 'calc(100vw - 32px)',
-                    height: '560px',
-                    maxHeight: 'calc(100vh - 120px)',
+                    height: '500px',
+                    maxHeight: 'calc(100vh - 180px)',
                     background: '#ffffff',
                     border: '1px solid #e2e8f0',
                     borderRadius: '20px',
