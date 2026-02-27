@@ -26,7 +26,7 @@ _otp_store: dict[str, dict] = {}
 def _generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
-def _send_email_otp(to_email: str, otp: str) -> bool:
+def _send_email_otp(to_email: str, otp: str) -> tuple[bool, str]:
     """Send OTP via proper Gmail SMTP setup. Returns True on success, False on error."""
     smtp_user = os.getenv("SMTP_USER")
     smtp_pass = os.getenv("SMTP_PASSWORD")
@@ -34,7 +34,7 @@ def _send_email_otp(to_email: str, otp: str) -> bool:
     if not smtp_user or not smtp_pass:
         logger.warning(f"SMTP configuration missing. Real email to {to_email} will not be sent.")
         print(f"[TESTING MOCK EMAIL] The OTP for {to_email} is {otp}")
-        return True
+        return True, ""
     
     # Satisfy Pyre2 str typing
     user: str = str(smtp_user)
@@ -67,10 +67,10 @@ def _send_email_otp(to_email: str, otp: str) -> bool:
         server.login(user, pwd)
         server.send_message(msg)
         server.quit()
-        return True
+        return True, ""
     except Exception as e:
         logger.error(f"SMTP Flow Failed: {e}")
-        return False
+        return False, str(e)
 
 
 
@@ -142,11 +142,11 @@ async def send_otp(body: SendOTPRequest):
         "verified": False
     }
     
-    success = _send_email_otp(email, otp)
+    success, err_msg = _send_email_otp(email, otp)
     if success:
         return {"status": "success", "message": "OTP sent successfully via Email"}
     else:
-        raise HTTPException(status_code=500, detail="Failed to send OTP Email")
+        raise HTTPException(status_code=500, detail=f"SMTP Server Connection Failed: {err_msg}")
 
 @router.post("/verify-otp")
 async def verify_otp(body: VerifyOTPRequest):
