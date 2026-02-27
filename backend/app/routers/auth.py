@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
@@ -141,7 +142,7 @@ async def send_otp(body: dict, db: AsyncSession = Depends(get_db)):
     </div>
     """
     
-    email_sent = _send_email(email, "Your AppTechno Verification Code", html_body)
+    email_sent = await run_in_threadpool(_send_email, email, "Your AppTechno Verification Code", html_body)
     
     if not email_sent:
         logger.info(f"OTP for {email}: {otp}  (SMTP not configured)")
