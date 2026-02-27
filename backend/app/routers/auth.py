@@ -150,23 +150,21 @@ async def send_otp(body: SendOTPRequest):
 
 @router.post("/verify-otp")
 async def verify_otp(body: VerifyOTPRequest):
-    clean_phone = ''.join(filter(str.isdigit, body.phone))
-    if len(clean_phone) > 10:
-        clean_phone = clean_phone[-10:]
+    email = body.email.lower()
         
-    record = _otp_store.get(clean_phone)
+    record = _otp_store.get(email)
     if not record:
         raise HTTPException(status_code=400, detail="OTP not sent or expired")
         
     if datetime.now(timezone.utc) > record["expires"]:
-        del _otp_store[clean_phone]
+        del _otp_store[email]
         raise HTTPException(status_code=400, detail="OTP expired")
         
     if record["otp"] != body.otp:
         raise HTTPException(status_code=400, detail="Invalid OTP")
         
     record["verified"] = True
-    return {"status": "success", "message": "Phone verified successfully"}
+    return {"status": "success", "message": "Email verified successfully"}
 
 @router.post("/register", response_model=UserOut)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
@@ -174,13 +172,10 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         if not body.phone:
             raise HTTPException(status_code=400, detail="Phone number is required for students.")
             
-        clean_phone = ''.join(filter(str.isdigit, body.phone))
-        if len(clean_phone) > 10:
-            clean_phone = clean_phone[-10:]
-            
-        record = _otp_store.get(clean_phone)
+        email = body.email.lower()
+        record = _otp_store.get(email)
         if not record or not record.get("verified"):
-            raise HTTPException(status_code=400, detail="Phone number not verified. Please verify your phone number via OTP first.")
+            raise HTTPException(status_code=400, detail="Email address not verified. Please verify your email via OTP first.")
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")

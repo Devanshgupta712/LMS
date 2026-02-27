@@ -31,8 +31,8 @@ export default function RegisterPage() {
         e.preventDefault();
         setError('');
 
-        if (!phoneVerified && form.phone) {
-            setError('Please verify your phone number first');
+        if (!phoneVerified && form.email) {
+            setError('Please verify your email address first');
             return;
         }
 
@@ -61,7 +61,8 @@ export default function RegisterPage() {
             });
             const data = await res.json();
             if (!res.ok) {
-                setError(data.detail || 'Registration failed');
+                const errorMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : 'Registration failed');
+                setError(errorMsg || 'Registration failed');
                 return;
             }
             setSuccess(true);
@@ -73,8 +74,8 @@ export default function RegisterPage() {
     };
 
     const handleSendOtp = async () => {
-        if (!form.phone || form.phone.length < 10) {
-            setPhoneError('Please enter a valid 10-digit phone number');
+        if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+            setPhoneError('Please enter a valid email address');
             return;
         }
         setPhoneError('');
@@ -85,18 +86,19 @@ export default function RegisterPage() {
             const res = await fetch('/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: form.phone }),
+                body: JSON.stringify({ email: form.email }),
             });
             const data = await res.json();
             if (!res.ok) {
-                setPhoneError(data.detail || 'Failed to send OTP.');
+                const errorMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : 'Failed to send OTP.');
+                setPhoneError(errorMsg || 'Failed to send OTP.');
                 return;
             }
             setPhoneSent(true);
-            setPhoneSuccess('SMS sent! Please check your phone.');
+            setPhoneSuccess('Email sent! Please check your inbox.');
         } catch (err: any) {
-            console.error("SMS Error:", err);
-            setPhoneError('Network error. Failed to send SMS.');
+            console.error("Email Error:", err);
+            setPhoneError('Network error. Failed to send Email.');
         } finally {
             setPhoneLoading(false);
         }
@@ -111,20 +113,21 @@ export default function RegisterPage() {
             const res = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: form.phone, otp: otp }),
+                body: JSON.stringify({ email: form.email, otp: otp }),
             });
             const data = await res.json();
             if (!res.ok) {
-                setPhoneError(data.detail || 'Invalid verification code.');
+                const errorMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : 'Invalid verification code.');
+                setPhoneError(errorMsg || 'Invalid verification code.');
                 return;
             }
 
             setPhoneVerified(true);
-            setPhoneSuccess('Phone verified successfully!');
+            setPhoneSuccess('Email verified successfully!');
             setPhoneSent(false); // Hide the OTP input box
             setError('');
         } catch (err: any) {
-            setPhoneError('Network error. Failed to verify SMS.');
+            setPhoneError('Network error. Failed to verify Email.');
         } finally {
             setPhoneLoading(false);
         }
