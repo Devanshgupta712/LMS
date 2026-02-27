@@ -271,6 +271,14 @@ export default function ChatbotFAQ() {
                         bottom: 80px !important;
                     }
                 }
+                @keyframes chatSlideUp {
+                    from { opacity: 0; transform: translateY(16px) scale(0.95); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes dotPulse {
+                    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+                    40% { transform: scale(1); opacity: 1; }
+                }
             `}</style>
             {isOpen && (
                 <div style={{
@@ -290,16 +298,6 @@ export default function ChatbotFAQ() {
                     flexDirection: 'column',
                     animation: 'chatSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}>
-                    <style jsx>{`
-                        @keyframes chatSlideUp {
-                            from { opacity: 0; transform: translateY(16px) scale(0.95); }
-                            to { opacity: 1; transform: translateY(0) scale(1); }
-                        }
-                        @keyframes dotPulse {
-                            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-                            40% { transform: scale(1); opacity: 1; }
-                        }
-                    `}</style>
 
                     {/* Header */}
                     <div style={{
