@@ -40,6 +40,8 @@ export default function StudentProfilePage() {
     const [uploadType, setUploadType] = useState('RESUME');
     const [showUpload, setShowUpload] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const user = getStoredUser();
 
     // Password change state
@@ -111,6 +113,28 @@ export default function StudentProfilePage() {
     const roleColor = user?.role === 'STUDENT' ? '#06b6d4' : user?.role === 'TRAINER' ? '#10b981' : '#0066ff';
     const initials = profile ? profile.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
 
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return; }
+        setUploadingAvatar(true);
+        try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64 = reader.result as string;
+                await fetch('/api/auth/profile', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ avatar: base64 }),
+                });
+                loadAll();
+            };
+            reader.readAsDataURL(file);
+        } catch { alert('Failed to upload photo'); } finally {
+            setTimeout(() => setUploadingAvatar(false), 1000);
+        }
+    };
+
     if (loading) return <div className="animate-in"><p>Loading profile...</p></div>;
 
     return (
@@ -128,15 +152,34 @@ export default function StudentProfilePage() {
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: `linear-gradient(90deg, ${roleColor}, ${roleColor}80)` }} />
 
                 <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    {/* Avatar */}
-                    <div style={{
-                        width: '100px', height: '100px', borderRadius: '50%',
-                        background: `linear-gradient(135deg, ${roleColor}, ${roleColor}80)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '36px', fontWeight: 700, color: '#fff', flexShrink: 0,
-                        boxShadow: `0 0 0 4px ${roleColor}30`,
-                    }}>
-                        {initials}
+                    {/* Avatar with Upload */}
+                    <div
+                        style={{
+                            width: '100px', height: '100px', borderRadius: '50%',
+                            background: profile?.avatar ? 'none' : `linear-gradient(135deg, ${roleColor}, ${roleColor}80)`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '36px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                            boxShadow: `0 0 0 4px ${roleColor}30`,
+                            position: 'relative', cursor: 'pointer', overflow: 'hidden',
+                        }}
+                        onClick={() => avatarInputRef.current?.click()}
+                        title="Click to change profile picture"
+                    >
+                        {profile?.avatar ? (
+                            <img src={profile.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                        ) : (
+                            initials
+                        )}
+                        {/* Camera overlay */}
+                        <div style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                            height: '32px', background: 'rgba(0,0,0,0.55)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '14px', color: '#fff',
+                        }}>
+                            {uploadingAvatar ? '...' : '📷'}
+                        </div>
+                        <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} />
                     </div>
 
                     {/* Info */}
@@ -426,7 +469,7 @@ function InfoItem({ icon, label, value }: { icon: string; label: string; value: 
             <span style={{ fontSize: '18px' }}>{icon}</span>
             <div>
                 <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>{label}</div>
-                <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 500 }}>{value}</div>
+                <div style={{ fontSize: '14px', color: '#1a1a2e', fontWeight: 500 }}>{value}</div>
             </div>
         </div>
     );
