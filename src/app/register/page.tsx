@@ -59,9 +59,11 @@ export default function RegisterPage() {
                     course: form.course || null,
                 }),
             });
-            const data = await res.json();
+            const text = await res.text();
+            let data: any = {};
+            try { data = JSON.parse(text); } catch { data = { detail: text }; }
             if (!res.ok) {
-                const errorMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : 'Registration failed');
+                const errorMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : text);
                 setError(errorMsg || 'Registration failed');
                 return;
             }
@@ -88,9 +90,11 @@ export default function RegisterPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: form.email }),
             });
-            const data = await res.json();
+            const text = await res.text();
+            let data: any = {};
+            try { data = JSON.parse(text); } catch { data = { detail: text }; }
             if (!res.ok) {
-                const errorMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : 'Failed to send OTP.');
+                const errorMsg = typeof data.detail === 'string' ? data.detail : (Array.isArray(data.detail) ? data.detail[0]?.msg : text);
                 setPhoneError(errorMsg || 'Failed to send OTP.');
                 return;
             }

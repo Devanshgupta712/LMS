@@ -127,13 +127,9 @@ async def mark_notifications_read(db: AsyncSession = Depends(get_db), user: User
 
 @router.post("/send-otp")
 async def send_otp(body: SendOTPRequest):
-    # Ensure phone is exactly 10 digits as expected by Fast2SMS
-    clean_phone = ''.join(filter(str.isdigit, body.phone))
-    if len(clean_phone) > 10:
-        clean_phone = clean_phone[-10:] # get last 10 digits
-        
-    # Ensure email is valid and parsed
-    email = body.email.lower()
+    email = body.email.strip().lower()
+    if not email or '@' not in email:
+        raise HTTPException(status_code=400, detail="Please provide a valid email address")
     
     otp = _generate_otp()
     _otp_store[email] = {
