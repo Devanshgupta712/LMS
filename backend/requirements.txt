@@ -12,3 +12,4 @@ aiofiles==24.1.0
 aiosqlite
 greenlet
 cloudinary
+resend

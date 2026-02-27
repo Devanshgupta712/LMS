@@ -4,9 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
 from datetime import datetime, date, time, timezone, timedelta
-import os, uuid, base64, json, random, smtplib, logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import os, uuid, base64, json, random, logging, resend
 
 from app.database import get_db
 from app.models.user import User
@@ -27,23 +25,15 @@ def _generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
 def _send_email_otp(to_email: str, otp: str) -> tuple[bool, str]:
-    """Send OTP via proper Gmail SMTP setup. Returns True on success, False on error."""
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASSWORD")
+    """Send OTP via Resend API setup. Returns True on success, False on error."""
+    api_key = os.getenv("RESEND_API_KEY")
     
-    if not smtp_user or not smtp_pass:
-        logger.warning(f"SMTP configuration missing. Real email to {to_email} will not be sent.")
+    if not api_key:
+        logger.warning(f"RESEND_API_KEY configuration missing. Real email to {to_email} will not be sent.")
         print(f"[TESTING MOCK EMAIL] The OTP for {to_email} is {otp}")
         return True, ""
     
-    # Satisfy Pyre2 str typing
-    user: str = str(smtp_user)
-    pwd: str = str(smtp_pass)
-    
-    msg = MIMEMultipart("alternative")
-    msg['Subject'] = "Your AppTechno Registration OTP"
-    msg['From'] = user
-    msg['To'] = to_email
+    resend.api_key = api_key
 
     html_content = f"""
     <html>
@@ -59,16 +49,17 @@ def _send_email_otp(to_email: str, otp: str) -> tuple[bool, str]:
       </body>
     </html>
     """
-    msg.attach(MIMEText(html_content, 'html'))
     
     try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10)
-        server.login(user, pwd)
-        server.send_message(msg)
-        server.quit()
+        resend.Emails.send({
+            "from": "AppTechno <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": "Your AppTechno Registration OTP",
+            "html": html_content
+        })
         return True, ""
     except Exception as e:
-        logger.error(f"SMTP Flow Failed: {e}")
+        logger.error(f"Resend API Failed: {e}")
         return False, str(e)
 
 
