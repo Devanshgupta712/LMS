@@ -62,8 +62,7 @@ def _send_email_otp(to_email: str, otp: str) -> tuple[bool, str]:
     msg.attach(MIMEText(html_content, 'html'))
     
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=10)
-        server.starttls()
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10)
         server.login(user, pwd)
         server.send_message(msg)
         server.quit()
