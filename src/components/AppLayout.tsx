@@ -115,7 +115,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                     key={n.id}
                                                     style={{
                                                         padding: '12px 16px', borderBottom: '1px solid #334155',
-                                                        background: n.read ? 'transparent' : 'rgba(99, 102, 241, 0.1)', cursor: 'pointer'
+                                                        background: n.read ? 'transparent' : 'rgba(0, 102, 255, 0.1)', cursor: 'pointer'
                                                     }}
                                                     onClick={() => {
                                                         const link = ['SUPER_ADMIN', 'ADMIN'].includes(user.role) ? '/notifications' : `/${user.role.toLowerCase()}/notifications`;

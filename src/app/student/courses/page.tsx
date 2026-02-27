@@ -35,7 +35,7 @@ export default function StudentCoursesPage() {
                 borderRadius: '16px'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ fontSize: '28px', background: 'rgba(99, 102, 241, 0.1)', padding: '12px', borderRadius: '12px' }}>🕒</div>
+                    <div style={{ fontSize: '28px', background: 'rgba(0, 102, 255, 0.1)', padding: '12px', borderRadius: '12px' }}>🕒</div>
                     <div>
                         <h3 style={{ margin: 0, fontSize: '15px', color: '#94a3b8' }}>Today's Work Hours</h3>
                         <p style={{ margin: '4px 0 0', fontSize: '18px', fontWeight: 700 }}>
@@ -70,7 +70,7 @@ export default function StudentCoursesPage() {
                             </div>
 
                             {/* Fee Information Block */}
-                            <div style={{ background: 'rgba(99, 102, 241, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.1)' }}>
+                            <div style={{ background: 'rgba(0, 102, 255, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(0, 102, 255, 0.1)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
                                     <span style={{ color: '#94a3b8' }}>Total Fee:</span>
                                     <span style={{ fontWeight: 600 }}>₹{c.fee_total?.toLocaleString()}</span>

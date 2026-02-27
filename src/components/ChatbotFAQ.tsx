@@ -38,7 +38,7 @@ export default function ChatbotFAQ() {
                     WebkitBackdropFilter: 'blur(20px)',
                     border: '1px solid var(--border)',
                     borderRadius: '16px',
-                    boxShadow: 'var(--shadow-lg), 0 0 40px rgba(99, 102, 241, 0.1)',
+                    boxShadow: 'var(--shadow-lg), 0 0 40px rgba(0, 102, 255, 0.1)',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
@@ -140,7 +140,7 @@ export default function ChatbotFAQ() {
                     color: 'white',
                     fontSize: '24px',
                     cursor: 'pointer',
-                    boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+                    boxShadow: '0 8px 24px rgba(0, 102, 255, 0.4), 0 0 0 1px rgba(255,255,255,0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -149,11 +149,11 @@ export default function ChatbotFAQ() {
                 }}
                 onMouseOver={(e) => {
                     e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(99, 102, 241, 0.6), 0 0 0 1px rgba(255,255,255,0.2)';
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 102, 255, 0.6), 0 0 0 1px rgba(255,255,255,0.2)';
                 }}
                 onMouseOut={(e) => {
                     e.currentTarget.style.transform = isOpen ? 'scale(0.9)' : 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(255,255,255,0.1)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 102, 255, 0.4), 0 0 0 1px rgba(255,255,255,0.1)';
                 }}
             >
                 {isOpen ? '✕' : '💬'}

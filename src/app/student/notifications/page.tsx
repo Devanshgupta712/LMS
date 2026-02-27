@@ -72,12 +72,12 @@ export default function NotificationsPage() {
                                         }}
                                         style={{
                                             opacity: n.read ? 0.7 : 1,
-                                            background: n.read ? 'transparent' : 'rgba(99, 102, 241, 0.05)',
+                                            background: n.read ? 'transparent' : 'rgba(0, 102, 255, 0.05)',
                                             cursor: 'pointer',
                                             transition: 'background 0.2s'
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = n.read ? 'rgba(255,255,255,0.02)' : 'rgba(99, 102, 241, 0.1)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(99, 102, 241, 0.05)'}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = n.read ? 'rgba(255,255,255,0.02)' : 'rgba(0, 102, 255, 0.1)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(0, 102, 255, 0.05)'}
                                     >
                                         <td>
                                             {n.read ? (
@@ -123,7 +123,7 @@ export default function NotificationsPage() {
                             style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
                         >×</button>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🔔</div>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(0, 102, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🔔</div>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{selectedNotification.title}</h3>
                                 <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>

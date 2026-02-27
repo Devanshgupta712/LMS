@@ -407,7 +407,7 @@ export default function TimeTrackingPage() {
                             <button className="btn btn-ghost" onClick={() => setShowQrModal(false)} style={{ padding: '4px 8px' }}>✕</button>
                         </div>
 
-                        <div className="text-sm text-muted mb-20" style={{ textAlign: 'left', padding: '12px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
+                        <div className="text-sm text-muted mb-20" style={{ textAlign: 'left', padding: '12px', background: 'rgba(0, 102, 255, 0.05)', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
                             <p style={{ marginBottom: '8px' }}><strong>Universal Punch QR Code:</strong></p>
                             <ul style={{ paddingLeft: '20px', listStyleType: 'disc' }}>
                                 <li>Scan 1st: <strong>Punch In</strong></li>
