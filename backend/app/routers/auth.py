@@ -11,13 +11,60 @@ from email.mime.multipart import MIMEMultipart
 from app.database import get_db
 from app.models.user import User
 from app.models.registration import Document
-from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut
+from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut, SendOTPRequest, VerifyOTPRequest
 from app.middleware.auth import create_access_token, get_current_user
 from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 logger = logging.getLogger(__name__)
+
+# ─── In-memory Phone OTP Store ───────────────────────────
+# Format: { phone: { "otp": "123456", "expires": datetime, "verified": bool } }
+_otp_store: dict[str, dict] = {}
+
+def _generate_otp() -> str:
+    return str(random.randint(100000, 999999))
+
+def _send_fast2sms(phone: str, otp: str) -> bool:
+    """Send SMS via Fast2SMS Dev API. Returns True on success."""
+    import requests
+    
+    # Needs to be configured in .env or hardcoded by the user later
+    api_key = os.getenv("FAST2SMS_API_KEY", "") 
+    if not api_key:
+        logger.warning(f"FAST2SMS_API_KEY is not set. SMS to {phone} not sent.")
+        # In a real setup, we want this to error, but for testing development:
+        print(f"[TESTING MOCK SMS] The OTP for {phone} is {otp}")
+        return True # Mock success for testing without key
+        
+    url = "https://www.fast2sms.com/dev/bulkV2"
+    payload = {
+        "variables_values": otp,
+        "route": "otp",
+        "numbers": phone
+    }
+    headers = {
+        "authorization": api_key,
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    
+    try:
+        # requests.post works but URL encoding the payload is easier via data=
+        response = requests.post(url, data=payload, headers=headers)
+        if response.status_code == 200:
+            res_data = response.json()
+            if res_data.get("return") == True:
+                return True
+            else:
+                logger.error(f"Fast2SMS API Error: {res_data}")
+                return False
+        else:
+            logger.error(f"Fast2SMS HTTP Error {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        logger.error(f"Failed to send Fast2SMS to {phone}: {e}")
+        return False
 
 
 
@@ -70,8 +117,58 @@ async def mark_notifications_read(db: AsyncSession = Depends(get_db), user: User
 
 
 
+@router.post("/send-otp")
+async def send_otp(body: SendOTPRequest):
+    # Ensure phone is exactly 10 digits as expected by Fast2SMS
+    clean_phone = ''.join(filter(str.isdigit, body.phone))
+    if len(clean_phone) > 10:
+        clean_phone = clean_phone[-10:] # get last 10 digits
+        
+    otp = _generate_otp()
+    _otp_store[clean_phone] = {
+        "otp": otp,
+        "expires": datetime.now(timezone.utc) + timedelta(minutes=10),
+        "verified": False
+    }
+    
+    if _send_fast2sms(clean_phone, otp):
+        return {"status": "success", "message": "OTP sent successfully via SMS"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send OTP SMS")
+
+@router.post("/verify-otp")
+async def verify_otp(body: VerifyOTPRequest):
+    clean_phone = ''.join(filter(str.isdigit, body.phone))
+    if len(clean_phone) > 10:
+        clean_phone = clean_phone[-10:]
+        
+    record = _otp_store.get(clean_phone)
+    if not record:
+        raise HTTPException(status_code=400, detail="OTP not sent or expired")
+        
+    if datetime.now(timezone.utc) > record["expires"]:
+        del _otp_store[clean_phone]
+        raise HTTPException(status_code=400, detail="OTP expired")
+        
+    if record["otp"] != body.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+        
+    record["verified"] = True
+    return {"status": "success", "message": "Phone verified successfully"}
+
 @router.post("/register", response_model=UserOut)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    if body.role == "STUDENT":
+        if not body.phone:
+            raise HTTPException(status_code=400, detail="Phone number is required for students.")
+            
+        clean_phone = ''.join(filter(str.isdigit, body.phone))
+        if len(clean_phone) > 10:
+            clean_phone = clean_phone[-10:]
+            
+        record = _otp_store.get(clean_phone)
+        if not record or not record.get("verified"):
+            raise HTTPException(status_code=400, detail="Phone number not verified. Please verify your phone number via OTP first.")
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")

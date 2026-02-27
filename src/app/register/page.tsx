@@ -1,9 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -74,20 +72,9 @@ export default function RegisterPage() {
         }
     };
 
-    const setupRecaptcha = () => {
-        if (!(window as any).recaptchaVerifier) {
-            (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'invisible',
-                'callback': (response: any) => {
-                    // reCAPTCHA solved, allow signInWithPhoneNumber.
-                }
-            });
-        }
-    };
-
     const handleSendOtp = async () => {
-        if (!form.phone) {
-            setPhoneError('Please enter a phone number first');
+        if (!form.phone || form.phone.length < 10) {
+            setPhoneError('Please enter a valid 10-digit phone number');
             return;
         }
         setPhoneError('');
@@ -95,32 +82,21 @@ export default function RegisterPage() {
         setPhoneLoading(true);
 
         try {
-            setupRecaptcha();
-            const appVerifier = (window as any).recaptchaVerifier;
-
-            // Format phone number. Firebase requires E.164 format (e.g., +91xxxxxxxxxx for India)
-            // If the user didn't type a +, assume India (+91) for default. 
-            // In a real app, you'd want a country code drop-down.
-            let formattedPhone = form.phone;
-            if (!formattedPhone.startsWith('+')) {
-                // Remove spaces and non-digits
-                formattedPhone = formattedPhone.replace(/\D/g, '');
-                if (formattedPhone.length === 10) formattedPhone = '+91' + formattedPhone;
-                else formattedPhone = '+' + formattedPhone; // Best guess
+            const res = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: form.phone }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setPhoneError(data.detail || 'Failed to send OTP.');
+                return;
             }
-
-            const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-            (window as any).confirmationResult = confirmationResult;
             setPhoneSent(true);
             setPhoneSuccess('SMS sent! Please check your phone.');
         } catch (err: any) {
             console.error("SMS Error:", err);
-            setPhoneError(err.message || 'Failed to send SMS. Ensure number has country code (+91).');
-            // reset recaptcha if it failed
-            if ((window as any).recaptchaVerifier) {
-                (window as any).recaptchaVerifier.clear();
-                (window as any).recaptchaVerifier = null;
-            }
+            setPhoneError('Network error. Failed to send SMS.');
         } finally {
             setPhoneLoading(false);
         }
@@ -132,15 +108,23 @@ export default function RegisterPage() {
         setPhoneSuccess('');
         setPhoneLoading(true);
         try {
-            const confirmationResult = (window as any).confirmationResult;
-            await confirmationResult.confirm(otp);
+            const res = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: form.phone, otp: otp }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setPhoneError(data.detail || 'Invalid verification code.');
+                return;
+            }
 
             setPhoneVerified(true);
             setPhoneSuccess('Phone verified successfully!');
             setPhoneSent(false); // Hide the OTP input box
             setError('');
         } catch (err: any) {
-            setPhoneError('Invalid verification code. Try again.');
+            setPhoneError('Network error. Failed to verify SMS.');
         } finally {
             setPhoneLoading(false);
         }
@@ -260,8 +244,6 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* Hidden div for Firebase recaptcha */}
-                    <div id="recaptcha-container"></div>
 
                     <style jsx>{`
                         @keyframes slideDown {
