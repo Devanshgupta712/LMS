@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 # ─── Auth ──────────────────────────────────────────────
@@ -8,10 +8,10 @@ class LoginRequest(BaseModel):
     password: str
 
 class SendOTPRequest(BaseModel):
-    email: EmailStr
+    email: str
 
 class VerifyOTPRequest(BaseModel):
-    email: EmailStr
+    email: str
     otp: str
 
 
