@@ -58,7 +58,7 @@ export default function StudentCoursesPage() {
                 ) : (
                     <div className="grid-3">{courses.map((c: any) => (
                         <div key={c.id} className="card" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            <div style={{ height: '8px', background: 'linear-gradient(90deg, #2563eb, #2563eb)', borderRadius: '4px 4px 0 0', margin: '-16px -16px 16px' }} />
+                            <div style={{ height: '8px', background: 'linear-gradient(90deg, #0066ff, #0066ff)', borderRadius: '4px 4px 0 0', margin: '-16px -16px 16px' }} />
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <h3 style={{ margin: '0 0 8px', fontSize: '16px' }}>{c.name}</h3>
                                 <span className={`badge ${c.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`}>{c.status}</span>

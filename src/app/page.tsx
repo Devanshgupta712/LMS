@@ -24,7 +24,7 @@ export default function LandingWebsite() {
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '28px', height: '28px', objectFit: 'contain' }} /><span style={{ fontSize: 'clamp(16px, 4vw, 24px)', background: 'linear-gradient(135deg, #2563eb, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '28px', height: '28px', objectFit: 'contain' }} /><span style={{ fontSize: 'clamp(16px, 4vw, 24px)', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '14px', fontWeight: 500, flexWrap: 'wrap' }}>
             <a href="#courses" style={{ color: '#a1a1aa', textDecoration: 'none', transition: 'color 0.2s', display: 'none' }} className="nav-link-desktop">Courses</a>
@@ -45,9 +45,9 @@ export default function LandingWebsite() {
                   color: '#fff', textDecoration: 'none', padding: '8px 14px', fontSize: '13px'
                 }}>Log in</Link>
                 <Link href="/register" style={{
-                  background: 'linear-gradient(135deg, #1a4fa0, #2563eb)',
+                  background: 'linear-gradient(135deg, #0044cc, #0066ff)',
                   padding: '8px 20px', borderRadius: '24px', color: '#fff', textDecoration: 'none',
-                  boxShadow: '0 4px 12px rgba(26, 79, 160, 0.3)', fontWeight: 600, fontSize: '13px'
+                  boxShadow: '0 4px 12px rgba(0, 68, 204, 0.3)', fontWeight: 600, fontSize: '13px'
                 }}>Apply Now</Link>
               </div>
             )}
@@ -61,19 +61,19 @@ export default function LandingWebsite() {
         textAlign: 'center', position: 'relative'
       }}>
         {/* Decorative Orbs */}
-        <div style={{ position: 'absolute', top: '10%', left: '15%', width: '300px', height: '300px', background: 'rgba(26, 79, 160, 0.15)', borderRadius: '50%', filter: 'blur(100px)' }} />
+        <div style={{ position: 'absolute', top: '10%', left: '15%', width: '300px', height: '300px', background: 'rgba(0, 68, 204, 0.15)', borderRadius: '50%', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', top: '20%', right: '15%', width: '400px', height: '400px', background: 'rgba(237, 170, 30, 0.10)', borderRadius: '50%', filter: 'blur(100px)' }} />
 
         <div style={{ maxWidth: '800px', position: 'relative', zIndex: 10 }}>
           <div style={{
-            display: 'inline-block', padding: '6px 16px', background: 'rgba(26, 79, 160, 0.1)',
-            border: '1px solid rgba(26, 79, 160, 0.2)', borderRadius: '30px', color: '#60a5fa',
+            display: 'inline-block', padding: '6px 16px', background: 'rgba(0, 68, 204, 0.1)',
+            border: '1px solid rgba(0, 68, 204, 0.2)', borderRadius: '30px', color: '#3399ff',
             fontSize: '13px', fontWeight: 600, marginBottom: '24px', letterSpacing: '0.05em'
           }}>
             AI INSIDE. INNOVATION OUTSIDE.
           </div>
           <h1 style={{ fontSize: 'clamp(32px, 8vw, 72px)', fontWeight: 800, lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em', background: 'linear-gradient(180deg, #fff, #a1a1aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            IT Training from <br /> <span style={{ background: 'linear-gradient(90deg, #2563eb, #edaa1e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Real Software Companies.</span>
+            IT Training from <br /> <span style={{ background: 'linear-gradient(90deg, #0066ff, #ffb800)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Real Software Companies.</span>
           </h1>
           <p style={{ fontSize: 'clamp(15px, 3vw, 20px)', color: '#a1a1aa', lineHeight: 1.6, marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px', padding: '0 8px' }}>
             Get trained & certified by IT companies, work on live projects, earn a 6-months experience certificate, and get placed with AI-powered placement support.
@@ -118,12 +118,12 @@ export default function LandingWebsite() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '20px' }}>
             {[
-              { icon: '💻', title: 'Full Stack Java Development', desc: 'Learn Java, Spring Boot, Angular to build enterprise-grade applications with project training from IT companies.', color: '#2563eb' },
-              { icon: '🔥', title: 'Full Stack Python Development', desc: 'Master Python, Django, React for full stack web development with 6-months experience certificate.', color: '#edaa1e' },
+              { icon: '💻', title: 'Full Stack Java Development', desc: 'Learn Java, Spring Boot, Angular to build enterprise-grade applications with project training from IT companies.', color: '#0066ff' },
+              { icon: '🔥', title: 'Full Stack Python Development', desc: 'Master Python, Django, React for full stack web development with 6-months experience certificate.', color: '#ffb800' },
               { icon: '🧪', title: 'Software Testing & Automation', desc: 'Train in Manual, Selenium & API Testing for QA careers with live project experience.', color: '#10b981' },
               { icon: '🚀', title: 'MERN Stack Development', desc: 'Build modern apps with MongoDB, Express, React, Node.js — end-to-end JavaScript skills.', color: '#06b6d4' },
               { icon: '📈', title: 'Data Analytics', desc: 'Learn SQL, Power BI, Python to analyze and visualize data with professional dashboard creation.', color: '#f59e0b' },
-              { icon: '🧠', title: 'Data Science', desc: 'Gain skills in machine learning, data modeling and advanced analytics for the AI-powered future.', color: '#60a5fa' }
+              { icon: '🧠', title: 'Data Science', desc: 'Gain skills in machine learning, data modeling and advanced analytics for the AI-powered future.', color: '#3399ff' }
             ].map((course, i) => (
               <div key={i} style={{
                 background: 'rgba(24, 24, 27, 0.4)', border: '1px solid rgba(255,255,255,0.05)',
@@ -144,7 +144,7 @@ export default function LandingWebsite() {
       {/* About Section */}
       <section id="about" style={{ padding: '100px 24px', background: '#09090b', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ color: '#edaa1e', fontWeight: 700, fontSize: '14px', letterSpacing: '0.1em', marginBottom: '16px' }}>OUR MISSION</div>
+          <div style={{ color: '#ffb800', fontWeight: 700, fontSize: '14px', letterSpacing: '0.1em', marginBottom: '16px' }}>OUR MISSION</div>
           <h2 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 800, marginBottom: '32px', lineHeight: 1.2 }}>Training the next generation of IT professionals.</h2>
           <p style={{ color: '#a1a1aa', fontSize: 'clamp(16px, 3vw, 20px)', lineHeight: 1.6, marginBottom: '40px' }}>
             AppTechno Careers BTM branch started in the year 2000 has trained more than 70,000 students through various courses & placed every student in reputed MNC's. We are the only training center in Bangalore that has 20+ years of Training & Placement Legacy. We have partnered with IT companies of India and US to train you and develop you to the needs of the IT industry.
@@ -158,7 +158,7 @@ export default function LandingWebsite() {
       </section>
 
       {/* Placements Section */}
-      <section id="placements" style={{ padding: '120px 24px', backgroundColor: '#09090b', backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(26, 79, 160, 0.05) 0%, transparent 60%)' }}>
+      <section id="placements" style={{ padding: '120px 24px', backgroundColor: '#09090b', backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(0, 68, 204, 0.05) 0%, transparent 60%)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 'clamp(32px, 5vw, 80px)', alignItems: 'center' }}>
             <div>

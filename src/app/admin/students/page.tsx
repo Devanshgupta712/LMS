@@ -43,7 +43,7 @@ export default function StudentsPage() {
                         <thead><tr><th>Student ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Joined</th></tr></thead>
                         <tbody>{students.map(s => (
                             <tr key={s.id}>
-                                <td><span style={{ fontFamily: 'monospace', color: '#60a5fa' }}>{s.student_id || '-'}</span></td>
+                                <td><span style={{ fontFamily: 'monospace', color: '#3399ff' }}>{s.student_id || '-'}</span></td>
                                 <td><strong>{s.name}</strong></td><td>{s.email}</td><td>{s.phone || '-'}</td>
                                 <td><span className={`badge ${s.is_active ? 'badge-success' : 'badge-danger'}`}>{s.is_active ? 'Active' : 'Inactive'}</span></td>
                                 <td>{new Date(s.created_at).toLocaleDateString()}</td>

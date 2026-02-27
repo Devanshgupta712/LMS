@@ -30,9 +30,9 @@ export default function PlacementReportsPage() {
                             <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <span style={{ width: '200px', fontSize: '13px', color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.title} — {j.company}</span>
                                 <div style={{ flex: 1, height: '24px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${totalApps > 0 ? (j.application_count / totalApps) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #2563eb)', borderRadius: '6px', minWidth: j.application_count > 0 ? '20px' : '0' }} />
+                                    <div style={{ width: `${totalApps > 0 ? (j.application_count / totalApps) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, #0066ff, #0066ff)', borderRadius: '6px', minWidth: j.application_count > 0 ? '20px' : '0' }} />
                                 </div>
-                                <span style={{ width: '40px', fontSize: '14px', fontWeight: 600, color: '#60a5fa', textAlign: 'right' }}>{j.application_count}</span>
+                                <span style={{ width: '40px', fontSize: '14px', fontWeight: 600, color: '#3399ff', textAlign: 'right' }}>{j.application_count}</span>
                             </div>
                         ))}
                     </div>

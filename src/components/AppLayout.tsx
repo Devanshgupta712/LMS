@@ -134,7 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                     <div style={{ padding: '8px', textAlign: 'center', background: '#0f172a' }}>
                                         <a
                                             href={['SUPER_ADMIN', 'ADMIN'].includes(user.role) ? '/notifications' : `/${user.role.toLowerCase()}/notifications`}
-                                            style={{ color: '#2563eb', fontSize: '13px', textDecoration: 'none', fontWeight: 500 }}
+                                            style={{ color: '#0066ff', fontSize: '13px', textDecoration: 'none', fontWeight: 500 }}
                                         >
                                             View all notifications
                                         </a>

@@ -54,7 +54,7 @@ export default function JobsPage() {
                     <div className="grid-3">{jobs.map(j => (
                         <div key={j.id} className="card" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             <h3 style={{ margin: '0 0 4px', fontSize: '16px' }}>{j.title}</h3>
-                            <p style={{ margin: '0 0 8px', color: '#60a5fa', fontSize: '14px' }}>{j.company}</p>
+                            <p style={{ margin: '0 0 8px', color: '#3399ff', fontSize: '14px' }}>{j.company}</p>
                             {j.description && <p className="text-sm text-muted" style={{ margin: '0 0 12px', lineHeight: '1.5' }}>{j.description}</p>}
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#94a3b8' }}>
                                 {j.location && <span>📍 {j.location}</span>}

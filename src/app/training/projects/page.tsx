@@ -99,12 +99,12 @@ export default function ProjectsPage() {
                                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>
                                     {project.tech_stack && (
                                         <span>🛠️ {project.tech_stack.split(',').map(t => (
-                                            <span key={t} style={{ background: '#2563eb15', color: '#60a5fa', padding: '2px 8px', borderRadius: '12px', marginLeft: '4px', fontSize: '11px' }}>{t.trim()}</span>
+                                            <span key={t} style={{ background: '#0066ff15', color: '#3399ff', padding: '2px 8px', borderRadius: '12px', marginLeft: '4px', fontSize: '11px' }}>{t.trim()}</span>
                                         ))}</span>
                                     )}
                                     {project.trainer_name && <span>👤 {project.trainer_name}</span>}
                                     <span>👥 Team: {project.max_team_size}</span>
-                                    {project.github_url && <a href={project.github_url} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{ color: '#60a5fa' }}>🔗 GitHub</a>}
+                                    {project.github_url && <a href={project.github_url} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{ color: '#3399ff' }}>🔗 GitHub</a>}
                                 </div>
 
                                 {/* Progress Bar */}

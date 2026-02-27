@@ -14,7 +14,7 @@ const typeIcons: Record<string, string> = {
     CODING: '💻', WRITTEN: '✍️', MCQ: '📝', PROJECT: '🏗️',
 };
 const typeColors: Record<string, string> = {
-    CODING: '#2563eb', WRITTEN: '#10b981', MCQ: '#f59e0b', PROJECT: '#06b6d4',
+    CODING: '#0066ff', WRITTEN: '#10b981', MCQ: '#f59e0b', PROJECT: '#06b6d4',
 };
 
 export default function AssignmentsPage() {

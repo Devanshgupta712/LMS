@@ -108,7 +108,7 @@ export default function StudentProfilePage() {
         loadAll();
     };
 
-    const roleColor = user?.role === 'STUDENT' ? '#06b6d4' : user?.role === 'TRAINER' ? '#10b981' : '#2563eb';
+    const roleColor = user?.role === 'STUDENT' ? '#06b6d4' : user?.role === 'TRAINER' ? '#10b981' : '#0066ff';
     const initials = profile ? profile.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';
 
     if (loading) return <div className="animate-in"><p>Loading profile...</p></div>;

@@ -134,7 +134,7 @@ export default function AttendancePage() {
         PRESENT: { color: '#4ade80', icon: '✅', btnClass: 'btn-success' },
         ABSENT: { color: '#f87171', icon: '❌', btnClass: 'btn-danger' },
         LATE: { color: '#fbbf24', icon: '⏰', btnClass: 'btn-warning' },
-        LEAVE: { color: '#60a5fa', icon: '🗓️', btnClass: 'btn-accent' },
+        LEAVE: { color: '#3399ff', icon: '🗓️', btnClass: 'btn-accent' },
     };
 
     const presentCount = Object.values(localStatus).filter(s => s === 'PRESENT').length;
@@ -222,7 +222,7 @@ export default function AttendancePage() {
                             const cfg = statusConfig[st] || statusConfig['ABSENT'];
                             return (
                                 <tr key={s.id}>
-                                    <td style={{ fontFamily: 'monospace', color: '#60a5fa' }}>{s.student_id || '-'}</td>
+                                    <td style={{ fontFamily: 'monospace', color: '#3399ff' }}>{s.student_id || '-'}</td>
                                     <td><strong>{s.name}</strong></td>
                                     <td>
                                         <button onClick={() => cycleStatus(s.id, st)} className={`btn btn-sm ${cfg.btnClass}`}
@@ -290,7 +290,7 @@ export default function AttendancePage() {
             {globalQrModal && (
                 <div className="modal-overlay" onClick={() => setGlobalQrModal(null)}>
                     <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', textAlign: 'center', padding: '40px 30px' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(99,102,241,0.1)', color: '#60a5fa', fontSize: '32px', marginBottom: '20px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(99,102,241,0.1)', color: '#3399ff', fontSize: '32px', marginBottom: '20px' }}>
                             🌍
                         </div>
                         <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 700, color: '#f8fafc' }}>
@@ -328,10 +328,10 @@ export default function AttendancePage() {
                     onClick={() => setQrModal(null)}>
                     <div style={{ background: '#0a0a0a', borderRadius: '32px', padding: '48px', maxWidth: '500px', width: '90%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}
                         onClick={e => e.stopPropagation()}>
-                        <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 24px' }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #3b82f6, #0066ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 24px' }}>
                             📱
                         </div>
-                        <h2 style={{ fontSize: '28px', margin: '0 0 8px', background: 'linear-gradient(to right, #fff, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        <h2 style={{ fontSize: '28px', margin: '0 0 8px', background: 'linear-gradient(to right, #fff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                             Scan to Mark Attendance
                         </h2>
                         <p style={{ color: '#94a3b8', fontSize: '15px', margin: '0 0 32px' }}>

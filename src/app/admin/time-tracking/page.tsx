@@ -236,10 +236,10 @@ export default function TimeTrackingPage() {
                     <button className="btn btn-ghost" onClick={handleAddManual} style={{ border: '1px solid var(--border)' }}>
                         ➕ Manual Entry
                     </button>
-                    <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #10b981, #2563eb)', padding: '8px 20px', borderRadius: '12px' }}>
+                    <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #10b981, #0066ff)', padding: '8px 20px', borderRadius: '12px' }}>
                         🎁 Machine Modal
                     </button>
-                    <a href="/admin/time-tracking/qr" target="_blank" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, #2563eb, #2563eb)', padding: '8px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                    <a href="/admin/time-tracking/qr" target="_blank" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, #0066ff, #0066ff)', padding: '8px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                         🖥️ Full Screen QR
                     </a>
                     <button className="btn btn-ghost" onClick={loadData}>

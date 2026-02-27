@@ -108,11 +108,11 @@ const navSections: NavSection[] = [
 ];
 
 const roleColors: Record<string, string> = {
-    SUPER_ADMIN: '#1a4fa0',
-    ADMIN: '#2563eb',
-    TRAINER: '#10b981',
-    MARKETER: '#edaa1e',
-    STUDENT: '#60a5fa',
+    SUPER_ADMIN: '#0044cc',
+    ADMIN: '#0066ff',
+    TRAINER: '#00d68f',
+    MARKETER: '#ffb800',
+    STUDENT: '#3399ff',
 };
 
 import React from 'react';
@@ -120,7 +120,7 @@ import React from 'react';
 export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const accentColor = roleColors[userRole] || '#2563eb';
+    const accentColor = roleColors[userRole] || '#0066ff';
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 

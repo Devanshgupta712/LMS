@@ -29,9 +29,9 @@ export default function AdminReportsPage() {
                             <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <span style={{ width: '40px', fontSize: '13px', color: '#94a3b8' }}>{m}</span>
                                 <div style={{ flex: 1, height: '24px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${20 + i * 12}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #2563eb)', borderRadius: '6px', transition: 'width 0.5s' }} />
+                                    <div style={{ width: `${20 + i * 12}%`, height: '100%', background: 'linear-gradient(90deg, #0066ff, #0066ff)', borderRadius: '6px', transition: 'width 0.5s' }} />
                                 </div>
-                                <span style={{ width: '30px', fontSize: '13px', color: '#60a5fa', textAlign: 'right' }}>{Math.floor(Math.random() * 20) + 5}</span>
+                                <span style={{ width: '30px', fontSize: '13px', color: '#3399ff', textAlign: 'right' }}>{Math.floor(Math.random() * 20) + 5}</span>
                             </div>
                         ))}
                     </div>
@@ -39,7 +39,7 @@ export default function AdminReportsPage() {
                 <div className="card">
                     <h3 className="font-semibold mb-16">Revenue Breakdown</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {[{ label: 'Full Stack Dev', pct: 45, color: '#2563eb' }, { label: 'Data Science', pct: 35, color: '#2563eb' }, { label: 'Digital Marketing', pct: 20, color: '#60a5fa' }].map(item => (
+                        {[{ label: 'Full Stack Dev', pct: 45, color: '#0066ff' }, { label: 'Data Science', pct: 35, color: '#0066ff' }, { label: 'Digital Marketing', pct: 20, color: '#3399ff' }].map(item => (
                             <div key={item.label}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span className="text-sm">{item.label}</span><span className="text-sm text-muted">{item.pct}%</span></div>
                                 <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}><div style={{ width: `${item.pct}%`, height: '100%', background: item.color, borderRadius: '4px' }} /></div>

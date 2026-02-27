@@ -54,7 +54,7 @@ export default function BatchesPage() {
                                 <span>👥 {b.student_count} students</span>
                                 {b.schedule_time && <span>⏰ {b.schedule_time}</span>}
                             </div>
-                            {b.trainer_name && <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#60a5fa' }}>👨‍🏫 {b.trainer_name}</p>}
+                            {b.trainer_name && <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#3399ff' }}>👨‍🏫 {b.trainer_name}</p>}
                             <span className={`badge ${b.is_active ? 'badge-success' : 'badge-danger'}`} style={{ marginTop: '8px', display: 'inline-block' }}>{b.is_active ? 'Active' : 'Ended'}</span>
                         </div>
                     ))}</div>

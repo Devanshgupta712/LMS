@@ -176,8 +176,8 @@ export default function StudentTimeTrackingPage() {
                             padding: '16px 32px',
                             fontSize: '1.1rem',
                             fontWeight: 700,
-                            background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                            boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)',
+                            background: 'linear-gradient(135deg, #0ea5e9, #0066ff)',
+                            boxShadow: '0 4px 20px rgba(0, 102, 255, 0.4)',
                             borderRadius: '16px'
                         }}
                     >

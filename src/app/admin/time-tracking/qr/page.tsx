@@ -52,7 +52,7 @@ export default function AdminQrDisplayPage() {
                 animation: 'fadeIn 0.8s ease-out'
             }}>
                 <div style={{ marginBottom: '40px' }}>
-                    <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '12px', background: 'linear-gradient(to right, #60a5fa, #edaa1e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '12px', background: 'linear-gradient(to right, #3399ff, #ffb800)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         Punch Machine
                     </h1>
                     <p style={{ fontSize: '1.25rem', color: '#94a3b8', fontWeight: 500 }}>

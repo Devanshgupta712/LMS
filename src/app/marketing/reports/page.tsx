@@ -17,7 +17,7 @@ export default function MarketingReportsPage() {
     const bySource = ['Website', 'WhatsApp', 'Social Media', 'Reference', 'Walk-in'].map(s => ({ source: s, count: leads.filter(l => l.source === s).length }));
     const convRate = leads.length > 0 ? Math.round(leads.filter(l => l.status === 'CONVERTED').length / leads.length * 100) : 0;
 
-    const barColors: Record<string, string> = { NEW: '#60a5fa', CONTACTED: '#fbbf24', INTERESTED: '#60a5fa', CONVERTED: '#4ade80', LOST: '#f87171' };
+    const barColors: Record<string, string> = { NEW: '#3399ff', CONTACTED: '#fbbf24', INTERESTED: '#3399ff', CONVERTED: '#4ade80', LOST: '#f87171' };
 
     // Process graph data
     const monthlyDataMap: Record<string, number> = {};
@@ -95,7 +95,7 @@ export default function MarketingReportsPage() {
                                     <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                                     <Tooltip contentStyle={{ backgroundColor: '#1e2130', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#f1f5f9' }} />
-                                    <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                                    <Line type="monotone" dataKey="count" stroke="#0066ff" strokeWidth={3} dot={{ fill: '#0066ff', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -151,9 +151,9 @@ export default function MarketingReportsPage() {
                             <div key={item.source} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <span style={{ width: '120px', fontSize: '13px', color: '#94a3b8' }}>{item.source}</span>
                                 <div style={{ flex: 1, height: '28px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${leads.length > 0 ? (item.count / leads.length) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: '6px', minWidth: '20px' }} />
+                                    <div style={{ width: `${leads.length > 0 ? (item.count / leads.length) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, #0066ff, #3399ff)', borderRadius: '6px', minWidth: '20px' }} />
                                 </div>
-                                <span style={{ width: '30px', fontSize: '14px', fontWeight: 600, color: '#60a5fa', textAlign: 'right' }}>{item.count}</span>
+                                <span style={{ width: '30px', fontSize: '14px', fontWeight: 600, color: '#3399ff', textAlign: 'right' }}>{item.count}</span>
                             </div>
                         ))}
                         {bySource.every(s => s.count === 0) && <p className="text-sm text-muted">No lead source data yet.</p>}

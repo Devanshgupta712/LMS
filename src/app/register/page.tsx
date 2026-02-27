@@ -65,7 +65,7 @@ export default function RegisterPage() {
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030014', color: '#fafafa', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
                 <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ fontSize: '24px', background: 'linear-gradient(135deg, #60a5fa, #2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 AppTechno Software</div>
+                        <div style={{ fontSize: '24px', background: 'linear-gradient(135deg, #3399ff, #0066ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 AppTechno Software</div>
                     </div>
                     <a href="/" style={{
                         display: 'flex', alignItems: 'center', gap: '8px', color: '#a1a1aa', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
@@ -93,7 +93,7 @@ export default function RegisterPage() {
                         Your application has been received successfully. You can now log in to the dashboard to complete your onboarding process.
                     </p>
                     <button onClick={() => router.push('/login')} style={{
-                        padding: '16px 48px', background: 'linear-gradient(135deg, #1a4fa0, #2563eb)', color: '#ffffff',
+                        padding: '16px 48px', background: 'linear-gradient(135deg, #0044cc, #0066ff)', color: '#ffffff',
                         border: 'none', borderRadius: '16px', fontSize: '16px', fontWeight: 700, cursor: 'pointer',
                         boxShadow: '0 8px 25px rgba(147, 51, 234, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     }}
@@ -117,7 +117,7 @@ export default function RegisterPage() {
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030014', color: '#fafafa', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
             <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ fontSize: '24px', background: 'linear-gradient(135deg, #60a5fa, #2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 AppTechno Software</div>
+                    <div style={{ fontSize: '24px', background: 'linear-gradient(135deg, #3399ff, #0066ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 AppTechno Software</div>
                 </div>
                 <a href="/" style={{
                     display: 'flex', alignItems: 'center', gap: '8px', color: '#a1a1aa', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
@@ -141,7 +141,7 @@ export default function RegisterPage() {
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <div style={{
                         width: '64px', height: '64px', borderRadius: '20px',
-                        background: 'linear-gradient(135deg, #2563eb, #2563eb)',
+                        background: 'linear-gradient(135deg, #0066ff, #0066ff)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         margin: '0 auto 20px', fontSize: '28px',
                         boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3), inset 0 2px 4px rgba(255,255,255,0.3)',
@@ -182,29 +182,29 @@ export default function RegisterPage() {
                             box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
                         }
                         .input-floating:focus {
-                            border-color: #2563eb; background: rgba(0,0,0,0.6);
+                            border-color: #0066ff; background: rgba(0,0,0,0.6);
                             box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15), inset 0 2px 4px rgba(0,0,0,0.5);
                         }
                     `}</style>
 
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.name ? '#2563eb' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Full Name *</label>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.name ? '#0066ff' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Full Name *</label>
                             <input required value={form.name} onChange={e => set('name', e.target.value)} placeholder="Type your full name..." className="input-floating" />
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#2563eb' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
                             <input required type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="Type your email address..." className="input-floating" />
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 1fr', gap: '16px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#2563eb' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Phone</label>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Phone</label>
                                 <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="Optional" className="input-floating" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.course ? '#2563eb' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Interested Curriculum</label>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.course ? '#0066ff' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Interested Curriculum</label>
                                 <select value={form.course} onChange={e => set('course', e.target.value)} className="input-floating" style={{ appearance: 'none' }}>
                                     <option value="" disabled style={{ color: '#71717a' }}>Select a track (optional)</option>
                                     {courses.map(c => <option key={c} value={c} style={{ color: '#000', background: '#fff' }}>{c}</option>)}
@@ -214,7 +214,7 @@ export default function RegisterPage() {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.password ? '#2563eb' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Password *</label>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.password ? '#0066ff' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Password *</label>
                                 <div style={{ position: 'relative' }}>
                                     <input required type={showPassword ? "text" : "password"} value={form.password} onChange={e => set('password', e.target.value)} placeholder="Min. 6 chars"
                                         className="input-floating" style={{ paddingRight: '48px' }} />
@@ -228,7 +228,7 @@ export default function RegisterPage() {
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.confirmPassword ? '#2563eb' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Confirm Password *</label>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.confirmPassword ? '#0066ff' : '#e2e8f0', marginBottom: '8px', transition: 'color 0.2s' }}>Confirm Password *</label>
                                 <div style={{ position: 'relative' }}>
                                     <input required type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} placeholder="Re-type password"
                                         className="input-floating" style={{ paddingRight: '48px' }} />
@@ -245,7 +245,7 @@ export default function RegisterPage() {
 
                         <button type="submit" disabled={loading} style={{
                             width: '100%', padding: '16px', marginTop: '16px',
-                            background: 'linear-gradient(135deg, #2563eb, #2563eb)',
+                            background: 'linear-gradient(135deg, #0066ff, #0066ff)',
                             color: '#ffffff', border: 'none', borderRadius: '16px', fontSize: '16px', fontWeight: 700,
                             cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.7 : 1,
                             boxShadow: '0 8px 25px rgba(147, 51, 234, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
@@ -274,9 +274,9 @@ export default function RegisterPage() {
                     <div style={{ textAlign: 'center', marginTop: '32px', fontSize: '14px', color: '#a1a1aa', fontWeight: 500 }}>
                         Already enrolled?{' '}
                         <a href="/login" style={{
-                            color: '#edaa1e', textDecoration: 'none', fontWeight: 600,
+                            color: '#ffb800', textDecoration: 'none', fontWeight: 600,
                             borderBottom: '1px solid transparent', transition: 'border-color 0.2s', paddingBottom: '2px'
-                        }} onMouseOver={e => e.currentTarget.style.borderColor = '#edaa1e'} onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}>
+                        }} onMouseOver={e => e.currentTarget.style.borderColor = '#ffb800'} onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}>
                             Log in here
                         </a>
                     </div>
