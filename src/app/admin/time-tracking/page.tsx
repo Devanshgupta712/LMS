@@ -25,6 +25,20 @@ interface UserSummary {
     role: string;
 }
 
+interface PersonDaySummary {
+    userId: string;
+    name: string;
+    email: string;
+    role: string;
+    studentId: string | null;
+    sessions: number;
+    firstIn: string | null;
+    lastOut: string | null;
+    totalMinutes: number;
+    activeNow: boolean;
+    logs: TimeLog[];
+}
+
 export default function TimeTrackingPage() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [logs, setLogs] = useState<TimeLog[]>([]);
@@ -39,6 +53,7 @@ export default function TimeTrackingPage() {
     const [editingLog, setEditingLog] = useState<TimeLog | null>(null);
     const [users, setUsers] = useState<UserSummary[]>([]);
     const [formLoading, setFormLoading] = useState(false);
+    const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -87,7 +102,6 @@ export default function TimeTrackingPage() {
     };
 
     const [qrSecret, setQrSecret] = useState('');
-
     const [qrError, setQrError] = useState('');
 
     const fetchQrConfig = async () => {
@@ -141,7 +155,7 @@ export default function TimeTrackingPage() {
     const formatTimeForInput = (isoString: string | null) => {
         if (!isoString) return '';
         const date = new Date(isoString);
-        return date.toTimeString().slice(0, 5); // HH:mm
+        return date.toTimeString().slice(0, 5);
     };
 
     const handleAddManual = () => {
@@ -179,7 +193,6 @@ export default function TimeTrackingPage() {
         e.preventDefault();
         setFormLoading(true);
         try {
-            // Convert HH:mm to ISO
             const login_iso = new Date(`${formData.date}T${formData.login_time}`).toISOString();
             const logout_iso = formData.logout_time ? new Date(`${formData.date}T${formData.logout_time}`).toISOString() : null;
 
@@ -207,23 +220,90 @@ export default function TimeTrackingPage() {
     };
 
     const formatTime = (isoString: string | null) => {
-        if (!isoString) return '-';
+        if (!isoString) return '—';
         return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const formatDuration = (minutes: number | null) => {
-        if (!minutes) return '-';
+    const formatDuration = (minutes: number) => {
+        if (minutes <= 0) return '0m';
         const h = Math.floor(minutes / 60);
-        const m = minutes % 60;
+        const m = Math.round(minutes % 60);
+        if (h === 0) return `${m}m`;
         return `${h}h ${m}m`;
+    };
+
+    // Aggregate logs into per-person summaries
+    const personSummaries: PersonDaySummary[] = (() => {
+        const map = new Map<string, PersonDaySummary>();
+        for (const log of logs) {
+            const uid = log.user.id || log.user.email;
+            if (!map.has(uid)) {
+                map.set(uid, {
+                    userId: uid,
+                    name: log.user.name,
+                    email: log.user.email,
+                    role: log.user.role || 'N/A',
+                    studentId: log.user.student_id,
+                    sessions: 0,
+                    firstIn: null,
+                    lastOut: null,
+                    totalMinutes: 0,
+                    activeNow: false,
+                    logs: [],
+                });
+            }
+            const summary = map.get(uid)!;
+            summary.sessions += 1;
+            summary.logs.push(log);
+
+            // Calculate total minutes from completed sessions
+            if (log.total_minutes) {
+                summary.totalMinutes += log.total_minutes;
+            }
+
+            // Track if any session is still active
+            if (!log.logout_time) {
+                summary.activeNow = true;
+            }
+
+            // Track first punch-in (earliest) and last punch-out (latest)
+            if (log.login_time) {
+                if (!summary.firstIn || new Date(log.login_time) < new Date(summary.firstIn)) {
+                    summary.firstIn = log.login_time;
+                }
+            }
+            if (log.logout_time) {
+                if (!summary.lastOut || new Date(log.logout_time) > new Date(summary.lastOut)) {
+                    summary.lastOut = log.logout_time;
+                }
+            }
+        }
+        // Sort by role priority then name
+        const rolePriority: Record<string, number> = { 'ADMIN': 1, 'TRAINER': 2, 'MARKETER': 3, 'STUDENT': 4 };
+        return Array.from(map.values()).sort((a, b) => {
+            const pa = rolePriority[a.role] || 5;
+            const pb = rolePriority[b.role] || 5;
+            if (pa !== pb) return pa - pb;
+            return a.name.localeCompare(b.name);
+        });
+    })();
+
+    const getRoleBadgeClass = (role: string) => {
+        switch (role) {
+            case 'ADMIN': return 'badge-primary';
+            case 'TRAINER': return 'badge-success';
+            case 'STUDENT': return 'badge-info';
+            case 'MARKETER': return 'badge-warning';
+            default: return '';
+        }
     };
 
     return (
         <div className="animate-in">
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                    <h1 className="page-title">Time Tracking</h1>
-                    <p className="page-subtitle">Monitor and manage trainee work hours</p>
+                    <h1 className="page-title">Work Hours</h1>
+                    <p className="page-subtitle">Daily work hours summary for all staff &amp; trainees</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <input
@@ -236,16 +316,16 @@ export default function TimeTrackingPage() {
                     <button className="btn btn-ghost" onClick={handleAddManual} style={{ border: '1px solid var(--border)' }}>
                         ➕ Manual Entry
                     </button>
-                    <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #10b981, #0066ff)', padding: '8px 20px', borderRadius: '12px' }}>
+                    <button className="btn btn-primary" onClick={handleOpenQrModal} style={{ background: 'linear-gradient(135deg, #00c853, #0066ff)', padding: '8px 20px', borderRadius: '12px' }}>
                         🎁 Machine Modal
                     </button>
-                    <a href="/admin/time-tracking/qr" target="_blank" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, #0066ff, #0066ff)', padding: '8px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                    <a href="/admin/time-tracking/qr" target="_blank" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, #0066ff, #0044cc)', padding: '8px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                         🖥️ Full Screen QR
                     </a>
                     <button className="btn btn-ghost" onClick={loadData}>
                         🔄 Refresh
                     </button>
-                    <button className="btn btn-primary" onClick={() => setShowExportModal(true)} style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)', padding: '8px 20px', borderRadius: '12px' }}>
+                    <button className="btn btn-primary" onClick={() => setShowExportModal(true)} style={{ background: 'linear-gradient(135deg, #f59e0b, #ff1744)', padding: '8px 20px', borderRadius: '12px' }}>
                         📥 Download Report
                     </button>
                 </div>
@@ -256,18 +336,22 @@ export default function TimeTrackingPage() {
                 <div className="stat-card accent"><div className="stat-icon accent">👥</div><div className="stat-info"><h3>Active Now</h3><div className="stat-value">{stats.activeToday}</div></div></div>
                 <div className="stat-card success"><div className="stat-icon success">✅</div><div className="stat-info"><h3>On Time</h3><div className="stat-value">{stats.onTime}</div></div></div>
                 <div className="stat-card danger"><div className="stat-icon danger">⚠️</div><div className="stat-info"><h3>Late Arrivals</h3><div className="stat-value">{stats.late}</div></div></div>
-                <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}><div className="stat-icon" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>🚫</div><div className="stat-info"><h3>Absent</h3><div className="stat-value">{stats.absent}</div></div></div>
+                <div className="stat-card" style={{ borderLeft: '4px solid #ff1744' }}><div className="stat-icon" style={{ background: 'rgba(255,23,68,0.08)', color: '#ff1744' }}>🚫</div><div className="stat-info"><h3>Absent</h3><div className="stat-value">{stats.absent}</div></div></div>
             </div>
 
+            {/* Work Hours Summary Table */}
             <div className="card">
-                <h3 className="font-semibold mb-16">Time Logs — {selectedDate}</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 className="font-semibold">Daily Work Hours — {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</h3>
+                    <span className="text-sm text-muted">{personSummaries.length} people logged</span>
+                </div>
                 {loading ? (
                     <p>Loading...</p>
-                ) : logs.length === 0 ? (
+                ) : personSummaries.length === 0 ? (
                     <div className="empty-state" style={{ padding: '60px 16px' }}>
                         <div className="empty-icon">⏱️</div>
-                        <h3>No time logs recorded</h3>
-                        <p className="text-sm text-muted">Time tracking data will appear here when students log their hours for {selectedDate}.</p>
+                        <h3>No work hours recorded</h3>
+                        <p className="text-sm text-muted">Work hour data will appear here when staff log their hours for {selectedDate}.</p>
                     </div>
                 ) : (
                     <div className="table-responsive">
@@ -276,52 +360,103 @@ export default function TimeTrackingPage() {
                                 <tr>
                                     <th>Name</th>
                                     <th>Role</th>
-                                    <th>ID</th>
-                                    <th>Punch In</th>
-                                    <th>Punch Out</th>
-                                    <th>Duration</th>
+                                    <th>Sessions</th>
+                                    <th>First In</th>
+                                    <th>Last Out</th>
+                                    <th>Total Hours</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {logs.map(log => (
-                                    <tr key={log.id}>
-                                        <td>
-                                            <div style={{ fontWeight: 500 }}>{log.user.name}</div>
-                                            <div className="text-sm text-muted">{log.user.email}</div>
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${log.user.role === 'ADMIN' ? 'badge-primary' : log.user.role === 'TRAINER' ? 'badge-success' : log.user.role === 'STUDENT' ? 'badge-info' : 'badge-warning'}`} style={{ fontSize: '11px' }}>
-                                                {log.user.role?.replace('_', ' ') || 'N/A'}
-                                            </span>
-                                        </td>
-                                        <td>{log.user.student_id || '-'}</td>
-                                        <td>
-                                            <span style={{ color: 'var(--success)', fontWeight: 500 }}>
-                                                {formatTime(log.login_time)}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span style={{ color: 'var(--danger)', fontWeight: 500 }}>
-                                                {formatTime(log.logout_time)}
-                                            </span>
-                                        </td>
-                                        <td style={{ fontWeight: 600 }}>{formatDuration(log.total_minutes)}</td>
-                                        <td>
-                                            {log.logout_time ? (
-                                                <span className="badge badge-success">Completed</span>
-                                            ) : (
-                                                <span className="badge badge-warning">Active Now</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(log)}>✏️</button>
-                                                <button className="btn btn-ghost btn-sm text-danger" onClick={() => handleDelete(log.id)}>🗑️</button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                {personSummaries.map(person => (
+                                    <>
+                                        <tr key={person.userId} style={{ cursor: 'pointer' }} onClick={() => setExpandedUser(expandedUser === person.userId ? null : person.userId)}>
+                                            <td>
+                                                <div style={{ fontWeight: 600 }}>{person.name}</div>
+                                                <div className="text-sm text-muted">{person.email}</div>
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${getRoleBadgeClass(person.role)}`} style={{ fontSize: '11px' }}>
+                                                    {person.role?.replace('_', ' ') || 'N/A'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span style={{ fontWeight: 500 }}>{person.sessions} session{person.sessions !== 1 ? 's' : ''}</span>
+                                            </td>
+                                            <td>
+                                                <span style={{ color: '#00c853', fontWeight: 500 }}>
+                                                    {formatTime(person.firstIn)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span style={{ color: person.lastOut ? '#ff1744' : 'var(--text-muted)', fontWeight: 500 }}>
+                                                    {person.activeNow && !person.lastOut ? '—' : formatTime(person.lastOut)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    fontWeight: 700, fontSize: '15px',
+                                                    color: person.totalMinutes >= 480 ? '#00c853' : person.totalMinutes >= 240 ? '#ffab00' : '#ff1744'
+                                                }}>
+                                                    {formatDuration(person.totalMinutes)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {person.activeNow ? (
+                                                    <span className="badge badge-warning">🟢 Active</span>
+                                                ) : (
+                                                    <span className="badge badge-success">✅ Complete</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setExpandedUser(expandedUser === person.userId ? null : person.userId); }}>
+                                                    {expandedUser === person.userId ? '▲' : '▼'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {/* Expanded: show individual sessions */}
+                                        {expandedUser === person.userId && (
+                                            <tr key={`${person.userId}-detail`}>
+                                                <td colSpan={8} style={{ padding: '0 16px 16px', background: 'var(--bg-secondary)' }}>
+                                                    <div style={{ padding: '12px', borderRadius: '8px' }}>
+                                                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                            Session Details for {person.name}
+                                                        </div>
+                                                        <table style={{ width: '100%', fontSize: '13px' }}>
+                                                            <thead>
+                                                                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                                                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>#</th>
+                                                                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>Punch In</th>
+                                                                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>Punch Out</th>
+                                                                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text-muted)' }}>Duration</th>
+                                                                    <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--text-muted)' }}>Actions</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {person.logs.sort((a, b) => new Date(a.login_time).getTime() - new Date(b.login_time).getTime()).map((log, idx) => (
+                                                                    <tr key={log.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                                                                        <td style={{ padding: '6px 8px', color: 'var(--text-muted)' }}>{idx + 1}</td>
+                                                                        <td style={{ padding: '6px 8px', color: '#00c853', fontWeight: 500 }}>{formatTime(log.login_time)}</td>
+                                                                        <td style={{ padding: '6px 8px', color: log.logout_time ? '#ff1744' : 'var(--text-muted)', fontWeight: 500 }}>
+                                                                            {log.logout_time ? formatTime(log.logout_time) : '— tracking...'}
+                                                                        </td>
+                                                                        <td style={{ padding: '6px 8px', fontWeight: 600 }}>
+                                                                            {log.total_minutes ? formatDuration(log.total_minutes) : (log.logout_time ? '0m' : '...')}
+                                                                        </td>
+                                                                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                                                                            <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(log)} style={{ fontSize: '12px', padding: '2px 6px' }}>✏️</button>
+                                                                            <button className="btn btn-ghost btn-sm text-danger" onClick={() => handleDelete(log.id)} style={{ fontSize: '12px', padding: '2px 6px' }}>🗑️</button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </>
                                 ))}
                             </tbody>
                         </table>
@@ -425,14 +560,15 @@ export default function TimeTrackingPage() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             margin: '0 auto 20px',
-                            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                            border: '1px solid var(--border)',
                             minWidth: '250px',
                             minHeight: '250px'
                         }}>
                             {qrUrl ? (
                                 <img src={qrUrl} alt="Permanent Punch QR" width={250} height={250} style={{ display: 'block' }} />
                             ) : qrError ? (
-                                <div style={{ color: '#ef4444', padding: '20px', fontSize: '14px' }}>
+                                <div style={{ color: '#ff1744', padding: '20px', fontSize: '14px' }}>
                                     ⚠️ {qrError}
                                 </div>
                             ) : (
@@ -475,15 +611,15 @@ export default function TimeTrackingPage() {
                 <div className="modal-backdrop" onClick={() => setShowExportModal(false)}>
                     <div className="modal card" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h3 style={{ margin: 0 }}>📥 Download Attendance Report</h3>
+                            <h3 style={{ margin: 0 }}>📥 Download Work Hours Report</h3>
                             <button className="btn btn-ghost" onClick={() => setShowExportModal(false)} style={{ padding: '4px 8px' }}>✕</button>
                         </div>
 
                         <div className="text-sm text-muted mb-20" style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
                             <p style={{ marginBottom: '4px' }}><strong>CSV report includes:</strong></p>
                             <ul style={{ paddingLeft: '20px', listStyleType: 'disc', margin: 0 }}>
-                                <li>Grouped by role (Admin, Trainer, Student)</li>
-                                <li>Students sub-grouped by batch</li>
+                                <li>Grouped by role (Admin, Trainer, Marketer, Student)</li>
+                                <li>Total work hours per person per day</li>
                                 <li>On Time / Late status for each entry</li>
                             </ul>
                         </div>
@@ -512,7 +648,7 @@ export default function TimeTrackingPage() {
                         <button
                             className="btn btn-primary"
                             disabled={exporting}
-                            style={{ width: '100%', background: 'linear-gradient(135deg, #f59e0b, #ef4444)', padding: '12px', borderRadius: '12px', fontSize: '15px' }}
+                            style={{ width: '100%', background: 'linear-gradient(135deg, #f59e0b, #ff1744)', padding: '12px', borderRadius: '12px', fontSize: '15px' }}
                             onClick={async () => {
                                 try {
                                     setExporting(true);
@@ -525,7 +661,7 @@ export default function TimeTrackingPage() {
                                     const url = window.URL.createObjectURL(blob);
                                     const a = document.createElement('a');
                                     a.href = url;
-                                    a.download = `attendance_${exportStartDate}_to_${exportEndDate}.csv`;
+                                    a.download = `work_hours_${exportStartDate}_to_${exportEndDate}.csv`;
                                     document.body.appendChild(a);
                                     a.click();
                                     document.body.removeChild(a);
