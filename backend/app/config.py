@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     # SMTP Email Config (for OTP verification)
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = ""  # e.g. your-email@gmail.com
-    SMTP_PASSWORD: str = ""  # Gmail App Password
-    SMTP_SENDER: str = "AppTechno Software <noreply@apptechno.com>"
+    SMTP_USER: str = "devanshdd124g@gmail.com"  # e.g. your-email@gmail.com
+    SMTP_PASSWORD: str = "dhnr kttn xjsd dgrc"  # Gmail App Password
+    SMTP_SENDER: str = "AppTechno Software <devanshdd124g@gmail.com>"
 
     class Config:
         # Get the absolute path to the root .env file
