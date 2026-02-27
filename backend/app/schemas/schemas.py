@@ -7,12 +7,7 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-class SendOTPRequest(BaseModel):
-    email: str
 
-class VerifyOTPRequest(BaseModel):
-    email: str
-    otp: str
 
 class RegisterRequest(BaseModel):
     name: str
