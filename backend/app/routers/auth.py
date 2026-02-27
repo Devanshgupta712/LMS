@@ -26,8 +26,10 @@ _otp_store: dict[str, dict] = {}
 def _generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
-def _send_fast2sms(phone: str, otp: str) -> bool:
-    """Send SMS via Fast2SMS Dev API. Returns True on success."""
+from typing import Tuple
+
+def _send_fast2sms(phone: str, otp: str) -> Tuple[bool, str]:
+    """Send SMS via Fast2SMS Dev API. Returns (True, "") on success, or (False, "error message") on failure."""
     import requests
     
     # Needs to be configured in .env or hardcoded by the user later
@@ -36,13 +38,14 @@ def _send_fast2sms(phone: str, otp: str) -> bool:
         logger.warning(f"FAST2SMS_API_KEY is not set. SMS to {phone} not sent.")
         # In a real setup, we want this to error, but for testing development:
         print(f"[TESTING MOCK SMS] The OTP for {phone} is {otp}")
-        return True # Mock success for testing without key
+        return True, "" # Mock success for testing without key
         
     url = "https://www.fast2sms.com/dev/bulkV2"
     payload = {
-        "variables_values": otp,
-        "route": "otp",
-        "numbers": phone
+        "message": f"Your verification OTP is {otp}",
+        "route": "q",
+        "numbers": phone,
+        "flash": "0"
     }
     headers = {
         "authorization": api_key,
@@ -50,21 +53,22 @@ def _send_fast2sms(phone: str, otp: str) -> bool:
     }
     
     try:
-        # requests.post works but URL encoding the payload is easier via data=
         response = requests.post(url, data=payload, headers=headers)
-        if response.status_code == 200:
+        if response.status_code == 200 or response.status_code == 400:
             res_data = response.json()
             if res_data.get("return") == True:
-                return True
+                return True, ""
             else:
+                err_msg = res_data.get("message", "Unknown Fast2SMS API Error")
                 logger.error(f"Fast2SMS API Error: {res_data}")
-                return False
+                return False, err_msg
         else:
             logger.error(f"Fast2SMS HTTP Error {response.status_code}: {response.text}")
-            return False
+            return False, f"HTTP Error {response.status_code}"
     except Exception as e:
         logger.error(f"Failed to send Fast2SMS to {phone}: {e}")
-        return False
+        return False, str(e)
+
 
 
 
@@ -131,10 +135,11 @@ async def send_otp(body: SendOTPRequest):
         "verified": False
     }
     
-    if _send_fast2sms(clean_phone, otp):
+    success, err_msg = _send_fast2sms(clean_phone, otp)
+    if success:
         return {"status": "success", "message": "OTP sent successfully via SMS"}
     else:
-        raise HTTPException(status_code=500, detail="Failed to send OTP SMS")
+        raise HTTPException(status_code=400, detail=f"Detailed Error from Fast2SMS: {err_msg}")
 
 @router.post("/verify-otp")
 async def verify_otp(body: VerifyOTPRequest):

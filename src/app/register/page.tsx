@@ -300,6 +300,7 @@ export default function RegisterPage() {
                                     </div>
                                 )}
                             </div>
+                            {phoneError && !phoneSent && <p style={{ color: '#ff1744', fontSize: '13px', marginTop: '8px', marginBottom: 0, fontWeight: 500 }}>{phoneError}</p>}
 
                             {phoneSent && !phoneVerified && (
                                 <div style={{ marginTop: '12px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
