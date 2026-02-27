@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = "devanshdd124g@gmail.com"  # e.g. your-email@gmail.com
-    SMTP_PASSWORD: str = "dhnr kttn xjsd dgrc"  # Gmail App Password
+    SMTP_PASSWORD: str = "dhnrkttnxjsddgrc"  # Gmail App Password
     SMTP_SENDER: str = "AppTechno Software <devanshdd124g@gmail.com>"
 
     class Config:
