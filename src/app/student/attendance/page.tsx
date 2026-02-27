@@ -279,7 +279,7 @@ export default function StudentAttendancePage() {
             {showScanner && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.98)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, padding: '16px' }}
                     onClick={stopScanner}>
-                    <div style={{ background: '#09090b', borderRadius: '24px', padding: '24px', maxWidth: '420px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 0 50px rgba(0,0,0,0.5)' }}
+                    <div style={{ background: '#ffffff', borderRadius: '24px', padding: '24px', maxWidth: '420px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 0 50px rgba(0,0,0,0.08)' }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ fontSize: '32px', marginBottom: '16px' }}>📱</div>
                         <h2 style={{ fontSize: '22px', margin: '0 0 8px', color: '#fff', fontWeight: 700 }}>Scan Attendance</h2>
@@ -306,7 +306,7 @@ export default function StudentAttendancePage() {
             {scanResult && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002, padding: '16px', backdropFilter: 'blur(12px)' }}
                     onClick={() => setScanResult(null)}>
-                    <div className="animate-in" style={{ background: '#09090b', borderRadius: '32px', padding: '48px 32px', maxWidth: '400px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                    <div className="animate-in" style={{ background: '#ffffff', borderRadius: '32px', padding: '48px 32px', maxWidth: '400px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
                         onClick={e => e.stopPropagation()}>
 
                         <div style={{

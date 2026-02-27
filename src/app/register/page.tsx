@@ -62,7 +62,7 @@ export default function RegisterPage() {
 
     if (success) {
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030014', color: '#fafafa', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', color: '#1a1a2e', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
                 <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ fontSize: '24px', background: 'linear-gradient(135deg, #3399ff, #0066ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 AppTechno Software</div>
@@ -83,11 +83,11 @@ export default function RegisterPage() {
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '80vw', height: '80vh', background: 'radial-gradient(ellipse, rgba(45, 212, 191, 0.1) 0%, rgba(0,0,0,0) 50%)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
 
                 <div style={{
-                    textAlign: 'center', maxWidth: '460px', padding: '56px 40px', background: 'rgba(15, 15, 20, 0.65)',
+                    textAlign: 'center', maxWidth: '460px', padding: '56px 40px', background: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1)', position: 'relative', zIndex: 10
                 }}>
-                    <div style={{ fontSize: '72px', marginBottom: '32px', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.5))' }}>🎉</div>
+                    <div style={{ fontSize: '72px', marginBottom: '32px', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.08))' }}>🎉</div>
                     <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '16px', color: '#ffffff', letterSpacing: '-0.03em' }}>Welcome aboard!</h1>
                     <p style={{ color: '#a1a1aa', lineHeight: '1.6', marginBottom: '40px', fontSize: '15px' }}>
                         Your application has been received successfully. You can now log in to the dashboard to complete your onboarding process.
@@ -114,7 +114,7 @@ export default function RegisterPage() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030014', color: '#fafafa', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', color: '#1a1a2e', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
             <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ fontSize: '24px', background: 'linear-gradient(135deg, #3399ff, #0066ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>🎓 AppTechno Software</div>
@@ -156,7 +156,7 @@ export default function RegisterPage() {
 
                 {/* Form Card */}
                 <div style={{
-                    background: 'rgba(15, 15, 20, 0.65)', borderRadius: '32px', padding: '48px',
+                    background: 'rgba(255, 255, 255, 0.95)', borderRadius: '32px', padding: '48px',
                     border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
                     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                 }}>
@@ -177,13 +177,13 @@ export default function RegisterPage() {
                         }
                         .input-floating {
                             width: 100%; padding: 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08);
-                            background: rgba(0, 0, 0, 0.4); color: #ffffff; font-size: 15px; outline: none;
+                            background: rgba(245, 247, 250, 0.8); color: #ffffff; font-size: 15px; outline: none;
                             box-sizing: border-box; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+                            box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
                         }
                         .input-floating:focus {
-                            border-color: #0066ff; background: rgba(0,0,0,0.6);
-                            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15), inset 0 2px 4px rgba(0,0,0,0.5);
+                            border-color: #0066ff; background: rgba(245,247,250,0.95);
+                            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.15), inset 0 2px 4px rgba(0,0,0,0.08);
                         }
                     `}</style>
 

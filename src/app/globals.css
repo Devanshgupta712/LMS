@@ -10,54 +10,54 @@
   --primary: #0066ff;
   --primary-light: #3399ff;
   --primary-dark: #0044cc;
-  --primary-glow: rgba(0, 102, 255, 0.3);
+  --primary-glow: rgba(0, 102, 255, 0.15);
 
   --accent: #ffb800;
   --accent-light: #ffd000;
   --accent-dark: #e6a000;
 
-  --success: #00d68f;
-  --success-light: #33ffaa;
-  --warning: #ffcc00;
-  --warning-light: #ffdd44;
-  --danger: #ff3355;
-  --danger-light: #ff6680;
-  --info: #3399ff;
+  --success: #00c853;
+  --success-light: #69f0ae;
+  --warning: #ffab00;
+  --warning-light: #ffd740;
+  --danger: #ff1744;
+  --danger-light: #ff5252;
+  --info: #2196f3;
 
-  /* Dark Theme Premium */
-  --bg-primary: #09090b;
-  --bg-secondary: #0f1115;
-  --bg-tertiary: #18181b;
-  --bg-card: rgba(24, 24, 27, 0.6);
-  --bg-card-hover: rgba(39, 39, 42, 0.8);
-  --bg-sidebar: rgba(9, 9, 11, 0.95);
-  --bg-input: rgba(24, 24, 27, 0.8);
+  /* Light Theme — Clean & Professional */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f7fa;
+  --bg-tertiary: #eef1f6;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f4ff;
+  --bg-sidebar: #ffffff;
+  --bg-input: #f5f7fa;
 
-  /* Text */
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-inverse: #09090b;
+  /* Text — Dark on Light */
+  --text-primary: #1a1a2e;
+  --text-secondary: #555770;
+  --text-muted: #8e8ea0;
+  --text-inverse: #ffffff;
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.12);
-  --border-focus: rgba(0, 102, 255, 0.5);
+  --border: #e2e8f0;
+  --border-light: #eef2f7;
+  --border-focus: rgba(0, 102, 255, 0.4);
 
   /* Gradients — AppTechno Vivid Blue & Gold */
   --gradient-primary: linear-gradient(135deg, #0044cc, #0088ff);
   --gradient-accent: linear-gradient(135deg, #e6a000, #ffd000);
-  --gradient-success: linear-gradient(135deg, #00b377, #00d68f);
-  --gradient-danger: linear-gradient(135deg, #ff3355, #ff6633);
-  --gradient-sidebar: linear-gradient(180deg, rgba(9, 9, 11, 0.95), rgba(15, 17, 21, 0.98));
-  --gradient-card: linear-gradient(145deg, rgba(39, 39, 42, 0.4), rgba(24, 24, 27, 0.6));
-  --gradient-text: linear-gradient(90deg, #3399ff, #ffb800, #3399ff);
+  --gradient-success: linear-gradient(135deg, #00a844, #00c853);
+  --gradient-danger: linear-gradient(135deg, #ff1744, #ff5252);
+  --gradient-sidebar: linear-gradient(180deg, #ffffff, #f8fafc);
+  --gradient-card: linear-gradient(145deg, #ffffff, #f8fafc);
+  --gradient-text: linear-gradient(90deg, #0066ff, #ffb800, #0066ff);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 25px rgba(0, 102, 255, 0.25);
+  /* Shadows — Softer for light theme */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(0, 102, 255, 0.12);
 
   /* Dimensions */
   --sidebar-width: 260px;
@@ -98,8 +98,8 @@ html {
 body {
   font-family: var(--font-family);
   background: var(--bg-primary);
-  background-image: radial-gradient(circle at 15% 50%, rgba(0, 68, 204, 0.08), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(0, 102, 255, 0.08), transparent 25%);
+  background-image: radial-gradient(circle at 15% 50%, rgba(0, 102, 255, 0.04), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(255, 184, 0, 0.04), transparent 25%);
   background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.6;
@@ -109,7 +109,7 @@ body {
 }
 
 a {
-  color: var(--primary-light);
+  color: var(--primary);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
@@ -134,12 +134,12 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-light);
+  background: #c1c9d6;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: #a0aab8;
 }
 
 /* ─── Layout ────────────────────────────────────────────── */
@@ -367,12 +367,13 @@ img {
     left: 0;
     width: 100%;
     height: 64px;
-    background: #09090b;
+    background: #ffffff;
     border-top: 1px solid var(--border);
     justify-content: space-around;
     align-items: center;
     z-index: 1000;
     padding: 0 8px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
   }
 
   .bottom-nav-item {
@@ -392,7 +393,7 @@ img {
   }
 
   .bottom-nav-item.active {
-    color: var(--primary-light);
+    color: var(--primary);
   }
 
   .bottom-nav-icon {
@@ -429,7 +430,7 @@ img {
   .btn {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: rgba(30, 41, 59, 0.7);
+    background: #ffffff;
   }
 
 
@@ -840,7 +841,7 @@ img {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(245, 247, 250, 0.95);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
