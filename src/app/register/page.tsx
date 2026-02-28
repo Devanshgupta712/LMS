@@ -31,10 +31,12 @@ export default function RegisterPage() {
         e.preventDefault();
         setError('');
 
-        if (!phoneVerified && form.email) {
-            setError('Please verify your email address first');
-            return;
-        }
+        /*
+                if (!phoneVerified && form.email) {
+                    setError('Please verify your email address first');
+                    return;
+                }
+        */
 
         if (form.password !== form.confirmPassword) {
             setError('Passwords do not match');
@@ -67,7 +69,7 @@ export default function RegisterPage() {
                 setError(errorMsg || 'Registration failed');
                 return;
             }
-            setSuccess(true);
+            router.push(`/verify-email?email=${form.email}`);
         } catch (err: any) {
             setError(err?.message || 'Network error. Please try again.');
         } finally {
@@ -281,7 +283,8 @@ export default function RegisterPage() {
                         <div style={{ position: 'relative' }}>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.email ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Email Address *</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <input required type="email" value={form.email} onChange={e => { set('email', e.target.value); setPhoneVerified(false); setPhoneSent(false); }} placeholder="Type your email address..." className="input-floating" disabled={phoneVerified} />
+                                <input required type="email" value={form.email} onChange={e => { set('email', e.target.value); }} placeholder="Type your email address..." className="input-floating" />
+                                {/* 
                                 {!phoneVerified && (
                                     <button
                                         type="button"
@@ -302,9 +305,11 @@ export default function RegisterPage() {
                                         ✓ Verified
                                     </div>
                                 )}
+                                */}
                             </div>
                             {phoneError && !phoneSent && <p style={{ color: '#ff1744', fontSize: '13px', marginTop: '8px', marginBottom: 0, fontWeight: 500 }}>{phoneError}</p>}
 
+                            {/*
                             {phoneSent && !phoneVerified && (
                                 <div style={{ marginTop: '12px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
                                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555770', marginBottom: '8px' }}>Enter Email OTP Code</label>
@@ -335,6 +340,7 @@ export default function RegisterPage() {
                                     {phoneSuccess && <p style={{ color: '#00c853', fontSize: '12px', marginTop: '8px', marginBottom: 0 }}>{phoneSuccess}</p>}
                                 </div>
                             )}
+                            */}
                         </div>
 
                         <div>

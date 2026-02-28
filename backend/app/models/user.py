@@ -33,6 +33,9 @@ class User(Base):
     degree: Mapped[str | None] = mapped_column(String, nullable=True)
     passing_year: Mapped[str | None] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verification_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    verification_expiry: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

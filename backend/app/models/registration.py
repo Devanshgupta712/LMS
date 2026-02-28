@@ -17,7 +17,7 @@ class Registration(Base):
     fee_amount: Mapped[float] = mapped_column(Float, default=0)
     fee_paid: Mapped[float] = mapped_column(Float, default=0)
     receipt_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    status: Mapped[str] = mapped_column(String, default="PENDING")
+    status: Mapped[str] = mapped_column(String, default="CONFIRMED")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -34,7 +34,7 @@ class Document(Base):
     type: Mapped[str] = mapped_column(String)
     file_name: Mapped[str] = mapped_column(String)
     file_url: Mapped[str] = mapped_column(String)
-    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verified: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     student = relationship("User", back_populates="documents")

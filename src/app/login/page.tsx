@@ -9,7 +9,7 @@ export default function PortalSelector() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | React.ReactNode>('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -47,7 +47,18 @@ export default function PortalSelector() {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.detail || 'Invalid credentials');
+        if (res.status === 403 && data.detail?.toLowerCase().includes('not verified')) {
+          setError(
+            <>
+              Email not verified.{' '}
+              <a href={`/verify-email?email=${email}`} style={{ color: '#0066ff', textDecoration: 'underline' }}>
+                Verify now
+              </a>
+            </>
+          );
+        } else {
+          setError(data.detail || 'Invalid credentials');
+        }
         setLoading(false);
         return;
       }

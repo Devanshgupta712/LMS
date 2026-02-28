@@ -14,6 +14,10 @@ class VerifyOTPRequest(BaseModel):
     email: str
     otp: str
 
+class VerifyEmailRequest(BaseModel):
+    email: str
+    code: str
+
 
 
 class RegisterRequest(BaseModel):

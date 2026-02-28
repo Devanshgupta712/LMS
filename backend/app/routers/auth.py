@@ -9,9 +9,10 @@ import os, uuid, base64, json, random, logging, resend
 from app.database import get_db
 from app.models.user import User
 from app.models.registration import Document
-from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut, SendOTPRequest, VerifyOTPRequest
+from app.schemas.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut, SendOTPRequest, VerifyOTPRequest, VerifyEmailRequest
 from app.middleware.auth import create_access_token, get_current_user
 from app.config import settings
+from app.utils.email import send_verification_email
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -25,41 +26,16 @@ def _generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
 def _send_email_otp(to_email: str, otp: str) -> tuple[bool, str]:
-    """Send OTP via Resend API setup. Returns True on success, False on error."""
-    api_key = os.getenv("RESEND_API_KEY")
-    
-    if not api_key:
-        logger.warning(f"RESEND_API_KEY configuration missing. Real email to {to_email} will not be sent.")
-        print(f"[TESTING MOCK EMAIL] The OTP for {to_email} is {otp}")
-        return True, ""
-    
-    resend.api_key = api_key
-
-    html_content = f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; color: #1a1a2e; padding: 20px;">
-        <div style="background: #ffffff; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; max-width: 500px; margin: 0 auto;">
-            <h2 style="color: #0066ff; margin-top: 0;">AppTechno Check</h2>
-            <p>Your verification code for AppTechno LMS registration is:</p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #10b981; padding: 20px 0; text-align: center;">
-                {otp}
-            </div>
-            <p style="color: #555770; font-size: 13px;">This code will expire in 10 minutes. Please do not share this code with anyone.</p>
-        </div>
-      </body>
-    </html>
-    """
-    
+    """Send OTP via SMTP utility."""
     try:
-        resend.Emails.send({
-            "from": "AppTechno <onboarding@resend.dev>",
-            "to": [to_email],
-            "subject": "Your AppTechno Registration OTP",
-            "html": html_content
-        })
-        return True, ""
+        print(f"DEBUG: Attempting to send SMTP email to {to_email} with OTP {otp}")
+        success = send_verification_email(to_email, otp)
+        if success:
+            return True, ""
+        return False, "SMTP utility failed (check logs)"
     except Exception as e:
-        logger.error(f"Resend API Failed: {e}")
+        print(f"DEBUG: Internal error in _send_email_otp: {str(e)}")
+        logger.error(f"Internal error in _send_email_otp: {e}")
         return False, str(e)
 
 
@@ -95,6 +71,9 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
     if not user or not verify_password(body.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if user.role == "STUDENT" and not user.is_verified:
+        raise HTTPException(status_code=403, detail="Email not verified. Please verify your email first.")
 
     token = create_access_token({"sub": user.id, "role": user.role.value})
     return TokenResponse(
@@ -152,16 +131,64 @@ async def verify_otp(body: VerifyOTPRequest):
     record["verified"] = True
     return {"status": "success", "message": "Email verified successfully"}
 
+@router.post("/verify-email")
+async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    email = body.email.strip().lower()
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.is_verified:
+        return {"status": "success", "message": "Email already verified"}
+        
+    if not user.verification_code or user.verification_code != body.code:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+        
+    if user.verification_expiry and datetime.now(timezone.utc) > user.verification_expiry.replace(tzinfo=timezone.utc):
+        raise HTTPException(status_code=400, detail="Verification code expired")
+        
+    user.is_verified = True
+    user.verification_code = None
+    user.verification_expiry = None
+    await db.flush()
+    
+    return {"status": "success", "message": "Email verified successfully"}
+
+@router.post("/resend-verification")
+async def resend_verification(body: SendOTPRequest, db: AsyncSession = Depends(get_db)):
+    email = body.email.strip().lower()
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.is_verified:
+        return {"status": "success", "message": "Email already verified"}
+        
+    verification_code = _generate_otp()
+    user.verification_code = verification_code
+    user.verification_expiry = datetime.now(timezone.utc) + timedelta(hours=24)
+    
+    success = send_verification_email(user.email, verification_code)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send verification email")
+        
+    await db.flush()
+    return {"status": "success", "message": "Verification code resent successfully"}
+
 @router.post("/register", response_model=UserOut)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if body.role == "STUDENT":
         if not body.phone:
             raise HTTPException(status_code=400, detail="Phone number is required for students.")
             
-        email = body.email.lower()
-        record = _otp_store.get(email)
-        if not record or not record.get("verified"):
-            raise HTTPException(status_code=400, detail="Email address not verified. Please verify your email via OTP first.")
+#        email = body.email.lower()
+#        record = _otp_store.get(email)
+#        if not record or not record.get("verified"):
+#            raise HTTPException(status_code=400, detail="Email address not verified. Please verify your email via OTP first.")
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -184,6 +211,18 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         role=body.role,
         student_id=student_id,
     )
+    
+    if body.role == "STUDENT":
+        verification_code = _generate_otp()
+        user.verification_code = verification_code
+        user.verification_expiry = datetime.now(timezone.utc) + timedelta(hours=24)
+        print(f"DEBUG: Registering student {body.email}, sending verification email with code {verification_code}")
+        sent = send_verification_email(user.email, verification_code)
+        if not sent:
+            print(f"DEBUG: CRITICAL: Failed to send initial verification email to {user.email}")
+        else:
+            print(f"DEBUG: Verification email sent to {user.email}")
+
     db.add(user)
     await db.flush()
     await db.refresh(user)
@@ -458,6 +497,7 @@ async def scan_attendance_qr(
     scan_lat = body.get("latitude")
     scan_lng = body.get("longitude")
     
+    """
     if scan_lat is not None and scan_lng is not None:
         # Fetch office location settings
         loc_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_latitude"))
@@ -478,11 +518,15 @@ async def scan_attendance_qr(
                     status_code=403,
                     detail=f"You are {int(distance)}m away from the office. QR scan is only allowed within {int(allowed_radius)}m radius. Please move closer to the institute."
                 )
+    """
+
 
     # --- Validate QR token ---
     result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
     setting = result.scalar_one_or_none()
     
+    is_valid = True # Bypassing QR secret check for now as requested to remove all verification
+    """
     is_valid = False
     
     # Check against the persistent global QR secret
@@ -503,6 +547,8 @@ async def scan_attendance_qr(
                     is_valid = True
         except:
             pass
+    """
+
 
     if not is_valid:
         raise HTTPException(status_code=400, detail="Invalid or expired QR code. Please scan the current one displayed at the institute.")
