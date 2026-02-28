@@ -47,18 +47,7 @@ export default function PortalSelector() {
       });
       if (!res.ok) {
         const data = await res.json();
-        if (res.status === 403 && data.detail?.toLowerCase().includes('not verified')) {
-          setError(
-            <>
-              Email not verified.{' '}
-              <a href={`/verify-email?email=${email}`} style={{ color: '#0066ff', textDecoration: 'underline' }}>
-                Verify now
-              </a>
-            </>
-          );
-        } else {
-          setError(data.detail || 'Invalid credentials');
-        }
+        setError(data.detail || 'Invalid credentials');
         setLoading(false);
         return;
       }

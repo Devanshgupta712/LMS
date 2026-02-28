@@ -72,9 +72,6 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     if not user or not verify_password(body.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if user.role == "STUDENT" and not user.is_verified:
-        raise HTTPException(status_code=403, detail="Email not verified. Please verify your email first.")
-
     token = create_access_token({"sub": user.id, "role": user.role.value})
     return TokenResponse(
         access_token=token,
@@ -211,17 +208,6 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         role=body.role,
         student_id=student_id,
     )
-    
-    if body.role == "STUDENT":
-        verification_code = _generate_otp()
-        user.verification_code = verification_code
-        user.verification_expiry = datetime.now(timezone.utc) + timedelta(hours=24)
-        print(f"DEBUG: Registering student {body.email}, sending verification email with code {verification_code}")
-        sent = send_verification_email(user.email, verification_code)
-        if not sent:
-            print(f"DEBUG: CRITICAL: Failed to send initial verification email to {user.email}")
-        else:
-            print(f"DEBUG: Verification email sent to {user.email}")
 
     db.add(user)
     await db.flush()

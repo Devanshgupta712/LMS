@@ -69,7 +69,7 @@ export default function RegisterPage() {
                 setError(errorMsg || 'Registration failed');
                 return;
             }
-            router.push(`/verify-email?email=${form.email}`);
+            setSuccess(true);
         } catch (err: any) {
             setError(err?.message || 'Network error. Please try again.');
         } finally {
