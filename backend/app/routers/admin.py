@@ -665,25 +665,28 @@ async def list_leaves(
     elif batch_id:
         query = query.where(LeaveRequest.batch_id == batch_id)
 
-    result = await db.execute(query.order_by(LeaveRequest.created_at.desc()))
-    leaves = result.scalars().all()
-    out = []
-    for l in leaves:
-        user = await db.get(User, l.user_id)
-        approver = await db.get(User, l.approved_by_id) if l.approved_by_id else None
-        out.append(LeaveOut(
-            id=l.id,
-            user_name=user.name if user else "",
-            user_role=user.role.value if user else "",
-            user_student_id=user.student_id if user else None,
-            leave_type=l.leave_type.value if hasattr(l, 'leave_type') and hasattr(l.leave_type, 'value') else str(getattr(l, 'leave_type', 'OTHER')),
-            proof_url=l.proof_url,
-            start_date=l.start_date, end_date=l.end_date,
-            reason=l.reason, status=l.status.value,
-            approved_by_name=approver.name if approver else None,
-            created_at=l.created_at,
-        ))
-    return out
+    try:
+        result = await db.execute(query.order_by(LeaveRequest.created_at.desc()))
+        leaves = result.scalars().all()
+        out = []
+        for l in leaves:
+            user = await db.get(User, l.user_id)
+            approver = await db.get(User, l.approved_by_id) if l.approved_by_id else None
+            out.append(LeaveOut(
+                id=l.id,
+                user_name=user.name if user else "",
+                user_role=user.role.value if user else "",
+                user_student_id=user.student_id if user else None,
+                leave_type=l.leave_type.value if hasattr(l, 'leave_type') and hasattr(l.leave_type, 'value') else str(getattr(l, 'leave_type', 'OTHER')),
+                proof_url=l.proof_url,
+                start_date=l.start_date, end_date=l.end_date,
+                reason=l.reason, status=l.status.value,
+                approved_by_name=approver.name if approver else None,
+                created_at=l.created_at,
+            ))
+        return out
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LEAVES_ERR: {str(e)}")
 
 
 @router.patch("/leaves")
