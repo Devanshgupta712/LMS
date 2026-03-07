@@ -21,26 +21,59 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
-            # Auto-migrate leave_requests table
+            # Auto-migrate tables to align with camelCase schema
             if "sqlite" in str(engine.url):
-                try:
-                    result = await conn.execute(text("PRAGMA table_info(leave_requests)"))
-                    columns = [row[1] for row in result.fetchall()]
-                    if "leave_type" not in columns:
-                        await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN leave_type VARCHAR(9) DEFAULT 'OTHER' NOT NULL"))
-                    if "proof_url" not in columns:
-                        await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN proof_url VARCHAR(255)"))
-                except Exception as e:
-                    print(f"Error migrating SQLite leave_requests: {e}")
+                print("Running SQLite migrations...")
+                
+                # Migrate users table
+                result = await conn.execute(text("PRAGMA table_info(users)"))
+                user_cols = [row[1] for row in result.fetchall()]
+                user_migrations = [
+                    ("studentId", "TEXT"),
+                    ("isActive", "BOOLEAN DEFAULT true"),
+                    ("isVerified", "BOOLEAN DEFAULT false"),
+                    ("verificationCode", "TEXT"),
+                    ("verificationExpiry", "DATETIME"),
+                    ("createdAt", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+                    ("updatedAt", "DATETIME"),
+                    ("educationStatus", "TEXT"),
+                    ("highestEducation", "TEXT"),
+                    ("degree", "TEXT"),
+                    ("passingYear", "TEXT"),
+                    ("dob", "TEXT")
+                ]
+                for col_name, col_type in user_migrations:
+                    if col_name not in user_cols:
+                        print(f"Adding column {col_name} to users...")
+                        await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+
+                # Migrate leave_requests table
+                result = await conn.execute(text("PRAGMA table_info(leave_requests)"))
+                leave_cols = [row[1] for row in result.fetchall()]
+                if "leaveType" not in leave_cols:
+                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN leaveType TEXT DEFAULT 'OTHER' NOT NULL"))
+                if "proofUrl" not in leave_cols:
+                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN proofUrl TEXT"))
             else:
+                print("Running PostgreSQL migrations...")
+                # PostgreSQL migrations for users
+                for col_name, col_type in [
+                    ("studentId", "TEXT"), ("isActive", "BOOLEAN DEFAULT true"),
+                    ("isVerified", "BOOLEAN DEFAULT false"), ("verificationCode", "TEXT"),
+                    ("verificationExpiry", "TIMESTAMP"), ("createdAt", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+                    ("updatedAt", "TIMESTAMP"), ("educationStatus", "TEXT"),
+                    ("highestEducation", "TEXT"), ("degree", "TEXT"),
+                    ("passingYear", "TEXT"), ("dob", "TEXT")
+                ]:
+                    try:
+                        await conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS \"{col_name}\" {col_type}"))
+                    except: pass
+
+                # PostgreSQL migrations for leave_requests
                 try:
-                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS leave_type VARCHAR(9) DEFAULT 'OTHER' NOT NULL"))
-                except Exception as e:
-                    pass
-                try:
-                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS proof_url VARCHAR(255)"))
-                except Exception as e:
-                    pass
+                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS \"leaveType\" TEXT DEFAULT 'OTHER' NOT NULL"))
+                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS \"proofUrl\" TEXT"))
+                except: pass
 
         print("Database startup successful!")
     except Exception as e:
