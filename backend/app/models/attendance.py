@@ -31,15 +31,15 @@ class Attendance(Base):
     __tablename__ = "attendance"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    student_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), name="studentId")
-    batch_id: Mapped[str] = mapped_column(String, ForeignKey("batches.id"), name="batchId")
+    student_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
+    batch_id: Mapped[str] = mapped_column(String, ForeignKey("batches.id"))
     date: Mapped[datetime] = mapped_column(DateTime)
     status: Mapped[AttendanceStatus] = mapped_column(Enum(AttendanceStatus, native_enum=False), default=AttendanceStatus.PRESENT)
-    login_time: Mapped[datetime | None] = mapped_column(DateTime, name="loginTime", nullable=True)
-    logout_time: Mapped[datetime | None] = mapped_column(DateTime, name="logoutTime", nullable=True)
-    total_hours: Mapped[float | None] = mapped_column(Float, name="totalHours", nullable=True)
+    login_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    logout_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    total_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
     remarks: Mapped[str | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, name="createdAt", server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     student = relationship("User", back_populates="attendance_records")
     batch = relationship("Batch", back_populates="attendance")
@@ -70,11 +70,11 @@ class TimeTracking(Base):
     __tablename__ = "time_tracking"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), name="userId")
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
     date: Mapped[datetime] = mapped_column(DateTime)
-    login_time: Mapped[datetime] = mapped_column(DateTime, name="loginTime")
-    logout_time: Mapped[datetime | None] = mapped_column(DateTime, name="logoutTime", nullable=True)
-    total_minutes: Mapped[int | None] = mapped_column(Integer, name="totalMinutes", nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, name="createdAt", server_default=func.now())
+    login_time: Mapped[datetime] = mapped_column(DateTime)
+    logout_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    total_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="time_tracking")
