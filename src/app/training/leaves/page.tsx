@@ -3,44 +3,38 @@
 import { useState } from 'react';
 import { apiPost, getStoredUser } from '@/lib/api';
 
-const EMPTY = { start_date: '', end_date: '', reason: '', proof_base64: '', proof_name: '' };
-
 export default function TrainerLeavesPage() {
-    const [form, setForm] = useState(EMPTY);
+    const [form, setForm] = useState({ start_date: '', end_date: '', leave_type: 'OTHER', reason: '', proof_base64: '', proof_name: '' });
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
-    const [submitting, setSubmitting] = useState(false);
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => setForm(prev => ({ ...prev, proof_base64: reader.result as string, proof_name: file.name }));
+        reader.onload = () => {
+            setForm(prev => ({ ...prev, proof_base64: reader.result as string, proof_name: file.name }));
+        };
         reader.readAsDataURL(file);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(''); setSubmitting(true);
+        setError('');
         const user = getStoredUser();
         if (!user) return;
         try {
-            const res = await apiPost('/api/training/leave-request', {
-                user_id: user.id,
-                start_date: form.start_date,
-                end_date: form.end_date,
-                leave_type: 'OTHER',
-                reason: form.reason,
-                proof_base64: form.proof_base64 || null,
-                proof_name: form.proof_name || null,
-            });
-            if (res.ok) { setSubmitted(true); setForm(EMPTY); }
-            else {
-                const d = await res.json().catch(() => ({}));
-                setError(d.detail || 'Failed to submit leave request.');
+            const res = await apiPost('/api/training/leave-request', { user_id: user.id, ...form });
+            if (res.ok) {
+                setSubmitted(true);
+                setForm({ start_date: '', end_date: '', leave_type: 'OTHER', reason: '', proof_base64: '', proof_name: '' });
+            } else {
+                const data = await res.json().catch(() => ({}));
+                setError(data.detail || 'Failed to submit leave request.');
             }
-        } catch { setError('Network error. Please try again.'); }
-        finally { setSubmitting(false); }
+        } catch {
+            setError('Network error. Please try again.');
+        }
     };
 
     return (
@@ -59,7 +53,6 @@ export default function TrainerLeavesPage() {
                     </div>
 
                     <h3 className="font-semibold mb-16">New Leave Request</h3>
-
                     {submitted && (
                         <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: '12px', padding: '12px', color: '#4ade80', marginBottom: '16px', fontSize: '14px' }}>
                             ✅ Leave request submitted! The Super Admin will review it.
@@ -70,7 +63,6 @@ export default function TrainerLeavesPage() {
                             ⚠️ {error}
                         </div>
                     )}
-
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
@@ -79,18 +71,16 @@ export default function TrainerLeavesPage() {
 
                         <div className="form-group">
                             <label>Reason</label>
-                            <textarea className="form-input" rows={3} required placeholder="Reason for leave..." value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} />
+                            <textarea className="form-input" rows={3} required placeholder="Explain reason for leave..." value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} />
                         </div>
 
                         <div className="form-group">
-                            <label>Attachment <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional — PNG or PDF)</span></label>
-                            <input type="file" accept="image/png,application/pdf" className="form-input" onChange={handleFile} />
+                            <label>Attachment (Optional)</label>
+                            <input type="file" accept="image/*,application/pdf" className="form-input" onChange={handleFile} />
                             {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
                         </div>
 
-                        <button type="submit" className="btn btn-primary" disabled={submitting}>
-                            {submitting ? 'Submitting...' : 'Submit Leave Request'}
-                        </button>
+                        <button type="submit" className="btn btn-primary">Submit Request</button>
                     </form>
                 </div>
             </div>

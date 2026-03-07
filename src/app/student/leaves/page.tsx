@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { apiPost, getStoredUser } from '@/lib/api';
 
 export default function StudentLeavesPage() {
-    const [form, setForm] = useState({ start_date: '', end_date: '', leave_type: 'INTERVIEW', reason: '', proof_base64: '', proof_name: '' });
+    const [form, setForm] = useState({ start_date: '', end_date: '', leave_type: 'OTHER', reason: '', proof_base64: '', proof_name: '' });
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
 
@@ -31,18 +31,15 @@ export default function StudentLeavesPage() {
             return;
         }
         try {
-            console.log("Submitting leave request payload:", { user_id: user.id, ...form });
             const res = await apiPost('/api/training/leave-request', { user_id: user.id, ...form });
             if (res.ok) {
                 setSubmitted(true);
-                setForm({ start_date: '', end_date: '', leave_type: 'INTERVIEW', reason: '', proof_base64: '', proof_name: '' });
+                setForm({ start_date: '', end_date: '', leave_type: 'OTHER', reason: '', proof_base64: '', proof_name: '' });
             } else {
                 const data = await res.json().catch(() => ({}));
-                console.error("Leave request error response:", data);
                 setError(data.detail || 'Failed to submit leave request.');
             }
         } catch (err) {
-            console.error("Network error submitting leave request:", err);
             setError('Network error. Please try again.');
         }
     };
@@ -65,34 +62,21 @@ export default function StudentLeavesPage() {
                         </div>
                     )}
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div className="form-group">
-                            <label>Leave Type</label>
-                            <select className="form-input" value={form.leave_type} onChange={e => setForm({ ...form, leave_type: e.target.value, reason: '', proof_base64: '', proof_name: '' })}>
-                                <option value="INTERVIEW">Interview</option>
-                                <option value="MEDICAL">Medical</option>
-                                <option value="OTHER">Other</option>
-                            </select>
-                        </div>
-
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
                             <div className="form-group"><label>End Date</label><input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
                         </div>
 
-                        {form.leave_type === 'MEDICAL' && (
-                            <div className="form-group">
-                                <label>Medical Proof (PNG, PDF)</label>
-                                <input type="file" accept="image/png,application/pdf" className="form-input" required onChange={handleFile} />
-                                {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
-                            </div>
-                        )}
+                        <div className="form-group">
+                            <label>Reason</label>
+                            <textarea className="form-input" rows={3} required placeholder="Explain reason for leave..." value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} />
+                        </div>
 
-                        {form.leave_type === 'OTHER' && (
-                            <div className="form-group">
-                                <label>Reason</label>
-                                <textarea className="form-input" rows={3} required placeholder="Explain reason for leave..." value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} />
-                            </div>
-                        )}
+                        <div className="form-group">
+                            <label>Attachment (Optional)</label>
+                            <input type="file" accept="image/*,application/pdf" className="form-input" onChange={handleFile} />
+                            {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
+                        </div>
 
                         <button type="submit" className="btn btn-primary">Submit Request</button>
                     </form>
