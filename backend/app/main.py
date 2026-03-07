@@ -55,25 +55,7 @@ async def lifespan(app: FastAPI):
                 if "proofUrl" not in leave_cols:
                     await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN proofUrl TEXT"))
             else:
-                print("Running PostgreSQL migrations...")
-                # PostgreSQL migrations for users
-                for col_name, col_type in [
-                    ("studentId", "TEXT"), ("isActive", "BOOLEAN DEFAULT true"),
-                    ("isVerified", "BOOLEAN DEFAULT false"), ("verificationCode", "TEXT"),
-                    ("verificationExpiry", "TIMESTAMP"), ("createdAt", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
-                    ("updatedAt", "TIMESTAMP"), ("educationStatus", "TEXT"),
-                    ("highestEducation", "TEXT"), ("degree", "TEXT"),
-                    ("passingYear", "TEXT"), ("dob", "TEXT")
-                ]:
-                    try:
-                        await conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS \"{col_name}\" {col_type}"))
-                    except: pass
-
-                # PostgreSQL migrations for leave_requests
-                try:
-                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS \"leaveType\" TEXT DEFAULT 'OTHER' NOT NULL"))
-                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS \"proofUrl\" TEXT"))
-                except: pass
+                print("PostgreSQL detected - no additional migrations needed.")
 
         print("Database startup successful!")
     except Exception as e:
