@@ -95,6 +95,50 @@ async def create_course(
     )
 
 
+class CourseUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    duration: Optional[str] = None
+    fee: Optional[float] = None
+    is_active: Optional[bool] = None
+
+@router.patch("/courses/{course_id}")
+async def update_course(
+    course_id: str,
+    body: CourseUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    course = await db.get(Course, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if body.name is not None: course.name = body.name
+    if body.description is not None: course.description = body.description
+    if body.duration is not None: course.duration = body.duration
+    if body.fee is not None: course.fee = body.fee
+    if body.is_active is not None: course.is_active = body.is_active
+    await db.flush()
+    return {"status": "updated"}
+
+
+@router.delete("/courses/{course_id}")
+async def delete_course(
+    course_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    course = await db.get(Course, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    # Check for active batches
+    batch_count = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == course_id))
+    if (batch_count.scalar() or 0) > 0:
+        raise HTTPException(status_code=400, detail="Cannot delete course with existing batches. Delete the batches first.")
+    await db.delete(course)
+    await db.flush()
+    return {"status": "deleted"}
+
+
 # ─── Batches ──────────────────────────────────────────
 
 @router.get("/batches")
