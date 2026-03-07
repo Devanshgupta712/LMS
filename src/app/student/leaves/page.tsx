@@ -22,17 +22,27 @@ export default function StudentLeavesPage() {
         e.preventDefault();
         setError('');
         const user = getStoredUser();
-        if (!user) return;
+        if (!user) {
+            setError('User session not found. Please log out and log in again.');
+            return;
+        }
+        if (!user.id) {
+            setError('User ID is missing from session. Please log in again.');
+            return;
+        }
         try {
+            console.log("Submitting leave request payload:", { user_id: user.id, ...form });
             const res = await apiPost('/api/training/leave-request', { user_id: user.id, ...form });
             if (res.ok) {
                 setSubmitted(true);
                 setForm({ start_date: '', end_date: '', leave_type: 'INTERVIEW', reason: '', proof_base64: '', proof_name: '' });
             } else {
                 const data = await res.json().catch(() => ({}));
+                console.error("Leave request error response:", data);
                 setError(data.detail || 'Failed to submit leave request.');
             }
-        } catch {
+        } catch (err) {
+            console.error("Network error submitting leave request:", err);
             setError('Network error. Please try again.');
         }
     };
