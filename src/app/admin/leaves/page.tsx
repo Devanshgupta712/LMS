@@ -122,16 +122,35 @@ export default function LeavesPage() {
                                     )}
                                 </td>
                                 <td><span className={`badge ${l.status === 'APPROVED' ? 'badge-success' : l.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'}`}>{l.status}</span></td>
-                                <td>{l.status === 'PENDING' && (
-                                    l.user_role === 'TRAINER' && !isSuperAdmin ? (
+                                <td>
+                                    {l.user_role === 'TRAINER' && !isSuperAdmin ? (
                                         <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>🔒 Super Admin only</span>
                                     ) : (
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            <button className="btn btn-sm btn-success" onClick={() => handleAction(l.id, 'APPROVED')}>✅ Approve</button>
-                                            <button className="btn btn-sm btn-danger" onClick={() => handleAction(l.id, 'REJECTED')}>❌ Reject</button>
+                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            {l.status !== 'APPROVED' && (
+                                                <button
+                                                    className="btn btn-sm btn-success"
+                                                    onClick={() => handleAction(l.id, 'APPROVED')}
+                                                    title={l.status === 'REJECTED' ? 'Reverse rejection → Approve' : 'Approve'}
+                                                >✅ Approve</button>
+                                            )}
+                                            {l.status !== 'REJECTED' && (
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    onClick={() => handleAction(l.id, 'REJECTED')}
+                                                    title={l.status === 'APPROVED' ? 'Reverse approval → Reject' : 'Reject'}
+                                                >❌ Reject</button>
+                                            )}
+                                            {l.status !== 'PENDING' && (
+                                                <button
+                                                    className="btn btn-sm btn-ghost"
+                                                    onClick={() => handleAction(l.id, 'PENDING')}
+                                                    title="Reset to Pending"
+                                                >↩ Reset</button>
+                                            )}
                                         </div>
-                                    )
-                                )}</td>
+                                    )}
+                                </td>
                             </tr>
                         ))}</tbody>
                     </table></div>
