@@ -164,7 +164,6 @@ async def list_batches(
             course_name=course.name if course else "",
             trainer_name=trainer.name if trainer else None,
             student_count=stu_q.scalar() or 0,
-            leave_quota=b.leave_quota,
         ))
     return out
 
@@ -181,7 +180,6 @@ async def create_batch(
         end_date=datetime.fromisoformat(body.end_date),
         schedule_time=body.schedule_time,
         trainer_id=body.trainer_id or None,
-        leave_quota=body.leave_quota,
     )
     db.add(batch)
     await db.flush()
@@ -192,7 +190,6 @@ async def create_batch(
         end_date=batch.end_date, is_active=batch.is_active,
         schedule_time=batch.schedule_time,
         course_name=course.name if course else "",
-        leave_quota=batch.leave_quota,
     )
 
 
