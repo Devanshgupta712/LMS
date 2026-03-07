@@ -210,11 +210,8 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     )
 
     db.add(user)
-    try:
-        await db.flush()
-        await db.refresh(user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"DB_INSERT_ERROR: {str(e)}")
+    await db.flush()
+    await db.refresh(user)
 
     # Automatically register student in the selected course and its active batch
     if body.course and body.role == "STUDENT":

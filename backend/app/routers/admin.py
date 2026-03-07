@@ -60,25 +60,22 @@ async def dashboard_stats(
 # ─── Courses ──────────────────────────────────────────
 @router.get("/courses")
 async def list_courses(db: AsyncSession = Depends(get_db)):
-    try:
-        result = await db.execute(
-            select(Course).order_by(Course.created_at.desc())
-        )
-        courses = result.scalars().all()
-        out = []
-        for c in courses:
-            batches_q = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == c.id))
-            regs_q = await db.execute(select(func.count(Registration.id)).where(Registration.course_id == c.id))
-            out.append({
-                "id": c.id, "name": c.name, "description": c.description,
-                "duration": c.duration, "fee": c.fee, "is_active": c.is_active,
-                "created_at": str(c.created_at),
-                "batch_count": batches_q.scalar() or 0,
-                "student_count": regs_q.scalar() or 0,
-            })
-        return out
-    except Exception as e:
-        return {"COURSES_ERROR": str(e)}
+    result = await db.execute(
+        select(Course).order_by(Course.created_at.desc())
+    )
+    courses = result.scalars().all()
+    out = []
+    for c in courses:
+        batches_q = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == c.id))
+        regs_q = await db.execute(select(func.count(Registration.id)).where(Registration.course_id == c.id))
+        out.append(CourseOut(
+            id=c.id, name=c.name, description=c.description,
+            duration=c.duration, fee=c.fee, is_active=c.is_active,
+            created_at=c.created_at,
+            batch_count=batches_q.scalar() or 0,
+            student_count=regs_q.scalar() or 0,
+        ))
+    return out
 
 
 
@@ -150,29 +147,27 @@ async def list_batches(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    try:
-        query = select(Batch)
-        if user.role == Role.TRAINER:
-            query = query.where(Batch.trainer_id == user.id)
-            
-        result = await db.execute(query.order_by(Batch.created_at.desc()))
-        batches = result.scalars().all()
-        out = []
-        for b in batches:
-            course = await db.get(Course, b.course_id)
-            trainer = await db.get(User, b.trainer_id) if b.trainer_id else None
-            stu_q = await db.execute(select(func.count(BatchStudent.id)).where(BatchStudent.batch_id == b.id))
-            out.append(BatchOut(
-                id=b.id, name=b.name, start_date=b.start_date, end_date=b.end_date,
-                is_active=b.is_active,
-                schedule_time=b.schedule_time,
-                course_name=course.name if course else "",
-                trainer_name=trainer.name if trainer else None,
-                student_count=stu_q.scalar() or 0,
-            ))
-        return out
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"BATCHES_ERROR: {str(e)}")
+    query = select(Batch)
+    if user.role == Role.TRAINER:
+        query = query.where(Batch.trainer_id == user.id)
+        
+    result = await db.execute(query.order_by(Batch.created_at.desc()))
+    batches = result.scalars().all()
+    out = []
+    for b in batches:
+        course = await db.get(Course, b.course_id)
+        trainer = await db.get(User, b.trainer_id) if b.trainer_id else None
+        stu_q = await db.execute(select(func.count(BatchStudent.id)).where(BatchStudent.batch_id == b.id))
+        out.append(BatchOut(
+            id=b.id, name=b.name, start_date=b.start_date, end_date=b.end_date,
+            is_active=b.is_active,
+            schedule_time=b.schedule_time,
+            course_name=course.name if course else "",
+            trainer_name=trainer.name if trainer else None,
+            student_count=stu_q.scalar() or 0,
+        ))
+    return out
+
 
 
 @router.post("/batches", status_code=201)
