@@ -57,6 +57,17 @@ async def dashboard_stats(
     )
 
 
+@router.get("/debug-columns")
+async def debug_columns(db: AsyncSession = Depends(get_db)):
+    results = {}
+    for table_name in ["users", "leave_requests", "attendance", "batches", "courses"]:
+        try:
+            res = await db.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}'"))
+            results[table_name] = [r[0] for r in res]
+        except Exception as e:
+            results[table_name] = str(e)
+    return results
+
 # ─── Courses ──────────────────────────────────────────
 @router.get("/courses")
 async def list_courses(db: AsyncSession = Depends(get_db)):
