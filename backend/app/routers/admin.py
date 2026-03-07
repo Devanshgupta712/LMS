@@ -638,34 +638,34 @@ async def list_leaves(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER))
 ):
-    query = select(LeaveRequest)
-
-    if current_user.role == Role.TRAINER:
-        # Only show leaves from students in the trainer's assigned batches
-        from app.models.course import BatchStudent
-        batch_result = await db.execute(
-            select(Batch.id).where(Batch.trainer_id == current_user.id)
-        )
-        trainer_batch_ids = batch_result.scalars().all()
-
-        if not trainer_batch_ids:
-            return []  # Trainer has no batches assigned
-
-        # Get students in those batches
-        student_result = await db.execute(
-            select(BatchStudent.student_id).where(BatchStudent.batch_id.in_(trainer_batch_ids))
-        )
-        student_ids = student_result.scalars().all()
-
-        # Also include trainer's own leave requests
-        query = query.where(
-            (LeaveRequest.user_id.in_(student_ids)) |
-            (LeaveRequest.user_id == current_user.id)
-        )
-    elif batch_id:
-        query = query.where(LeaveRequest.batch_id == batch_id)
-
     try:
+        query = select(LeaveRequest)
+
+        if current_user.role == Role.TRAINER:
+            # Only show leaves from students in the trainer's assigned batches
+            from app.models.course import BatchStudent
+            batch_result = await db.execute(
+                select(Batch.id).where(Batch.trainer_id == current_user.id)
+            )
+            trainer_batch_ids = batch_result.scalars().all()
+
+            if not trainer_batch_ids:
+                return []  # Trainer has no batches assigned
+
+            # Get students in those batches
+            student_result = await db.execute(
+                select(BatchStudent.student_id).where(BatchStudent.batch_id.in_(trainer_batch_ids))
+            )
+            student_ids = student_result.scalars().all()
+
+            # Also include trainer's own leave requests
+            query = query.where(
+                (LeaveRequest.user_id.in_(student_ids)) |
+                (LeaveRequest.user_id == current_user.id)
+            )
+        elif batch_id:
+            query = query.where(LeaveRequest.batch_id == batch_id)
+
         result = await db.execute(query.order_by(LeaveRequest.created_at.desc()))
         leaves = result.scalars().all()
         out = []
@@ -687,6 +687,7 @@ async def list_leaves(
         return out
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LEAVES_ERR: {str(e)}")
+
 
 
 @router.patch("/leaves")
