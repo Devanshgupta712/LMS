@@ -261,6 +261,35 @@ async def delete_user(
 
 # ─── Admin Permissions ────────────────────────────────
 
+@router.get("/users/all-permissions")
+async def get_all_permissions(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN))
+):
+    """Get all admins and trainers with their current permission settings."""
+    result = await db.execute(
+        select(User).where(User.role.in_([Role.ADMIN, Role.TRAINER])).order_by(User.role, User.name)
+    )
+    users = result.scalars().all()
+    out = []
+    for u in users:
+        perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == u.id))
+        perm = perm_result.scalar_one_or_none()
+        out.append({
+            "user_id": u.id,
+            "name": u.name,
+            "email": u.email,
+            "role": u.role.value,
+            "permissions": {
+                "manage_users": perm.manage_users if perm else False,
+                "manage_batches": perm.manage_batches if perm else False,
+                "manage_courses": perm.manage_courses if perm else False,
+                "manage_leaves": perm.manage_leaves if perm else False,
+            }
+        })
+    return out
+
+
 @router.get("/users/{user_id}/permissions", response_model=AdminPermissionOut)
 async def get_admin_permissions(
     user_id: str,
@@ -268,8 +297,8 @@ async def get_admin_permissions(
     _user: User = Depends(require_roles(Role.SUPER_ADMIN))
 ):
     target_user = await db.get(User, user_id)
-    if not target_user or target_user.role != Role.ADMIN:
-        raise HTTPException(status_code=404, detail="Admin not found")
+    if not target_user or target_user.role not in [Role.ADMIN, Role.TRAINER]:
+        raise HTTPException(status_code=404, detail="Admin or Trainer not found")
         
     perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
     perm = perm_result.scalar_one_or_none()
@@ -290,8 +319,8 @@ async def update_admin_permissions(
     _user: User = Depends(require_roles(Role.SUPER_ADMIN))
 ):
     target_user = await db.get(User, user_id)
-    if not target_user or target_user.role != Role.ADMIN:
-        raise HTTPException(status_code=404, detail="Admin not found")
+    if not target_user or target_user.role not in [Role.ADMIN, Role.TRAINER]:
+        raise HTTPException(status_code=404, detail="Admin or Trainer not found")
         
     perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
     perm = perm_result.scalar_one_or_none()
@@ -601,14 +630,20 @@ async def list_leaves(
 async def action_leave(
     body: LeaveAction,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
     leave = await db.get(LeaveRequest, body.id)
     if not leave:
         raise HTTPException(status_code=404, detail="Leave request not found")
+    
+    # Fetch the leave requester's role
+    requester = await db.get(User, leave.user_id)
+    # Only SUPER_ADMIN can approve/reject trainer leaves
+    if requester and requester.role == Role.TRAINER and current_user.role != Role.SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Super Admin can approve or reject trainer leave requests.")
+
     leave.status = body.status
-    if body.approved_by_id:
-        leave.approved_by_id = body.approved_by_id
+    leave.approved_by_id = current_user.id
     await db.flush()
     return {"status": "updated"}
 

@@ -69,6 +69,7 @@ const navSections: NavSection[] = [
             { label: 'Sessions', href: '/training/sessions', icon: '💻', roles: ['SUPER_ADMIN', 'ADMIN', 'TRAINER'] },
             { label: 'Feedback', href: '/training/feedback', icon: '💬', roles: ['SUPER_ADMIN', 'ADMIN', 'TRAINER'] },
             { label: 'Violations', href: '/training/violations', icon: '⚠️', roles: ['SUPER_ADMIN', 'ADMIN', 'TRAINER'] },
+            { label: 'Apply Leave', href: '/training/leaves', icon: '🗓️', roles: ['TRAINER'] },
         ],
     },
     {
