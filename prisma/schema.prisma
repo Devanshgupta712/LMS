@@ -101,8 +101,26 @@ model User {
   receivedMessages  Message[]            @relation("MessageRecipient")
   timeTracking      TimeTracking[]
   leadActivities    LeadActivity[]
+  adminPermission   AdminPermission?
 
   @@map("users")
+}
+
+// ─── Admin Permissions ─────────────────────────────────────
+
+model AdminPermission {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  manageUsers     Boolean  @default(false)
+  manageBatches   Boolean  @default(false)
+  manageCourses   Boolean  @default(false)
+  manageLeaves    Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_permissions")
 }
 
 // ─── Courses & Batches ───────────────────────────────────
@@ -133,6 +151,7 @@ model Batch {
   endDate     DateTime
   scheduleTime String?
   trainerId   String?
+  leaveQuota  Int       @default(0)
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -141,6 +160,7 @@ model Batch {
   trainer     User?           @relation("BatchTrainer", fields: [trainerId], references: [id])
   students    BatchStudent[]
   attendance  Attendance[]
+  leaveRequests LeaveRequest[]
   projects    Project[]
   videos      Video[]
   feedback    Feedback[]
@@ -261,6 +281,7 @@ model Attendance {
 model LeaveRequest {
   id          String      @id @default(uuid())
   userId      String
+  batchId     String?
   startDate   DateTime
   endDate     DateTime
   reason      String?
@@ -271,6 +292,7 @@ model LeaveRequest {
 
   user       User  @relation("LeaveRequester", fields: [userId], references: [id])
   approvedBy User? @relation("LeaveApprover", fields: [approvedById], references: [id])
+  batch      Batch? @relation(fields: [batchId], references: [id])
 
   @@map("leave_requests")
 }

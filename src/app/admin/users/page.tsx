@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiGet, apiPost, apiPatch, apiDelete, getStoredUser } from '@/lib/api';
+import { apiGet, apiPost, apiPatch, apiPut, apiDelete, getStoredUser } from '@/lib/api';
 
 interface UserItem { id: string; name: string; email: string; role: string; phone: string | null; is_active: boolean; created_at: string; }
 
@@ -14,6 +14,7 @@ export default function UsersPage() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [passwordModal, setPasswordModal] = useState({ show: false, targetUser: null as UserItem | null, newPassword: '' });
     const [manageModal, setManageModal] = useState({ show: false, targetUser: null as UserItem | null, details: null as any });
+    const [permissionsModal, setPermissionsModal] = useState({ show: false, targetUser: null as UserItem | null, permissions: { manage_users: false, manage_batches: false, manage_courses: false, manage_leaves: false }, loading: false });
     const [assignModal, setAssignModal] = useState({ show: false, targetUser: null as UserItem | null, batchId: '', courseId: '' });
     const [batches, setBatches] = useState<{ id: string; name: string }[]>([]);
     const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
@@ -127,10 +128,35 @@ export default function UsersPage() {
         setManageModal({ show: true, targetUser: user, details: null });
         setAssignModal({ show: false, targetUser: null, batchId: '', courseId: '' }); // Clear prev state
         try {
-            const data = await apiGet(`/api/admin/students/${user.id}/details`);
+            const data = await apiGet(`/api/admin/users/${user.id}/details`);
             setManageModal(prev => ({ ...prev, details: data }));
         } catch (err: any) {
             alert('Error loading user details: ' + (err.message || 'Unknown error'));
+        }
+    };
+
+    const handleOpenPermissions = async (user: UserItem) => {
+        setPermissionsModal(prev => ({ ...prev, show: true, targetUser: user, loading: true }));
+        try {
+            const data = await apiGet(`/api/admin/users/${user.id}/permissions`);
+            setPermissionsModal(prev => ({
+                ...prev, loading: false, permissions: data
+            }));
+        } catch (err: any) {
+            alert('Error loading permissions: ' + (err.message || ''));
+            setPermissionsModal(prev => ({ ...prev, show: false, loading: false }));
+        }
+    };
+
+    const handleSavePermissions = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!permissionsModal.targetUser) return;
+        try {
+            await apiPut(`/api/admin/users/${permissionsModal.targetUser.id}/permissions`, permissionsModal.permissions);
+            alert('Permissions updated successfully!');
+            setPermissionsModal(prev => ({ ...prev, show: false }));
+        } catch (err: any) {
+            alert('Error saving permissions: ' + (err.message || 'Unknown error'));
         }
     };
 
@@ -215,14 +241,28 @@ export default function UsersPage() {
                                                 Password
                                             </button>
                                             {u.role === 'STUDENT' && (
-                                                <>
-                                                    <button
-                                                        className="btn btn-sm btn-secondary"
-                                                        onClick={() => handleOpenManage(u)}
-                                                    >
-                                                        Manage
-                                                    </button>
-                                                </>
+                                                <button
+                                                    className="btn btn-sm btn-secondary"
+                                                    onClick={() => handleOpenManage(u)}
+                                                >
+                                                    Manage
+                                                </button>
+                                            )}
+                                            {u.role === 'TRAINER' && (
+                                                <button
+                                                    className="btn btn-sm btn-secondary"
+                                                    onClick={() => handleOpenManage(u)}
+                                                >
+                                                    Assign Batches
+                                                </button>
+                                            )}
+                                            {u.role === 'ADMIN' && isSuperAdmin && (
+                                                <button
+                                                    className="btn btn-sm btn-secondary"
+                                                    onClick={() => handleOpenPermissions(u)}
+                                                >
+                                                    Permissions
+                                                </button>
                                             )}
                                             <button
                                                 className={`btn btn-sm ${u.is_active ? 'btn-secondary' : 'btn-success'}`}
@@ -314,32 +354,34 @@ export default function UsersPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                 <div className="grid-2" style={{ gap: '24px' }}>
                                     {/* COURSES / REGISTRATIONS */}
-                                    <div>
-                                        <h3 style={{ marginBottom: '12px', fontSize: '1rem', fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', color: 'var(--text-primary)' }}>Registrations (Courses)</h3>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                                            {manageModal.details.registrations.map((r: any) => (
-                                                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                                                    <div style={{ fontWeight: 500 }}>{r.course_name}</div>
-                                                    <button className="btn btn-sm btn-ghost text-error" onClick={() => handleRemoveRegistration(r.id)} style={{ padding: '4px 8px' }}>Remove</button>
-                                                </div>
-                                            ))}
-                                            {manageModal.details.registrations.length === 0 && <p className="text-muted text-sm">No registrations found</p>}
-                                        </div>
-                                        <form onSubmit={handleAddRegistration} style={{ display: 'flex', gap: '8px' }}>
-                                            <select
-                                                className="form-input"
-                                                required
-                                                value={assignModal.courseId}
-                                                onChange={e => setAssignModal({ ...assignModal, courseId: e.target.value })}
-                                            >
-                                                <option value="">-- Add Course --</option>
-                                                {courses.filter(c => !manageModal.details.registrations.some((r: any) => r.course_id === c.id)).map(c => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                    {manageModal.targetUser.role === 'STUDENT' && (
+                                        <div>
+                                            <h3 style={{ marginBottom: '12px', fontSize: '1rem', fontWeight: 600, borderBottom: '1px solid var(--border)', paddingBottom: '8px', color: 'var(--text-primary)' }}>Registrations (Courses)</h3>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                                                {manageModal.details.registrations.map((r: any) => (
+                                                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ fontWeight: 500 }}>{r.course_name}</div>
+                                                        <button className="btn btn-sm btn-ghost text-error" onClick={() => handleRemoveRegistration(r.id)} style={{ padding: '4px 8px' }}>Remove</button>
+                                                    </div>
                                                 ))}
-                                            </select>
-                                            <button type="submit" className="btn btn-primary btn-sm">Add</button>
-                                        </form>
-                                    </div>
+                                                {manageModal.details.registrations.length === 0 && <p className="text-muted text-sm">No registrations found</p>}
+                                            </div>
+                                            <form onSubmit={handleAddRegistration} style={{ display: 'flex', gap: '8px' }}>
+                                                <select
+                                                    className="form-input"
+                                                    required
+                                                    value={assignModal.courseId}
+                                                    onChange={e => setAssignModal({ ...assignModal, courseId: e.target.value })}
+                                                >
+                                                    <option value="">-- Add Course --</option>
+                                                    {courses.filter(c => !manageModal.details.registrations.some((r: any) => r.course_id === c.id)).map(c => (
+                                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                                <button type="submit" className="btn btn-primary btn-sm">Add</button>
+                                            </form>
+                                        </div>
+                                    )}
 
                                     {/* BATCHES */}
                                     <div>
@@ -384,6 +426,37 @@ export default function UsersPage() {
                 </div>
             )}
 
+            {permissionsModal.show && permissionsModal.targetUser && (
+                <div className="modal-overlay" onClick={() => setPermissionsModal({ ...permissionsModal, show: false })}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h2 className="modal-title">Admin Permissions</h2>
+                        <p className="text-sm text-muted mb-24">Configure access for {permissionsModal.targetUser.name}</p>
+                        {permissionsModal.loading ? <p>Loading...</p> : (
+                            <form onSubmit={handleSavePermissions}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                                    {['manage_users', 'manage_batches', 'manage_courses', 'manage_leaves'].map(key => (
+                                        <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={(permissionsModal.permissions as any)[key]}
+                                                onChange={e => setPermissionsModal({
+                                                    ...permissionsModal,
+                                                    permissions: { ...permissionsModal.permissions, [key]: e.target.checked }
+                                                })}
+                                            />
+                                            <span style={{ textTransform: 'capitalize' }}>{key.replace('_', ' ')}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                    <button type="button" className="btn btn-ghost" onClick={() => setPermissionsModal({ ...permissionsModal, show: false })}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary">Save Permissions</button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

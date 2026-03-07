@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_roles
-from app.models.user import User, Role
+from app.models.user import User, Role, AdminPermission
 from app.models.course import Course, Batch, BatchStudent
 from app.models.registration import Registration
 from app.models.attendance import LeaveRequest
@@ -18,7 +18,8 @@ from app.schemas.schemas import (
     CourseCreate, CourseOut, BatchCreate, BatchOut,
     StudentCreate, StudentOut, LeaveAction, LeaveOut,
     RegistrationCreate, RegistrationOut, DashboardStats,
-    UserOut, AdminPasswordChangeRequest
+    UserOut, AdminPasswordChangeRequest,
+    AdminPermissionUpdate, AdminPermissionOut
 )
 from app.models.setting import SystemSetting
 
@@ -254,6 +255,57 @@ async def delete_user(
         
     return {"status": "deleted"}
 
+
+# ─── Admin Permissions ────────────────────────────────
+
+@router.get("/users/{user_id}/permissions", response_model=AdminPermissionOut)
+async def get_admin_permissions(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN))
+):
+    target_user = await db.get(User, user_id)
+    if not target_user or target_user.role != Role.ADMIN:
+        raise HTTPException(status_code=404, detail="Admin not found")
+        
+    perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
+    perm = perm_result.scalar_one_or_none()
+    
+    if not perm:
+        perm = AdminPermission(user_id=user_id)
+        db.add(perm)
+        await db.flush()
+        
+    return perm
+
+
+@router.put("/users/{user_id}/permissions", response_model=AdminPermissionOut)
+async def update_admin_permissions(
+    user_id: str,
+    body: AdminPermissionUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN))
+):
+    target_user = await db.get(User, user_id)
+    if not target_user or target_user.role != Role.ADMIN:
+        raise HTTPException(status_code=404, detail="Admin not found")
+        
+    perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
+    perm = perm_result.scalar_one_or_none()
+    
+    if not perm:
+        perm = AdminPermission(user_id=user_id)
+        db.add(perm)
+        
+    perm.manage_users = body.manage_users
+    perm.manage_batches = body.manage_batches
+    perm.manage_courses = body.manage_courses
+    perm.manage_leaves = body.manage_leaves
+    
+    await db.flush()
+    return perm
+
+
 # ─── Students ─────────────────────────────────────────
 @router.get("/students")
 async def list_students(
@@ -301,22 +353,30 @@ async def create_student(
 
 
 @router.post("/users/{user_id}/assign-batch")
-async def assign_student_batch(
+async def assign_user_batch(
     user_id: str,
     body: AssignBatchRequest,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
 ):
-    # 1. Verify student
-    student = await db.get(User, user_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    # 1. Verify user
+    target_user = await db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
     
     # 2. Verify batch
     batch = await db.get(Batch, body.batch_id)
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
+
+    if target_user.role == Role.TRAINER:
+        batch.trainer_id = target_user.id
+        await db.flush()
+        return {"status": "success", "message": f"Trainer {target_user.name} assigned to batch {batch.name}"}
     
+    if target_user.role != Role.STUDENT:
+        raise HTTPException(status_code=400, detail="User is not a student or trainer")
+        
     # 3. Check if already in this batch
     existing = await db.execute(
         select(BatchStudent).where(
@@ -361,7 +421,7 @@ async def assign_student_batch(
     return {"status": "success", "message": f"Student assigned to batch {batch.name}"}
 
 
-@router.get("/students/{user_id}/details")
+@router.get("/users/{user_id}/details")
 async def get_student_details(
     user_id: str,
     db: AsyncSession = Depends(get_db),
@@ -371,35 +431,49 @@ async def get_student_details(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     
-    # Get batches
-    batch_links_result = await db.execute(
-        select(BatchStudent, Batch.name, Course.name.label("course_name"))
-        .join(Batch, Batch.id == BatchStudent.batch_id)
-        .join(Course, Course.id == Batch.course_id)
-        .where(BatchStudent.student_id == user_id)
-    )
+    # Get batches and registrations based on role
     batches = []
-    for row in batch_links_result.all():
-        batches.append({
-            "id": row[0].batch_id,
-            "name": row[1],
-            "course_name": row[2]
-        })
-    
-    # Get registrations
-    reg_result = await db.execute(
-        select(Registration, Course.name)
-        .join(Course, Course.id == Registration.course_id)
-        .where(Registration.student_id == user_id)
-    )
     registrations = []
-    for row in reg_result.all():
-        registrations.append({
-            "id": row[0].id,
-            "course_id": row[0].course_id,
-            "course_name": row[1],
-            "status": row[0].status
-        })
+    
+    if student.role == Role.TRAINER:
+        batch_links_result = await db.execute(
+            select(Batch, Course.name.label("course_name"))
+            .join(Course, Course.id == Batch.course_id)
+            .where(Batch.trainer_id == user_id)
+        )
+        for b, cname in batch_links_result.all():
+            batches.append({
+                "id": b.id,
+                "name": b.name,
+                "course_name": cname
+            })
+    else:
+        batch_links_result = await db.execute(
+            select(BatchStudent, Batch.name, Course.name.label("course_name"))
+            .join(Batch, Batch.id == BatchStudent.batch_id)
+            .join(Course, Course.id == Batch.course_id)
+            .where(BatchStudent.student_id == user_id)
+        )
+        for row in batch_links_result.all():
+            batches.append({
+                "id": row[0].batch_id,
+                "name": row[1],
+                "course_name": row[2]
+            })
+
+        # Get registrations
+        reg_result = await db.execute(
+            select(Registration, Course.name)
+            .join(Course, Course.id == Registration.course_id)
+            .where(Registration.student_id == user_id)
+        )
+        for row in reg_result.all():
+            registrations.append({
+                "id": row[0].id,
+                "course_id": row[0].course_id,
+                "course_name": row[1],
+                "status": row[0].status
+            })
 
     return {
         "user": UserOut.model_validate(student),
@@ -409,12 +483,23 @@ async def get_student_details(
 
 
 @router.delete("/users/{user_id}/batches/{batch_id}")
-async def remove_student_batch(
+async def remove_user_batch(
     user_id: str,
     batch_id: str,
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
 ):
+    target_user = await db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if target_user.role == Role.TRAINER:
+        batch = await db.get(Batch, batch_id)
+        if batch and batch.trainer_id == user_id:
+            batch.trainer_id = None
+            await db.flush()
+        return {"status": "removed"}
+
     result = await db.execute(
         delete(BatchStudent).where(
             BatchStudent.student_id == user_id,
@@ -422,7 +507,7 @@ async def remove_student_batch(
         )
     )
     if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Student-Batch linkage not found")
+        raise HTTPException(status_code=404, detail="Batch link not found")
     
     await db.flush()
     return {"status": "success", "message": "Student removed from batch"}

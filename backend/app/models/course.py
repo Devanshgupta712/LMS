@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Boolean, Float, DateTime, ForeignKey, func
+from sqlalchemy import String, Boolean, Float, DateTime, ForeignKey, func, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -35,6 +35,7 @@ class Batch(Base):
     end_date: Mapped[datetime] = mapped_column(DateTime)
     schedule_time: Mapped[str | None] = mapped_column(String, nullable=True)
     trainer_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
+    leave_quota: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -46,7 +47,9 @@ class Batch(Base):
     projects = relationship("Project", back_populates="batch")
     videos = relationship("Video", back_populates="batch")
     feedback = relationship("Feedback", back_populates="batch")
+    feedback = relationship("Feedback", back_populates="batch")
     registrations = relationship("Registration", back_populates="batch")
+    leave_requests = relationship("LeaveRequest", back_populates="batch")
 
 
 class BatchStudent(Base):

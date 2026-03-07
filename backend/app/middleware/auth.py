@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.models.user import User, Role
+from app.models.user import User, Role, AdminPermission
 
 security = HTTPBearer()
 
@@ -50,3 +50,39 @@ def require_roles(*roles: Role):
             )
         return user
     return role_checker
+
+
+def require_admin_permissions(
+    manage_users: bool = False,
+    manage_batches: bool = False,
+    manage_courses: bool = False,
+    manage_leaves: bool = False
+):
+    """Dependency factory: restrict endpoint based on granular admin permissions."""
+    async def permission_checker(
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+    ) -> User:
+        if user.role == Role.SUPER_ADMIN:
+            return user
+            
+        if user.role != Role.ADMIN:
+            raise HTTPException(status_code=403, detail="Admin access required")
+            
+        result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user.id))
+        perm = result.scalar_one_or_none()
+        
+        if not perm:
+            raise HTTPException(status_code=403, detail="Admin permissions not configured")
+            
+        if manage_users and not perm.manage_users:
+            raise HTTPException(status_code=403, detail="Missing permission: manage_users")
+        if manage_batches and not perm.manage_batches:
+            raise HTTPException(status_code=403, detail="Missing permission: manage_batches")
+        if manage_courses and not perm.manage_courses:
+            raise HTTPException(status_code=403, detail="Missing permission: manage_courses")
+        if manage_leaves and not perm.manage_leaves:
+            raise HTTPException(status_code=403, detail="Missing permission: manage_leaves")
+            
+        return user
+    return permission_checker
