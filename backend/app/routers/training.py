@@ -417,7 +417,7 @@ async def get_leave_stats(db: AsyncSession = Depends(get_db), user: User = Depen
     # Get user's batches
     result = await db.execute(
         select(Batch).join(Registration, Registration.batch_id == Batch.id)
-        .where(Registration.user_id == user.id, Registration.status == RegistrationStatus.APPROVED)
+        .where(Registration.student_id == user.id, Registration.status == RegistrationStatus.APPROVED)
     )
     batches = result.scalars().all()
     

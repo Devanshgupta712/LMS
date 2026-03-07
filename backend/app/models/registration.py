@@ -1,10 +1,18 @@
+import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Boolean, Float, DateTime, ForeignKey, func
+from sqlalchemy import String, Boolean, Float, DateTime, ForeignKey, func, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+class RegistrationStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    CANCELLED = "CANCELLED"
+    APPROVED = "APPROVED"
 
 
 class Registration(Base):
@@ -17,7 +25,7 @@ class Registration(Base):
     fee_amount: Mapped[float] = mapped_column(Float, name="feeAmount", default=0)
     fee_paid: Mapped[float] = mapped_column(Float, name="feePaid", default=0)
     receipt_url: Mapped[str | None] = mapped_column(String, name="receiptUrl", nullable=True)
-    status: Mapped[str] = mapped_column(String, default="CONFIRMED")
+    status: Mapped[RegistrationStatus] = mapped_column(Enum(RegistrationStatus, native_enum=False), default=RegistrationStatus.CONFIRMED)
     created_at: Mapped[datetime] = mapped_column(DateTime, name="createdAt", server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, name="updatedAt", server_default=func.now(), onupdate=func.now())
 
