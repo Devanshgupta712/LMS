@@ -96,13 +96,6 @@ async def create_course(
 
 
 # ─── Batches ──────────────────────────────────────────
-    query = select(Batch)
-    
-    # If the user is a trainer, only show their batches (using a more flexible role check if needed)
-    # Note: Require roles already confirms the user is authenticated. 
-    # Since we don't have the user object here, we need to get it or change the dependency.
-    # Let's update the endpoint to include the user.
-    pass
 
 @router.get("/batches")
 async def list_batches(
