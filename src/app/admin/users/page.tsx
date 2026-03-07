@@ -256,12 +256,12 @@ export default function UsersPage() {
                                                     Assign Batches
                                                 </button>
                                             )}
-                                            {u.role === 'ADMIN' && isSuperAdmin && (
+                                            {(u.role === 'ADMIN' || u.role === 'TRAINER') && isSuperAdmin && (
                                                 <button
                                                     className="btn btn-sm btn-secondary"
                                                     onClick={() => handleOpenPermissions(u)}
                                                 >
-                                                    Permissions
+                                                    🔑 Permissions
                                                 </button>
                                             )}
                                             <button

@@ -15,23 +15,30 @@ export default function BatchesPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({ course_id: '', name: '', start_date: '', end_date: '', schedule_time: '', trainer_id: '', leave_quota: '' });
+    const [error, setError] = useState('');
 
     useEffect(() => { loadData(); }, []);
 
     const loadData = async () => {
         try {
             const [b, c, t] = await Promise.all([
-                apiGet('/api/admin/batches'), apiGet('/api/admin/courses'),
+                apiGet('/api/admin/batches').catch(() => []),
+                apiGet('/api/admin/courses').catch(() => []),
                 apiGet('/api/admin/students?role=TRAINER').catch(() => []),
             ]);
             setBatches(b); setCourses(c); setTrainers(t);
-        } catch { } finally { setLoading(false); }
+            if (!c || c.length === 0) setError('No courses found. Please create a course first before creating a batch.');
+        } catch (e) {
+            setError('Failed to load data. Please refresh.');
+        } finally { setLoading(false); }
     };
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         const res = await apiPost('/api/admin/batches', form);
         if (res.ok) { setShowModal(false); setForm({ course_id: '', name: '', start_date: '', end_date: '', schedule_time: '', trainer_id: '', leave_quota: '' }); loadData(); }
+        else { const d = await res.json().catch(() => ({})); setError(d.detail || 'Failed to create batch.'); }
     };
 
     return (
@@ -40,6 +47,12 @@ export default function BatchesPage() {
                 <div><h1 className="page-title">Batches</h1><p className="page-subtitle">Manage training batches</p></div>
                 <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Batch</button>
             </div>
+
+            {error && (
+                <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', padding: '10px 16px', marginBottom: '16px', color: '#f59e0b', fontSize: '14px' }}>
+                    ⚠️ {error} {courses.length === 0 && <a href="/admin/courses" style={{ color: '#0066ff', marginLeft: '8px' }}>→ Go to Courses →</a>}
+                </div>
+            )}
 
             <div className="card">
                 {loading ? <p>Loading...</p> : batches.length === 0 ? (
@@ -66,6 +79,11 @@ export default function BatchesPage() {
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <h2 className="modal-title">Create New Batch</h2>
                         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {courses.length === 0 && (
+                                <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', padding: '10px', color: '#fbbf24', fontSize: '13px' }}>
+                                    ⚠️ No courses available. <a href="/admin/courses" style={{ color: '#60a5fa' }}>Create a course first →</a>
+                                </div>
+                            )}
                             <div className="form-group"><label>Course</label><select className="form-input" required value={form.course_id} onChange={e => setForm({ ...form, course_id: e.target.value })}><option value="">Select course</option>{courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                             <div className="form-group"><label>Batch Name</label><input className="form-input" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
                             <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
