@@ -57,26 +57,44 @@ export default function StudentAttendancePage() {
     const startScanner = async () => {
         const { Html5Qrcode } = await import('html5-qrcode');
         setShowScanner(true);
-        setScanMsg('');
+        setScanMsg('Requesting GPS location. Please allow access when prompted...');
         setIsScanning(true);
 
-        // Request geolocation for radius check
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                (err) => {
-                    console.error("Geolocation error:", err);
-                    setUserLocation(null);
-                    setScanMsg("Warning: Location access denied. You may not be able to punch in if geofencing is enabled.");
-                },
-                { enableHighAccuracy: true, timeout: 5000 }
-            );
-        } else {
-            setScanMsg("Geolocation is not supported by this browser.");
+        // Setup a dummy ref to track if user closed the modal before location resolved
+        qrCodeRef.current = { isPending: true } as any;
+
+        // Wait for location first
+        await new Promise<void>((resolve) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                        setScanMsg('Location acquired. Starting camera...');
+                        resolve();
+                    },
+                    (err) => {
+                        console.error("Geolocation error:", err);
+                        setUserLocation(null);
+                        setScanMsg("Warning: Location access denied. You may not be able to punch in.");
+                        resolve();
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                setScanMsg("Geolocation is not supported by this browser.");
+                resolve();
+            }
+        });
+
+        if (!qrCodeRef.current || !qrCodeRef.current.isPending) {
+            // Scanner was closed while waiting for location
+            return;
         }
 
         // Small delay to ensure the 'reader' div is in the DOM
         setTimeout(async () => {
+            if (!qrCodeRef.current || !qrCodeRef.current.isPending) return;
+
             try {
                 const html5QrCode = new Html5Qrcode("reader");
                 qrCodeRef.current = html5QrCode;
@@ -94,25 +112,29 @@ export default function StudentAttendancePage() {
                     onScanSuccess,
                     undefined // Ignore manual errors
                 );
+
+                setScanMsg((prev) => prev.includes('Starting camera') ? '' : prev);
             } catch (err: any) {
                 console.error("Scanner startup error:", err);
                 setScanMsg(`Camera Error: ${err?.message || 'Access denied'}`);
                 setIsScanning(false);
             }
-        }, 300);
+        }, 100);
     };
 
     const stopScanner = async () => {
-        if (qrCodeRef.current && qrCodeRef.current.isScanning) {
+        const currentRef = qrCodeRef.current;
+        qrCodeRef.current = null; // immediately nullify to stop pending startups
+        setShowScanner(false);
+        setIsScanning(false);
+
+        if (currentRef && currentRef.isScanning) {
             try {
-                await qrCodeRef.current.stop();
+                await currentRef.stop();
             } catch (err) {
                 console.error("Failed to stop scanner:", err);
             }
         }
-        qrCodeRef.current = null;
-        setShowScanner(false);
-        setIsScanning(false);
     };
 
     const [scanResult, setScanResult] = useState<{

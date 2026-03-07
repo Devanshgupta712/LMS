@@ -222,8 +222,36 @@ async def delete_user(
     if target_user.role == Role.SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Cannot delete SUPER_ADMIN")
     
-    await db.delete(target_user)
-    await db.flush()
+    # Manual cascade delete for related entities to prevent IntegrityError
+    from app.models.notification import Notification
+    from app.models.attendance import LeaveRequest, TimeTracking
+    from app.models.lead import Lead
+    
+    await db.execute(delete(Notification).where(Notification.user_id == user_id))
+    await db.execute(delete(LeaveRequest).where(LeaveRequest.user_id == user_id))
+    await db.execute(delete(TimeTracking).where(TimeTracking.user_id == user_id))
+    await db.execute(delete(BatchStudent).where(BatchStudent.student_id == user_id))
+    await db.execute(delete(Registration).where(Registration.student_id == user_id))
+    
+    # For Leads, we might just nullify the user_id if we want to keep the lead, 
+    # but the frontend expects we might delete it or standard delete is fine.
+    # We will nullify the lead owner if a marketer is deleted.
+    await db.execute(
+        Lead.__table__.update().where(Lead.user_id == user_id).values(user_id=None)
+    )
+    
+    from sqlalchemy.exc import IntegrityError
+    
+    try:
+        await db.delete(target_user)
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot delete user because they have associated records (attendance, exams, etc.) that prevent deletion."
+        )
+        
     return {"status": "deleted"}
 
 # ─── Students ─────────────────────────────────────────

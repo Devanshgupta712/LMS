@@ -208,17 +208,16 @@ export default function UsersPage() {
                                     <td>
                                         <div style={{ display: 'flex', gap: '8px' }}>
                                             <button
-                                                className="btn btn-sm btn-info"
+                                                className="btn btn-sm btn-secondary"
                                                 onClick={() => setPasswordModal({ show: true, targetUser: u, newPassword: '' })}
                                                 disabled={(isAdmin && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) || (isSuperAdmin && u.role === 'SUPER_ADMIN')}
-                                                style={{ opacity: ((isAdmin && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) || (isSuperAdmin && u.role === 'SUPER_ADMIN')) ? 0.3 : 1 }}
                                             >
                                                 Password
                                             </button>
                                             {u.role === 'STUDENT' && (
                                                 <>
                                                     <button
-                                                        className="btn btn-sm btn-accent"
+                                                        className="btn btn-sm btn-secondary"
                                                         onClick={() => handleOpenManage(u)}
                                                     >
                                                         Manage
@@ -226,19 +225,17 @@ export default function UsersPage() {
                                                 </>
                                             )}
                                             <button
-                                                className={`btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'}`}
+                                                className={`btn btn-sm ${u.is_active ? 'btn-secondary' : 'btn-success'}`}
                                                 onClick={() => handleToggleStatus(u)}
                                                 disabled={u.role === 'SUPER_ADMIN'}
-                                                style={{ opacity: u.role === 'SUPER_ADMIN' ? 0.3 : 1 }}
                                             >
                                                 {u.is_active ? 'Suspend' : 'Activate'}
                                             </button>
                                             {isSuperAdmin && (
                                                 <button
-                                                    className="btn btn-sm btn-error"
+                                                    className="btn btn-sm btn-danger"
                                                     onClick={() => handleDeleteUser(u)}
                                                     disabled={u.role === 'SUPER_ADMIN'}
-                                                    style={{ opacity: u.role === 'SUPER_ADMIN' ? 0.3 : 1 }}
                                                 >
                                                     Delete
                                                 </button>
