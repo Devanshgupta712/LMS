@@ -41,7 +41,7 @@ class Batch(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, name="updatedAt", server_default=func.now(), onupdate=func.now())
 
     course = relationship("Course", back_populates="batches")
-    trainer = relationship("User", back_populates="trainer_batches", foreign_keys=[trainer_id])
+    trainer = relationship("User", back_populates="trainer_batches", foreign_keys="[Batch.trainer_id]")
     students = relationship("BatchStudent", back_populates="batch")
     attendance = relationship("Attendance", back_populates="batch")
     projects = relationship("Project", back_populates="batch")

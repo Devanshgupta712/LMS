@@ -61,8 +61,8 @@ class LeaveRequest(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, name="createdAt", server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, name="updatedAt", server_default=func.now(), onupdate=func.now())
 
-    user = relationship("User", back_populates="leave_requests", foreign_keys=[user_id])
-    approved_by = relationship("User", back_populates="leaves_approved", foreign_keys=[approved_by_id])
+    user = relationship("User", back_populates="leave_requests", foreign_keys="[LeaveRequest.user_id]")
+    approved_by = relationship("User", back_populates="leaves_approved", foreign_keys="[LeaveRequest.approved_by_id]")
     batch = relationship("Batch", back_populates="leave_requests")
 
 
