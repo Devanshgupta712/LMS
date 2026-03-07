@@ -20,6 +20,7 @@ from app.schemas.schemas import (
     RegistrationCreate, RegistrationOut, DashboardStats,
     UserOut, AdminPasswordChangeRequest
 )
+from app.models.setting import SystemSetting
 
 class AssignBatchRequest(BaseModel):
     batch_id: str
@@ -654,3 +655,49 @@ async def export_database(
         media_type="application/sql",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+# ─── System Settings ──────────────────────────────────
+class GeofenceSettingsUpdate(BaseModel):
+    office_latitude: float
+    office_longitude: float
+    office_radius_meters: int
+
+@router.get("/settings/geofence")
+async def get_geofence_settings(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN)),
+):
+    keys = ["office_latitude", "office_longitude", "office_radius_meters"]
+    result = await db.execute(select(SystemSetting).where(SystemSetting.key.in_(keys)))
+    settings = result.scalars().all()
+    
+    settings_dict = {s.key: s.value for s in settings}
+    return {
+        "office_latitude": float(settings_dict.get("office_latitude", 0.0)),
+        "office_longitude": float(settings_dict.get("office_longitude", 0.0)),
+        "office_radius_meters": int(settings_dict.get("office_radius_meters", 200)),
+    }
+
+@router.put("/settings/geofence")
+async def update_geofence_settings(
+    body: GeofenceSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN)),
+):
+    updates = {
+        "office_latitude": str(body.office_latitude),
+        "office_longitude": str(body.office_longitude),
+        "office_radius_meters": str(body.office_radius_meters),
+    }
+
+    for key, value in updates.items():
+        result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
+        setting = result.scalar_one_or_none()
+        if setting:
+            setting.value = value
+        else:
+            new_setting = SystemSetting(key=key, value=value)
+            db.add(new_setting)
+
+    await db.flush()
+    return {"status": "success", "message": "Geofence settings updated"}

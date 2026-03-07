@@ -103,7 +103,7 @@ const navSections: NavSection[] = [
             { label: 'Users', href: '/admin/users', icon: '👤', roles: ['SUPER_ADMIN'] },
             { label: 'Integrity Reports', href: '/reports', icon: '⚠️' },
             { label: 'Notifications', href: '/notifications', icon: '🔔' },
-            { label: 'Settings', href: '/settings', icon: '⚙️' },
+            { label: 'Settings', href: '/admin/settings', icon: '⚙️' },
         ],
     },
 ];

@@ -64,9 +64,15 @@ export default function StudentAttendancePage() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => setUserLocation(null),
+                (err) => {
+                    console.error("Geolocation error:", err);
+                    setUserLocation(null);
+                    setScanMsg("Warning: Location access denied. You may not be able to punch in if geofencing is enabled.");
+                },
                 { enableHighAccuracy: true, timeout: 5000 }
             );
+        } else {
+            setScanMsg("Geolocation is not supported by this browser.");
         }
 
         // Small delay to ensure the 'reader' div is in the DOM

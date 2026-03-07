@@ -64,6 +64,14 @@ export async function apiPatch(path: string, body: any) {
     return res.json();
 }
 
+export async function apiPut(path: string, body: any) {
+    const res = await apiFetch(path, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+    });
+    return res.json();
+}
+
 export async function apiDelete(path: string) {
     const res = await apiFetch(path, {
         method: 'DELETE'

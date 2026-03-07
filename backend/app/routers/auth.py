@@ -483,7 +483,6 @@ async def scan_attendance_qr(
     scan_lat = body.get("latitude")
     scan_lng = body.get("longitude")
     
-    """
     if scan_lat is not None and scan_lng is not None:
         # Fetch office location settings
         loc_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_latitude"))
@@ -493,7 +492,7 @@ async def scan_attendance_qr(
         loc_result3 = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_radius_meters"))
         radius_setting = loc_result3.scalar_one_or_none()
         
-        if lat_setting and lng_setting:
+        if lat_setting and lng_setting and lat_setting.value != "0.0" and lng_setting.value != "0.0":
             office_lat = float(lat_setting.value)
             office_lng = float(lng_setting.value)
             allowed_radius = float(radius_setting.value) if radius_setting else 200.0
@@ -504,7 +503,15 @@ async def scan_attendance_qr(
                     status_code=403,
                     detail=f"You are {int(distance)}m away from the office. QR scan is only allowed within {int(allowed_radius)}m radius. Please move closer to the institute."
                 )
-    """
+    else:
+        # Fetch office location settings to see if they are configured
+        loc_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_latitude"))
+        lat_setting = loc_result.scalar_one_or_none()
+        if lat_setting and lat_setting.value != "0.0":
+            raise HTTPException(
+                status_code=403,
+                detail="Location access is required to punch in. Please enable location services in your browser."
+            )
 
 
     # --- Validate QR token ---
