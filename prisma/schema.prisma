@@ -31,6 +31,12 @@ enum LeaveStatus {
   REJECTED
 }
 
+enum LeaveType {
+  INTERVIEW
+  MEDICAL
+  OTHER
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -282,6 +288,8 @@ model LeaveRequest {
   id          String      @id @default(uuid())
   userId      String
   batchId     String?
+  leaveType   LeaveType   @default(OTHER)
+  proofUrl    String?
   startDate   DateTime
   endDate     DateTime
   reason      String?

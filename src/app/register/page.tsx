@@ -38,6 +38,11 @@ export default function RegisterPage() {
                 }
         */
 
+        if (!/^\d{10}$/.test(form.phone)) {
+            setError('Phone number must be exactly 10 digits');
+            return;
+        }
+
         if (form.password !== form.confirmPassword) {
             setError('Passwords do not match');
             return;
@@ -345,7 +350,7 @@ export default function RegisterPage() {
 
                         <div>
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.phone ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Phone Number *</label>
-                            <input required type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="e.g. 9876543210" className="input-floating" />
+                            <input required type="tel" maxLength={10} value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="e.g. 9876543210" className="input-floating" />
                         </div>
 
                         <div>

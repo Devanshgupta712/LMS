@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # ─── Auth ──────────────────────────────────────────────
@@ -25,7 +25,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     role: str = "STUDENT"
-    phone: str | None = None
+    phone: str | None = Field(default=None, max_length=10)
     course: str | None = None
 
 class AdminPasswordChangeRequest(BaseModel):
@@ -53,6 +53,7 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+        use_enum_values = True
 
 class AdminPermissionUpdate(BaseModel):
     manage_users: bool = False
