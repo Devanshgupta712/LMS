@@ -1116,6 +1116,10 @@ async def export_time_tracking(
                 "logs": []
             }
         
+        # Skip records for users who were filtered out (not added to user_records)
+        if r.user_id not in user_records:
+            continue
+
         # Determine on-time/late
         status = "N/A"
         if r.login_time:
@@ -1125,9 +1129,9 @@ async def export_time_tracking(
                 status = "Late"
         
         duration_mins = r.total_minutes or 0
-        hours = duration_mins // 60
-        mins = duration_mins % 60
-        duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
+        hours_val = duration_mins // 60
+        mins_val = duration_mins % 60
+        duration_str = f"{hours_val}h {mins_val}m" if hours_val > 0 else f"{mins_val}m"
         
         user_records[r.user_id]["logs"].append({
             "date": r.date.strftime("%Y-%m-%d") if r.date else "",
