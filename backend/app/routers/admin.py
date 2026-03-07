@@ -919,3 +919,27 @@ async def update_geofence_settings(
 
     await db.flush()
     return {"status": "success", "message": "Geofence settings updated"}
+
+from sqlalchemy import text
+
+@router.get("/debug/tables")
+async def debug_tables(db: AsyncSession = Depends(get_db)):
+    tables = ['users', 'batches', 'courses', 'registrations', 'batch_students', 'projects', 'tasks', 'assignments']
+    schema = {}
+    
+    for table in tables:
+        try:
+            # PostgreSQL logic
+            result = await db.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'"))
+            cols = [row[0] for row in result.fetchall()]
+            
+            # Fallback for SQLite locally
+            if not cols:
+                result = await db.execute(text(f"PRAGMA table_info({table})"))
+                cols = [row[1] for row in result.fetchall()]
+                
+            schema[table] = cols
+        except Exception as e:
+            schema[table] = {"error": str(e)}
+            
+    return schema
