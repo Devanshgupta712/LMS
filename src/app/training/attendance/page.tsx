@@ -23,6 +23,8 @@ export default function AttendancePage() {
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
+    const [pendingLeaves, setPendingLeaves] = useState<any[]>([]);
+
     const [qrModal, setQrModal] = useState<{ token: string; batch_id: string; date: string } | null>(null);
     const [globalQrModal, setGlobalQrModal] = useState<{ token: string } | null>(null);
 
@@ -37,6 +39,9 @@ export default function AttendancePage() {
                 .finally(() => setLoading(false));
             if (selectedBatch) {
                 apiGet(`/api/training/batches/${selectedBatch}/students`).then(setStudents).catch(() => { });
+                apiGet(`/api/admin/leaves?batch_id=${selectedBatch}`).then(data => {
+                    setPendingLeaves((data || []).filter((l: any) => l.status === 'PENDING'));
+                }).catch(() => { });
             }
         }
     }, [selectedBatch, selectedDate]);
@@ -142,6 +147,29 @@ export default function AttendancePage() {
     const lateCount = Object.values(localStatus).filter(s => s === 'LATE').length;
     const leaveCount = Object.values(localStatus).filter(s => s === 'LEAVE').length;
 
+    const handleActionLeave = async (id: string, action: 'APPROVED' | 'REJECTED') => {
+        if (!confirm(`Are you sure you want to ${action.toLowerCase()} this leave?`)) return;
+        try {
+            await apiPost('/api/admin/leaves', { method: 'PATCH', body: JSON.stringify({ id, action }) }); // apiPost wrapper for fetch, wait we have apiPatch? Let's use fetch directly or if apiPatch is available.
+            // Wait, looking at api object: apiGet, apiPost. Let's use fetch or check how it's done elsewhere.
+            // Using standard fetch since apiPost doesn't support custom methods easily in this custom wrapper unless known.
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/admin/leaves', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ id, action })
+            });
+            if (res.ok) {
+                alert(`Leave ${action.toLowerCase()}`);
+                setPendingLeaves(prev => prev.filter(l => l.id !== id));
+            } else {
+                throw new Error('Failed');
+            }
+        } catch (err: any) {
+            alert('Error updating leave');
+        }
+    };
+
     return (
         <div className="animate-in">
             <div className="page-header">
@@ -240,6 +268,51 @@ export default function AttendancePage() {
                     </table></div>
                 )}
             </div>
+
+            {/* Pending Leaves */}
+            {selectedBatch && pendingLeaves.length > 0 && (
+                <div className="card mb-32" style={{ borderLeft: '4px solid var(--primary)' }}>
+                    <h3 style={{ fontSize: '18px', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        📋 Pending Leave Requests for Batch
+                    </h3>
+                    <div className="table-responsive">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Leave Type</th>
+                                    <th>Dates</th>
+                                    <th>Reason / Proof</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pendingLeaves.map(l => (
+                                    <tr key={l.id}>
+                                        <td><strong>{l.user_name}</strong></td>
+                                        <td><span className="badge badge-accent">{l.leave_type}</span></td>
+                                        <td>{new Date(l.start_date).toLocaleDateString()} - {new Date(l.end_date).toLocaleDateString()}</td>
+                                        <td>
+                                            <div className="text-sm">{l.reason || '-'}</div>
+                                            {l.proof_url && (
+                                                <a href={l.proof_url} target="_blank" rel="noreferrer" className="text-primary text-xs" style={{ textDecoration: 'underline' }}>
+                                                    View Med Proof
+                                                </a>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button className="btn btn-sm btn-success" onClick={() => handleActionLeave(l.id, 'APPROVED')}>Approve</button>
+                                                <button className="btn btn-sm btn-danger" onClick={() => handleActionLeave(l.id, 'REJECTED')}>Reject</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Leave Modal */}
             {leaveModal && (

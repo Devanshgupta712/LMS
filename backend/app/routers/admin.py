@@ -127,6 +127,7 @@ async def list_batches(
             course_name=course.name if course else "",
             trainer_name=trainer.name if trainer else None,
             student_count=stu_q.scalar() or 0,
+            leave_quota=b.leave_quota,
         ))
     return out
 
@@ -143,6 +144,7 @@ async def create_batch(
         end_date=datetime.fromisoformat(body.end_date),
         schedule_time=body.schedule_time,
         trainer_id=body.trainer_id or None,
+        leave_quota=body.leave_quota,
     )
     db.add(batch)
     await db.flush()
@@ -153,6 +155,7 @@ async def create_batch(
         end_date=batch.end_date, is_active=batch.is_active,
         schedule_time=batch.schedule_time,
         course_name=course.name if course else "",
+        leave_quota=batch.leave_quota,
     )
 
 
@@ -565,8 +568,15 @@ async def create_registration(
 
 # ─── Leaves ───────────────────────────────────────────
 @router.get("/leaves")
-async def list_leaves(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(LeaveRequest).order_by(LeaveRequest.created_at.desc()))
+async def list_leaves(
+    batch_id: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER))
+):
+    query = select(LeaveRequest)
+    if batch_id:
+        query = query.where(LeaveRequest.batch_id == batch_id)
+    result = await db.execute(query.order_by(LeaveRequest.created_at.desc()))
     leaves = result.scalars().all()
     out = []
     for l in leaves:
@@ -577,6 +587,8 @@ async def list_leaves(db: AsyncSession = Depends(get_db)):
             user_name=user.name if user else "",
             user_role=user.role.value if user else "",
             user_student_id=user.student_id if user else None,
+            leave_type=l.leave_type.value if hasattr(l, 'leave_type') and hasattr(l.leave_type, 'value') else str(getattr(l, 'leave_type', 'OTHER')),
+            proof_url=l.proof_url,
             start_date=l.start_date, end_date=l.end_date,
             reason=l.reason, status=l.status.value,
             approved_by_name=approver.name if approver else None,

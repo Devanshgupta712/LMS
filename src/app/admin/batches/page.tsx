@@ -14,7 +14,7 @@ export default function BatchesPage() {
     const [trainers, setTrainers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [form, setForm] = useState({ course_id: '', name: '', start_date: '', end_date: '', schedule_time: '', trainer_id: '' });
+    const [form, setForm] = useState({ course_id: '', name: '', start_date: '', end_date: '', schedule_time: '', trainer_id: '', leave_quota: '' });
 
     useEffect(() => { loadData(); }, []);
 
@@ -31,7 +31,7 @@ export default function BatchesPage() {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         const res = await apiPost('/api/admin/batches', form);
-        if (res.ok) { setShowModal(false); setForm({ course_id: '', name: '', start_date: '', end_date: '', schedule_time: '', trainer_id: '' }); loadData(); }
+        if (res.ok) { setShowModal(false); setForm({ course_id: '', name: '', start_date: '', end_date: '', schedule_time: '', trainer_id: '', leave_quota: '' }); loadData(); }
     };
 
     return (
@@ -71,6 +71,7 @@ export default function BatchesPage() {
                             <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
                             <div className="form-group"><label>End Date</label><input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
                             <div className="form-group"><label>Schedule Time</label><input className="form-input" placeholder="e.g. 10:00 AM - 12:00 PM" required value={form.schedule_time} onChange={e => setForm({ ...form, schedule_time: e.target.value })} /></div>
+                            <div className="form-group"><label>Leave Quota (Days)</label><input className="form-input" type="number" min="0" placeholder="e.g. 5" required value={form.leave_quota} onChange={e => setForm({ ...form, leave_quota: e.target.value })} /></div>
                             <div className="form-group"><label>Trainer</label><select className="form-input" value={form.trainer_id} onChange={e => setForm({ ...form, trainer_id: e.target.value })}><option value="">Select trainer</option>{trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                                 <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>

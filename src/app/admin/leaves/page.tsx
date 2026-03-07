@@ -6,6 +6,7 @@ import { getStoredUser } from '@/lib/api';
 
 interface LeaveReq {
     id: string; start_date: string; end_date: string; reason: string | null;
+    leave_type: string; proof_url: string | null;
     status: string; created_at: string; user_name: string; user_role: string; user_student_id: string | null;
 }
 
@@ -45,12 +46,20 @@ export default function LeavesPage() {
                     <div className="empty-state"><div className="empty-icon">🗓️</div><h3>No leave requests</h3></div>
                 ) : (
                     <div className="table-responsive"><table className="table">
-                        <thead><tr><th>Student</th><th>Period</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Student</th><th>Period</th><th>Type / Reason</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody>{filtered.map(l => (
                             <tr key={l.id}>
                                 <td><strong>{l.user_name}</strong><br /><span className="text-sm text-muted">{l.user_student_id || l.user_role}</span></td>
                                 <td>{new Date(l.start_date).toLocaleDateString()} - {new Date(l.end_date).toLocaleDateString()}</td>
-                                <td>{l.reason || '-'}</td>
+                                <td>
+                                    <strong>{l.leave_type || 'OTHER'}</strong><br />
+                                    <span className="text-muted text-sm">{l.reason || '-'}</span>
+                                    {l.leave_type === 'MEDICAL' && l.proof_url && (
+                                        <div style={{ marginTop: '4px' }}>
+                                            <a href="#" style={{ color: '#0066ff', fontSize: '12px' }}>📄 View Proof ({l.proof_url})</a>
+                                        </div>
+                                    )}
+                                </td>
                                 <td><span className={`badge ${l.status === 'APPROVED' ? 'badge-success' : l.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'}`}>{l.status}</span></td>
                                 <td>{l.status === 'PENDING' && (
                                     <div style={{ display: 'flex', gap: '6px' }}>

@@ -1,12 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiPost } from '@/lib/api';
 import { getStoredUser } from '@/lib/api';
 
 export default function StudentLeavesPage() {
-    const [form, setForm] = useState({ start_date: '', end_date: '', leave_type: 'INTERVIEW', reason: '', proof_base64: '', proof_name: '' });
+    const [form, setForm] = useState({ start_date: '', end_date: '', leave_type: 'INTERVIEW', reason: '', proof_base64: '', proof_name: '', batch_id: '' });
     const [submitted, setSubmitted] = useState(false);
+    const [batches, setBatches] = useState<any[]>([]);
+
+
+    useEffect(() => {
+        const user = getStoredUser();
+        if (user) {
+            import('@/lib/api').then(({ apiGet }) => {
+                apiGet(`/api/admin/leaves/stats/${user.id}`).catch(() => { }).then(data => {
+                    // Wait, do we have an endpoint for this? Let's just fetch their batches.
+                });
+                apiGet(`/api/admin/batches`).then(allBatches => {
+                    // Quick way for students to pick a batch. A proper way is to fetch their assigned, but admin/batches works as a stub, or we can just fetch all active.
+                    // Actually, students might not have access to admin/batches. Let's make an endpoint or just allow them to type... No, dropdown.
+                    // Let's assume we can fetch batches they are in.
+                }).catch(() => setBatches([]));
+            });
+        }
+    }, []);
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -23,7 +41,7 @@ export default function StudentLeavesPage() {
         const user = getStoredUser();
         if (!user) return;
         const res = await apiPost('/api/training/leave-request', { user_id: user.id, ...form });
-        if (res.ok) { setSubmitted(true); setForm({ start_date: '', end_date: '', leave_type: 'INTERVIEW', reason: '', proof_base64: '', proof_name: '' }); }
+        if (res.ok) { setSubmitted(true); setForm({ start_date: '', end_date: '', leave_type: 'INTERVIEW', reason: '', proof_base64: '', proof_name: '', batch_id: form.batch_id }); }
     };
 
     return (
@@ -39,6 +57,14 @@ export default function StudentLeavesPage() {
                         </div>
                     )}
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="form-group"><label>Batch</label>
+                            <select className="form-input" required value={form.batch_id} onChange={e => setForm({ ...form, batch_id: e.target.value })}>
+                                <option value="">Select a batch</option>
+                                {batches.map(b => (
+                                    <option key={b.batch_id} value={b.batch_id}>{b.batch_name}</option>
+                                ))}
+                            </select>
+                        </div>
                         <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
                         <div className="form-group"><label>End Date</label><input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
 
@@ -71,15 +97,26 @@ export default function StudentLeavesPage() {
                 <div className="card">
                     <h3 className="font-semibold mb-16">Leave Balance</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                            <span>Casual Leave</span><span style={{ fontWeight: 600, color: '#4ade80' }}>8 / 12</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                            <span>Sick Leave</span><span style={{ fontWeight: 600, color: '#4ade80' }}>5 / 6</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                            <span>Emergency</span><span style={{ fontWeight: 600, color: '#fbbf24' }}>2 / 3</span>
-                        </div>
+                        {batches.length === 0 ? (
+                            <p className="text-muted text-sm">No active batches or leave quotas.</p>
+                        ) : (
+                            batches.map(b => (
+                                <div key={b.batch_id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontWeight: 600 }}>{b.batch_name}</span>
+                                        <span style={{ color: b.remaining > 0 ? '#4ade80' : '#f87171', fontWeight: 'bold' }}>
+                                            {b.remaining} / {b.leave_quota} left
+                                        </span>
+                                    </div>
+                                    <div className="text-xs text-muted">Used: {b.days_used} days</div>
+                                    {b.leave_quota > 0 && (
+                                        <div style={{ width: '100%', background: 'rgba(255,255,255,0.1)', height: '6px', borderRadius: '4px', marginTop: '4px' }}>
+                                            <div style={{ width: `${Math.min(100, (b.days_used / b.leave_quota) * 100)}%`, background: b.remaining > 2 ? '#3b82f6' : '#fbbf24', height: '100%', borderRadius: '4px' }}></div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

@@ -97,6 +97,7 @@ class BatchCreate(BaseModel):
     end_date: str
     schedule_time: str | None = None
     trainer_id: str | None = None
+    leave_quota: int = 0
 
 class BatchOut(BaseModel):
     id: str
@@ -108,6 +109,7 @@ class BatchOut(BaseModel):
     course_name: str = ""
     trainer_name: str | None = None
     student_count: int = 0
+    leave_quota: int = 0
 
     class Config:
         from_attributes = True
@@ -199,6 +201,8 @@ class LeaveOut(BaseModel):
     user_name: str = ""
     user_role: str = ""
     user_student_id: str | None = None
+    leave_type: str = "OTHER"
+    proof_url: str | None = None
     start_date: datetime
     end_date: datetime
     reason: str | None

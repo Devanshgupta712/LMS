@@ -372,8 +372,60 @@ async def submit_leave(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    from app.models.attendance import LeaveType
+    
+    leave_type_str = body.get("leave_type", "OTHER")
+    try:
+        leave_type_enum = LeaveType[leave_type_str]
+    except KeyError:
+        leave_type_enum = LeaveType.OTHER
+
+    # Optional: Logic to save the base64 proof to S3/disk. For now, we will just store the string or filename 
+    proof_url = None
+    if body.get("proof_base64"):
+        # In a real app we'd upload proof_base64 to a storage bucket and get a URL back.
+        # For local dev we'll simulate by saving the filename or base64 structure.
+        proof_url = body.get("proof_name", "attached_proof.pdf")
+
+    batch_id = body.get("batch_id")
+    if not batch_id:
+        raise HTTPException(status_code=400, detail="batch_id is required")
+
+    from app.models.course import Batch
+    batch = await db.get(Batch, batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    # Check leave quota
+    leave_quota = batch.leave_quota or 0
+    if leave_quota > 0:
+        result = await db.execute(
+            select(LeaveRequest).where(
+                LeaveRequest.user_id == user.id,
+                LeaveRequest.batch_id == batch_id,
+                LeaveRequest.status.in_([LeaveStatus.APPROVED, LeaveStatus.PENDING])
+            )
+        )
+        existing_leaves = result.scalars().all()
+        # Calculate total days used. For simplicity, 1 request = count of days
+        days_used = 0
+        for el in existing_leaves:
+            days = (el.end_date - el.start_date).days + 1
+            days_used += days if days > 0 else 1
+        
+        req_start = datetime.strptime(body["start_date"], "%Y-%m-%d")
+        req_end = datetime.strptime(body["end_date"], "%Y-%m-%d")
+        req_days = (req_end - req_start).days + 1
+        req_days = req_days if req_days > 0 else 1
+
+        if days_used + req_days > leave_quota:
+            raise HTTPException(status_code=400, detail=f"Leave quota exceeded. You have {leave_quota - days_used} days remaining.")
+
     leave = LeaveRequest(
         user_id=user.id,
+        batch_id=batch_id,
+        leave_type=leave_type_enum,
+        proof_url=proof_url,
         start_date=datetime.strptime(body["start_date"], "%Y-%m-%d"),
         end_date=datetime.strptime(body["end_date"], "%Y-%m-%d"),
         reason=body.get("reason"),
@@ -381,6 +433,43 @@ async def submit_leave(
     db.add(leave)
     await db.flush()
     return {"id": leave.id, "status": "submitted"}
+
+@router.get("/leave-stats")
+async def get_leave_stats(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.models.registration import Registration, RegistrationStatus
+    from app.models.course import Batch
+    
+    # Get user's batches
+    result = await db.execute(
+        select(Batch).join(Registration, Registration.batch_id == Batch.id)
+        .where(Registration.user_id == user.id, Registration.status == RegistrationStatus.APPROVED)
+    )
+    batches = result.scalars().all()
+    
+    stats = []
+    for b in batches:
+        # Count used leaves
+        l_result = await db.execute(
+            select(LeaveRequest).where(
+                LeaveRequest.user_id == user.id,
+                LeaveRequest.batch_id == b.id,
+                LeaveRequest.status.in_([LeaveStatus.APPROVED, LeaveStatus.PENDING])
+            )
+        )
+        leaves = l_result.scalars().all()
+        days_used = 0
+        for l in leaves:
+            days = (l.end_date - l.start_date).days + 1
+            days_used += days if days > 0 else 1
+        
+        stats.append({
+            "batch_id": b.id,
+            "batch_name": b.name,
+            "leave_quota": b.leave_quota or 0,
+            "days_used": days_used,
+            "remaining": max(0, (b.leave_quota or 0) - days_used)
+        })
+    return stats
 
 
 # ─── Projects ─────────────────────────────────────────
@@ -961,6 +1050,8 @@ async def get_time_tracking(
 async def export_time_tracking(
     start_date: str = "",
     end_date: str = "",
+    role: str = "",
+    user_id: str = "",
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
 ):
@@ -980,14 +1071,16 @@ async def export_time_tracking(
     e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
     
     # Fetch all records in range
-    result = await db.execute(
-        select(TimeTracking).where(
-            and_(
-                func.date(TimeTracking.date) >= s_date,
-                func.date(TimeTracking.date) <= e_date
-            )
-        ).order_by(TimeTracking.date, TimeTracking.login_time)
+    query = select(TimeTracking).where(
+        and_(
+            func.date(TimeTracking.date) >= s_date,
+            func.date(TimeTracking.date) <= e_date
+        )
     )
+    if user_id:
+        query = query.where(TimeTracking.user_id == user_id)
+        
+    result = await db.execute(query.order_by(TimeTracking.date, TimeTracking.login_time))
     records = result.scalars().all()
     
     # Get late threshold setting
@@ -1010,6 +1103,8 @@ async def export_time_tracking(
             if not u:
                 continue
             role_val = u.role.value if hasattr(u.role, 'value') else str(u.role)
+            if role and role_val != role:
+                continue
             
             # Find batch for students
             batch_name = "N/A"
@@ -1100,9 +1195,13 @@ async def export_time_tracking(
     
     # --- ABSENT SECTION ---
     # Get all active users (non-SUPER_ADMIN)
-    all_users_result = await db.execute(
-        select(User).where(User.role != Role.SUPER_ADMIN)
-    )
+    absent_query = select(User).where(User.role != Role.SUPER_ADMIN)
+    if role:
+        absent_query = absent_query.where(User.role == role)
+    if user_id:
+        absent_query = absent_query.where(User.id == user_id)
+        
+    all_users_result = await db.execute(absent_query)
     all_users = all_users_result.scalars().all()
     
     # For each day in range, find who didn't punch in

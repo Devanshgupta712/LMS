@@ -32,8 +32,9 @@ interface PersonDaySummary {
     role: string;
     studentId: string | null;
     sessions: number;
-    firstIn: string | null;
-    lastOut: string | null;
+    session1: { in: string | null; out: string | null };
+    session2: { in: string | null; out: string | null };
+    session3: { in: string | null; out: string | null };
     totalMinutes: number;
     activeNow: boolean;
     logs: TimeLog[];
@@ -67,6 +68,9 @@ export default function TimeTrackingPage() {
     const [showExportModal, setShowExportModal] = useState(false);
     const [exportStartDate, setExportStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
     const [exportEndDate, setExportEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [exportRole, setExportRole] = useState('');
+    const [exportUserId, setExportUserId] = useState('');
+    const [exportUsers, setExportUsers] = useState<UserSummary[]>([]);
     const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
@@ -245,8 +249,9 @@ export default function TimeTrackingPage() {
                     role: log.user.role || 'N/A',
                     studentId: log.user.student_id,
                     sessions: 0,
-                    firstIn: null,
-                    lastOut: null,
+                    session1: { in: null, out: null },
+                    session2: { in: null, out: null },
+                    session3: { in: null, out: null },
                     totalMinutes: 0,
                     activeNow: false,
                     logs: [],
@@ -266,16 +271,13 @@ export default function TimeTrackingPage() {
                 summary.activeNow = true;
             }
 
-            // Track first punch-in (earliest) and last punch-out (latest)
-            if (log.login_time) {
-                if (!summary.firstIn || new Date(log.login_time) < new Date(summary.firstIn)) {
-                    summary.firstIn = log.login_time;
-                }
-            }
-            if (log.logout_time) {
-                if (!summary.lastOut || new Date(log.logout_time) > new Date(summary.lastOut)) {
-                    summary.lastOut = log.logout_time;
-                }
+            // Map up to 3 sessions chronologically (this is a simplified mapping based on count)
+            if (summary.sessions === 1) {
+                summary.session1 = { in: log.login_time, out: log.logout_time };
+            } else if (summary.sessions === 2) {
+                summary.session2 = { in: log.login_time, out: log.logout_time };
+            } else if (summary.sessions === 3) {
+                summary.session3 = { in: log.login_time, out: log.logout_time };
             }
         }
         // Sort by role priority then name
@@ -361,8 +363,9 @@ export default function TimeTrackingPage() {
                                     <th>Name</th>
                                     <th>Role</th>
                                     <th>Sessions</th>
-                                    <th>First In</th>
-                                    <th>Last Out</th>
+                                    <th>Session 1 (In/Out)</th>
+                                    <th>Session 2 (In/Out)</th>
+                                    <th>Session 3 (In/Out)</th>
                                     <th>Total Hours</th>
                                     <th>Status</th>
                                     <th></th>
@@ -382,16 +385,25 @@ export default function TimeTrackingPage() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <span style={{ fontWeight: 500 }}>{person.sessions} session{person.sessions !== 1 ? 's' : ''}</span>
+                                                <span style={{ fontWeight: 500 }}>{person.sessions}</span>
                                             </td>
                                             <td>
-                                                <span style={{ color: '#00c853', fontWeight: 500 }}>
-                                                    {formatTime(person.firstIn)}
+                                                <span style={{ fontSize: '13px' }}>
+                                                    <span style={{ color: '#00c853' }}>{formatTime(person.session1.in)}</span> / <span style={{ color: person.session1.out ? '#ff1744' : 'var(--text-muted)' }}>{person.activeNow && person.sessions === 1 && !person.session1.out ? '—' : formatTime(person.session1.out)}</span>
                                                 </span>
                                             </td>
                                             <td>
-                                                <span style={{ color: person.lastOut ? '#ff1744' : 'var(--text-muted)', fontWeight: 500 }}>
-                                                    {person.activeNow && !person.lastOut ? '—' : formatTime(person.lastOut)}
+                                                <span style={{ fontSize: '13px' }}>
+                                                    {person.sessions >= 2 ? (
+                                                        <><span style={{ color: '#00c853' }}>{formatTime(person.session2.in)}</span> / <span style={{ color: person.session2.out ? '#ff1744' : 'var(--text-muted)' }}>{person.activeNow && person.sessions === 2 && !person.session2.out ? '—' : formatTime(person.session2.out)}</span></>
+                                                    ) : '—'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span style={{ fontSize: '13px' }}>
+                                                    {person.sessions >= 3 ? (
+                                                        <><span style={{ color: '#00c853' }}>{formatTime(person.session3.in)}</span> / <span style={{ color: person.session3.out ? '#ff1744' : 'var(--text-muted)' }}>{person.activeNow && person.sessions === 3 && !person.session3.out ? '—' : formatTime(person.session3.out)}</span></>
+                                                    ) : '—'}
                                                 </span>
                                             </td>
                                             <td>
@@ -624,6 +636,46 @@ export default function TimeTrackingPage() {
                             </ul>
                         </div>
 
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                            <div>
+                                <label className="form-label">Role Section</label>
+                                <select
+                                    className="form-control"
+                                    value={exportRole}
+                                    onChange={async e => {
+                                        setExportRole(e.target.value);
+                                        setExportUserId(''); // reset user
+                                        if (e.target.value) {
+                                            const res = await apiGet(`/api/admin/students?role=${e.target.value}`);
+                                            setExportUsers(res || []);
+                                        } else {
+                                            setExportUsers([]);
+                                        }
+                                    }}
+                                >
+                                    <option value="">All Roles</option>
+                                    <option value="STUDENT">Student</option>
+                                    <option value="TRAINER">Trainer</option>
+                                    <option value="MARKETER">Marketer</option>
+                                    <option value="ADMIN">Admin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="form-label">Specific Person</label>
+                                <select
+                                    className="form-control"
+                                    value={exportUserId}
+                                    onChange={e => setExportUserId(e.target.value)}
+                                    disabled={!exportRole && exportUsers.length === 0}
+                                >
+                                    <option value="">All People in Section</option>
+                                    {exportUsers.map(u => (
+                                        <option key={u.id} value={u.id}>{u.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                             <div>
                                 <label className="form-label">Start Date</label>
@@ -652,7 +704,10 @@ export default function TimeTrackingPage() {
                             onClick={async () => {
                                 try {
                                     setExporting(true);
-                                    const res = await apiFetch(`/api/training/time-tracking/export?start_date=${exportStartDate}&end_date=${exportEndDate}`);
+                                    const params = new URLSearchParams({ start_date: exportStartDate, end_date: exportEndDate });
+                                    if (exportRole) params.append('role', exportRole);
+                                    if (exportUserId) params.append('user_id', exportUserId);
+                                    const res = await apiFetch(`/api/training/time-tracking/export?${params.toString()}`);
                                     if (!res.ok) {
                                         const err = await res.json().catch(() => ({}));
                                         throw new Error(err.detail || 'Export failed');
