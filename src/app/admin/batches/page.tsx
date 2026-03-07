@@ -56,7 +56,12 @@ export default function BatchesPage() {
                 loadData();
             } else {
                 const d = await res.json().catch(() => ({}));
-                setError(d.detail || JSON.stringify(d) || 'Failed to create batch.');
+                // Handle Pydantic validation errors (array of {loc, msg, type})
+                if (Array.isArray(d.detail)) {
+                    setError(d.detail.map((e: any) => `${e.loc?.join('.')} — ${e.msg}`).join('; '));
+                } else {
+                    setError(d.detail || d.message || JSON.stringify(d) || 'Failed to create batch.');
+                }
             }
         } catch (err: any) {
             setError(err.message || 'Network error.');

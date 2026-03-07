@@ -47,7 +47,6 @@ class Batch(Base):
     projects = relationship("Project", back_populates="batch")
     videos = relationship("Video", back_populates="batch")
     feedback = relationship("Feedback", back_populates="batch")
-    feedback = relationship("Feedback", back_populates="batch")
     registrations = relationship("Registration", back_populates="batch")
     leave_requests = relationship("LeaveRequest", back_populates="batch")
 
