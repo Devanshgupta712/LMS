@@ -32,9 +32,8 @@ interface PersonDaySummary {
     role: string;
     studentId: string | null;
     sessions: number;
-    session1: { in: string | null; out: string | null };
-    session2: { in: string | null; out: string | null };
-    session3: { in: string | null; out: string | null };
+    firstIn: string | null;
+    lastOut: string | null;
     totalMinutes: number;
     activeNow: boolean;
     logs: TimeLog[];
@@ -72,6 +71,7 @@ export default function TimeTrackingPage() {
     const [exportUserId, setExportUserId] = useState('');
     const [exportUsers, setExportUsers] = useState<UserSummary[]>([]);
     const [exporting, setExporting] = useState(false);
+    const [selectedRole, setSelectedRole] = useState<string>('ALL');
 
     useEffect(() => {
         loadData();
@@ -239,7 +239,9 @@ export default function TimeTrackingPage() {
     // Aggregate logs into per-person summaries
     const personSummaries: PersonDaySummary[] = (() => {
         const map = new Map<string, PersonDaySummary>();
-        for (const log of logs) {
+        // Sort logs by login_time ascending to get firstIn/lastOut correctly
+        const sortedLogs = [...logs].sort((a, b) => new Date(a.login_time).getTime() - new Date(b.login_time).getTime());
+        for (const log of sortedLogs) {
             const uid = log.user.id || log.user.email;
             if (!map.has(uid)) {
                 map.set(uid, {
@@ -249,9 +251,8 @@ export default function TimeTrackingPage() {
                     role: log.user.role || 'N/A',
                     studentId: log.user.student_id,
                     sessions: 0,
-                    session1: { in: null, out: null },
-                    session2: { in: null, out: null },
-                    session3: { in: null, out: null },
+                    firstIn: null,
+                    lastOut: null,
                     totalMinutes: 0,
                     activeNow: false,
                     logs: [],
@@ -261,26 +262,15 @@ export default function TimeTrackingPage() {
             summary.sessions += 1;
             summary.logs.push(log);
 
-            // Calculate total minutes from completed sessions
-            if (log.total_minutes) {
-                summary.totalMinutes += log.total_minutes;
-            }
+            // First in is always the first login_time (logs sorted ascending)
+            if (!summary.firstIn) summary.firstIn = log.login_time;
 
-            // Track if any session is still active
-            if (!log.logout_time) {
-                summary.activeNow = true;
-            }
+            // Last out: update whenever we have a logout_time
+            if (log.logout_time) summary.lastOut = log.logout_time;
 
-            // Map up to 3 sessions chronologically (this is a simplified mapping based on count)
-            if (summary.sessions === 1) {
-                summary.session1 = { in: log.login_time, out: log.logout_time };
-            } else if (summary.sessions === 2) {
-                summary.session2 = { in: log.login_time, out: log.logout_time };
-            } else if (summary.sessions === 3) {
-                summary.session3 = { in: log.login_time, out: log.logout_time };
-            }
+            if (log.total_minutes) summary.totalMinutes += log.total_minutes;
+            if (!log.logout_time) summary.activeNow = true;
         }
-        // Sort by role priority then name
         const rolePriority: Record<string, number> = { 'ADMIN': 1, 'TRAINER': 2, 'MARKETER': 3, 'STUDENT': 4 };
         return Array.from(map.values()).sort((a, b) => {
             const pa = rolePriority[a.role] || 5;
@@ -289,6 +279,18 @@ export default function TimeTrackingPage() {
             return a.name.localeCompare(b.name);
         });
     })();
+
+    const ROLE_TABS = [
+        { key: 'ALL', label: '🌐 All', color: '#6366f1' },
+        { key: 'STUDENT', label: '🎓 Students', color: '#0ea5e9' },
+        { key: 'TRAINER', label: '🏋️ Trainee', color: '#10b981' },
+        { key: 'ADMIN', label: '🔑 Admin', color: '#f59e0b' },
+        { key: 'MARKETER', label: '📣 Marketing', color: '#ec4899' },
+    ];
+
+    const filteredSummaries = selectedRole === 'ALL'
+        ? personSummaries
+        : personSummaries.filter(p => p.role === selectedRole);
 
     const getRoleBadgeClass = (role: string) => {
         switch (role) {
@@ -345,15 +347,41 @@ export default function TimeTrackingPage() {
             <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 className="font-semibold">Daily Work Hours — {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</h3>
-                    <span className="text-sm text-muted">{personSummaries.length} people logged</span>
+                    <span className="text-sm text-muted">{filteredSummaries.length} people logged</span>
+                </div>
+
+                {/* Role Section Tabs */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+                    {ROLE_TABS.map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setSelectedRole(tab.key)}
+                            style={{
+                                padding: '8px 18px',
+                                borderRadius: '20px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '13px',
+                                transition: 'all 0.2s',
+                                background: selectedRole === tab.key ? tab.color : 'rgba(255,255,255,0.05)',
+                                color: selectedRole === tab.key ? '#fff' : 'var(--text-muted)',
+                                boxShadow: selectedRole === tab.key ? `0 2px 10px ${tab.color}55` : 'none',
+                            }}
+                        >
+                            {tab.label} <span style={{ opacity: 0.75, fontSize: '11px', marginLeft: '4px' }}>
+                                ({tab.key === 'ALL' ? personSummaries.length : personSummaries.filter(p => p.role === tab.key).length})
+                            </span>
+                        </button>
+                    ))}
                 </div>
                 {loading ? (
                     <p>Loading...</p>
-                ) : personSummaries.length === 0 ? (
+                ) : filteredSummaries.length === 0 ? (
                     <div className="empty-state" style={{ padding: '60px 16px' }}>
                         <div className="empty-icon">⏱️</div>
                         <h3>No work hours recorded</h3>
-                        <p className="text-sm text-muted">Work hour data will appear here when staff log their hours for {selectedDate}.</p>
+                        <p className="text-sm text-muted">Work hour data will appear here for {selectedDate}.</p>
                     </div>
                 ) : (
                     <div className="table-responsive">
@@ -363,16 +391,15 @@ export default function TimeTrackingPage() {
                                     <th>Name</th>
                                     <th>Role</th>
                                     <th>Sessions</th>
-                                    <th>Session 1 (In/Out)</th>
-                                    <th>Session 2 (In/Out)</th>
-                                    <th>Session 3 (In/Out)</th>
+                                    <th>First In</th>
+                                    <th>Last Out</th>
                                     <th>Total Hours</th>
                                     <th>Status</th>
                                     <th></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {personSummaries.map(person => (
+                                {filteredSummaries.map(person => (
                                     <>
                                         <tr key={person.userId} style={{ cursor: 'pointer' }} onClick={() => setExpandedUser(expandedUser === person.userId ? null : person.userId)}>
                                             <td>
@@ -388,22 +415,13 @@ export default function TimeTrackingPage() {
                                                 <span style={{ fontWeight: 500 }}>{person.sessions}</span>
                                             </td>
                                             <td>
-                                                <span style={{ fontSize: '13px' }}>
-                                                    <span style={{ color: '#00c853' }}>{formatTime(person.session1.in)}</span> / <span style={{ color: person.session1.out ? '#ff1744' : 'var(--text-muted)' }}>{person.activeNow && person.sessions === 1 && !person.session1.out ? '—' : formatTime(person.session1.out)}</span>
+                                                <span style={{ color: '#00c853', fontWeight: 600, fontSize: '14px' }}>
+                                                    {formatTime(person.firstIn)}
                                                 </span>
                                             </td>
                                             <td>
-                                                <span style={{ fontSize: '13px' }}>
-                                                    {person.sessions >= 2 ? (
-                                                        <><span style={{ color: '#00c853' }}>{formatTime(person.session2.in)}</span> / <span style={{ color: person.session2.out ? '#ff1744' : 'var(--text-muted)' }}>{person.activeNow && person.sessions === 2 && !person.session2.out ? '—' : formatTime(person.session2.out)}</span></>
-                                                    ) : '—'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span style={{ fontSize: '13px' }}>
-                                                    {person.sessions >= 3 ? (
-                                                        <><span style={{ color: '#00c853' }}>{formatTime(person.session3.in)}</span> / <span style={{ color: person.session3.out ? '#ff1744' : 'var(--text-muted)' }}>{person.activeNow && person.sessions === 3 && !person.session3.out ? '—' : formatTime(person.session3.out)}</span></>
-                                                    ) : '—'}
+                                                <span style={{ color: person.activeNow ? '#ffab00' : (person.lastOut ? '#ff1744' : 'var(--text-muted)'), fontWeight: 600, fontSize: '14px' }}>
+                                                    {person.activeNow && !person.lastOut ? '🟢 Active' : formatTime(person.lastOut)}
                                                 </span>
                                             </td>
                                             <td>
@@ -433,7 +451,7 @@ export default function TimeTrackingPage() {
                                                 <td colSpan={8} style={{ padding: '0 16px 16px', background: 'var(--bg-secondary)' }}>
                                                     <div style={{ padding: '12px', borderRadius: '8px' }}>
                                                         <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                            Session Details for {person.name}
+                                                            All Sessions for {person.name}
                                                         </div>
                                                         <table style={{ width: '100%', fontSize: '13px' }}>
                                                             <thead>

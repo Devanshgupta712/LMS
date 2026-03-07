@@ -387,39 +387,31 @@ async def submit_leave(
         # For local dev we'll simulate by saving the filename or base64 structure.
         proof_url = body.get("proof_name", "attached_proof.pdf")
 
-    batch_id = body.get("batch_id")
-    if not batch_id:
-        raise HTTPException(status_code=400, detail="batch_id is required")
+    batch_id = body.get("batch_id") or None
 
-    from app.models.course import Batch
-    batch = await db.get(Batch, batch_id)
-    if not batch:
-        raise HTTPException(status_code=404, detail="Batch not found")
-
-    # Check leave quota
-    leave_quota = batch.leave_quota or 0
-    if leave_quota > 0:
-        result = await db.execute(
-            select(LeaveRequest).where(
-                LeaveRequest.user_id == user.id,
-                LeaveRequest.batch_id == batch_id,
-                LeaveRequest.status.in_([LeaveStatus.APPROVED, LeaveStatus.PENDING])
+    # Only check quota if batch_id provided
+    if batch_id:
+        from app.models.course import Batch
+        batch = await db.get(Batch, batch_id)
+        if batch and (batch.leave_quota or 0) > 0:
+            result = await db.execute(
+                select(LeaveRequest).where(
+                    LeaveRequest.user_id == user.id,
+                    LeaveRequest.batch_id == batch_id,
+                    LeaveRequest.status.in_([LeaveStatus.APPROVED, LeaveStatus.PENDING])
+                )
             )
-        )
-        existing_leaves = result.scalars().all()
-        # Calculate total days used. For simplicity, 1 request = count of days
-        days_used = 0
-        for el in existing_leaves:
-            days = (el.end_date - el.start_date).days + 1
-            days_used += days if days > 0 else 1
-        
-        req_start = datetime.strptime(body["start_date"], "%Y-%m-%d")
-        req_end = datetime.strptime(body["end_date"], "%Y-%m-%d")
-        req_days = (req_end - req_start).days + 1
-        req_days = req_days if req_days > 0 else 1
-
-        if days_used + req_days > leave_quota:
-            raise HTTPException(status_code=400, detail=f"Leave quota exceeded. You have {leave_quota - days_used} days remaining.")
+            existing_leaves = result.scalars().all()
+            days_used = 0
+            for el in existing_leaves:
+                days = (el.end_date - el.start_date).days + 1
+                days_used += days if days > 0 else 1
+            req_start = datetime.strptime(body["start_date"], "%Y-%m-%d")
+            req_end = datetime.strptime(body["end_date"], "%Y-%m-%d")
+            req_days = max(1, (req_end - req_start).days + 1)
+            if days_used + req_days > batch.leave_quota:
+                remaining = max(0, batch.leave_quota - days_used)
+                raise HTTPException(status_code=400, detail=f"Leave quota exceeded. You have {remaining} days remaining.")
 
     leave = LeaveRequest(
         user_id=user.id,
