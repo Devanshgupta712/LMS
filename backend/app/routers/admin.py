@@ -60,22 +60,25 @@ async def dashboard_stats(
 # ─── Courses ──────────────────────────────────────────
 @router.get("/courses")
 async def list_courses(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Course).order_by(Course.created_at.desc())
-    )
-    courses = result.scalars().all()
-    out = []
-    for c in courses:
-        batches_q = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == c.id))
-        regs_q = await db.execute(select(func.count(Registration.id)).where(Registration.course_id == c.id))
-        out.append(CourseOut(
-            id=c.id, name=c.name, description=c.description,
-            duration=c.duration, fee=c.fee, is_active=c.is_active,
-            created_at=c.created_at,
-            batch_count=batches_q.scalar() or 0,
-            student_count=regs_q.scalar() or 0,
-        ))
-    return out
+    try:
+        result = await db.execute(
+            select(Course).order_by(Course.created_at.desc())
+        )
+        courses = result.scalars().all()
+        out = []
+        for c in courses:
+            batches_q = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == c.id))
+            regs_q = await db.execute(select(func.count(Registration.id)).where(Registration.course_id == c.id))
+            out.append(CourseOut(
+                id=c.id, name=c.name, description=c.description,
+                duration=c.duration, fee=c.fee, is_active=c.is_active,
+                created_at=c.created_at,
+                batch_count=batches_q.scalar() or 0,
+                student_count=regs_q.scalar() or 0,
+            ))
+        return out
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"COURSES_ERROR: {str(e)}")
 
 
 @router.post("/courses", status_code=201)
