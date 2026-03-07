@@ -393,25 +393,8 @@ async def submit_leave(
     if batch_id:
         from app.models.course import Batch
         batch = await db.get(Batch, batch_id)
-        if batch and (batch.leave_quota or 0) > 0:
-            result = await db.execute(
-                select(LeaveRequest).where(
-                    LeaveRequest.user_id == user.id,
-                    LeaveRequest.batch_id == batch_id,
-                    LeaveRequest.status.in_([LeaveStatus.APPROVED, LeaveStatus.PENDING])
-                )
-            )
-            existing_leaves = result.scalars().all()
-            days_used = 0
-            for el in existing_leaves:
-                days = (el.end_date - el.start_date).days + 1
-                days_used += days if days > 0 else 1
-            req_start = datetime.strptime(body["start_date"], "%Y-%m-%d")
-            req_end = datetime.strptime(body["end_date"], "%Y-%m-%d")
-            req_days = max(1, (req_end - req_start).days + 1)
-            if days_used + req_days > batch.leave_quota:
-                remaining = max(0, batch.leave_quota - days_used)
-                raise HTTPException(status_code=400, detail=f"Leave quota exceeded. You have {remaining} days remaining.")
+        if not batch:
+             pass # Optional: raise HTTP exception if batch must be valid
 
     leave = LeaveRequest(
         user_id=user.id,
@@ -457,9 +440,9 @@ async def get_leave_stats(db: AsyncSession = Depends(get_db), user: User = Depen
         stats.append({
             "batch_id": b.id,
             "batch_name": b.name,
-            "leave_quota": b.leave_quota or 0,
+            "leave_quota": 0, # Unused conceptually, default to 0
             "days_used": days_used,
-            "remaining": max(0, (b.leave_quota or 0) - days_used)
+            "remaining": 0
         })
     return stats
 
