@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func, or_, delete
 from sqlalchemy.orm import selectinload
