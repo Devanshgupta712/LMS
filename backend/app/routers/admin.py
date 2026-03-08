@@ -257,58 +257,106 @@ async def delete_user(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN)) # Only Super Admin can delete
 ):
-    target_user = await db.get(User, user_id)
-    if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if target_user.role == Role.SUPER_ADMIN:
-        raise HTTPException(status_code=403, detail="Cannot delete SUPER_ADMIN")
-    
-    # Manual cascade delete for related entities across all modules
-    from app.models.notification import Notification, Message, Feedback
-    from app.models.attendance import LeaveRequest, TimeTracking, Attendance
-    from app.models.lead import Lead, LeadActivity
-    from app.models.project import Task, Assignment, AssignmentSubmission, Violation, Project
-    from app.models.registration import Document
-    from app.models.placement import JobApplication, AssessmentSubmission, MockInterview, CommunicationPractice
-    
-    from fastapi.responses import JSONResponse
-
-    # 1. DELETE records where user is the primary subject (student_id / user_id)
-    await db.execute(delete(Notification).where(Notification.user_id == user_id))
-    await db.execute(delete(Message).where(or_(Message.sender_id == user_id, Message.recipient_id == user_id)))
-    await db.execute(delete(LeaveRequest).where(or_(LeaveRequest.user_id == user_id, LeaveRequest.approved_by_id == user_id)))
-    await db.execute(delete(TimeTracking).where(TimeTracking.user_id == user_id))
-    await db.execute(delete(Attendance).where(Attendance.student_id == user_id))
-    await db.execute(delete(BatchStudent).where(BatchStudent.student_id == user_id))
-    await db.execute(delete(Registration).where(Registration.student_id == user_id))
-    await db.execute(delete(Document).where(Document.student_id == user_id))
-    await db.execute(delete(Feedback).where(or_(Feedback.student_id == user_id, Feedback.created_by_id == user_id)))
-    await db.execute(delete(Violation).where(or_(Violation.student_id == user_id, Violation.resolved_by_id == user_id)))
-    await db.execute(delete(AssignmentSubmission).where(AssignmentSubmission.student_id == user_id))
-    await db.execute(delete(LeadActivity).where(LeadActivity.user_id == user_id))
-    await db.execute(delete(AdminPermission).where(AdminPermission.user_id == user_id))
-    await db.execute(delete(JobApplication).where(JobApplication.student_id == user_id))
-    await db.execute(delete(AssessmentSubmission).where(AssessmentSubmission.student_id == user_id))
-    await db.execute(delete(MockInterview).where(MockInterview.student_id == user_id))
-    await db.execute(delete(CommunicationPractice).where(CommunicationPractice.student_id == user_id))
-    
-    # 2. NULLIFY references where user is a secondary reference (trainer_id / assigned_by)
-    await db.execute(Lead.__table__.update().where(Lead.assigned_to_id == user_id).values(assigned_to_id=None))
-    await db.execute(Batch.__table__.update().where(Batch.trainer_id == user_id).values(trainer_id=None))
-    await db.execute(Task.__table__.update().where(Task.assigned_by == user_id).values(assigned_by=None))
-    await db.execute(Assignment.__table__.update().where(Assignment.assigned_by == user_id).values(assigned_by=None))
-    await db.execute(Project.__table__.update().where(Project.trainer_id == user_id).values(trainer_id=None))
-    
-    from sqlalchemy.exc import IntegrityError
-    
+    import traceback
+    report = []
     try:
-        db.delete(target_user)
+        target_user = await db.get(User, user_id)
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if target_user.role == Role.SUPER_ADMIN:
+            raise HTTPException(status_code=403, detail="Cannot delete SUPER_ADMIN")
+        
+        # Manual cascade delete for related entities across all modules
+        from app.models.notification import Notification, Message, Feedback
+        from app.models.attendance import LeaveRequest, TimeTracking, Attendance
+        from app.models.lead import Lead, LeadActivity
+        from app.models.project import Task, Assignment, AssignmentSubmission, Violation, Project
+        from app.models.registration import Document, Registration
+        from app.models.placement import JobApplication, AssessmentSubmission, MockInterview, CommunicationPractice
+        from app.models.user import AdminPermission
+        from app.models.course import Batch, BatchStudent
+        
+        # 1. DELETE records where user is the primary subject
+        entities = [
+            (Notification, "Notification", "user_id"),
+            (LeaveRequest, "LeaveRequest", "user_id"),
+            (TimeTracking, "TimeTracking", "user_id"),
+            (Attendance, "Attendance", "student_id"),
+            (BatchStudent, "BatchStudent", "student_id"),
+            (Registration, "Registration", "student_id"),
+            (Document, "Document", "student_id"),
+            (Feedback, "Feedback", "student_id"),
+            (Violation, "Violation", "student_id"),
+            (AssignmentSubmission, "AssignmentSubmission", "student_id"),
+            (LeadActivity, "LeadActivity", "user_id"),
+            (AdminPermission, "AdminPermission", "user_id"),
+            (JobApplication, "JobApplication", "student_id"),
+            (AssessmentSubmission, "AssessmentSubmission", "student_id"),
+            (MockInterview, "MockInterview", "student_id"),
+            (CommunicationPractice, "CommunicationPractice", "student_id"),
+        ]
+
+        for model, name, field in entities:
+            try:
+                attr = getattr(model, field)
+                await db.execute(delete(model).where(attr == user_id))
+                report.append(f"Cleared {name}")
+            except Exception as e:
+                report.append(f"Failed {name}: {str(e)}")
+
+        # Messages (sender or recipient)
+        try:
+            await db.execute(delete(Message).where(or_(Message.sender_id == user_id, Message.recipient_id == user_id)))
+            report.append("Cleared Messages")
+        except Exception as e:
+            report.append(f"Failed Messages: {str(e)}")
+
+        # 2. NULLIFY references
+        try:
+            await db.execute(Lead.__table__.update().where(Lead.assigned_to_id == user_id).values(assigned_to_id=None))
+            report.append("Nullified Lead")
+        except Exception as e:
+            report.append(f"Failed Nullify Lead: {str(e)}")
+
+        try:
+            await db.execute(Batch.__table__.update().where(Batch.trainer_id == user_id).values(trainer_id=None))
+            report.append("Nullified Batch")
+        except Exception as e:
+            report.append(f"Failed Nullify Batch: {str(e)}")
+
+        try:
+            await db.execute(Project.__table__.update().where(Project.trainer_id == user_id).values(trainer_id=None))
+            report.append("Nullified Project")
+        except Exception as e:
+            report.append(f"Failed Nullify Project: {str(e)}")
+
+        try:
+            await db.execute(Task.__table__.update().where(Task.assigned_by == user_id).values(assigned_by=None))
+            report.append("Nullified Task")
+        except Exception as e:
+            report.append(f"Failed Nullify Task: {str(e)}")
+
+        try:
+            await db.execute(Assignment.__table__.update().where(Assignment.assigned_by == user_id).values(assigned_by=None))
+            report.append("Nullified Assignment")
+        except Exception as e:
+            report.append(f"Failed Nullify Assignment: {str(e)}")
+
+        # Finally delete user
+        await db.delete(target_user)
         await db.commit()
-    except IntegrityError as e:
+        return {"status": "deleted", "report": report}
+
+    except Exception as e:
         await db.rollback()
+        from fastapi.responses import JSONResponse
         return JSONResponse(
-            status_code=400,
-            content={"detail": f"Cannot delete user: {str(e.orig)}"}
+            status_code=500,
+            content={
+                "error": str(e),
+                "trace": traceback.format_exc(),
+                "report": report
+            }
         )
         
     return {"status": "deleted"}
