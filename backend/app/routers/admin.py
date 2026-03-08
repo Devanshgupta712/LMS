@@ -947,7 +947,7 @@ async def update_geofence_settings(
 from sqlalchemy import text
 
 @router.get("/debug/columns/{table_name}")
-async def debug_columns(table_name: str, db: AsyncSession = Depends(get_db)):
+async def debug_columns(table_name: str, db: AsyncSession = Depends(get_db), _user: User = Depends(require_roles(Role.SUPER_ADMIN))):
     try:
         # PostgreSQL logic
         result = await db.execute(text(f"SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = '{table_name}'"))
@@ -961,7 +961,7 @@ async def debug_columns(table_name: str, db: AsyncSession = Depends(get_db)):
         return {"error": str(e)}
 
 @router.get("/debug/error/delete-user/{user_id}")
-async def debug_delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
+async def debug_delete_user(user_id: str, db: AsyncSession = Depends(get_db), _user: User = Depends(require_roles(Role.SUPER_ADMIN))):
     # Unprotecting for easier debugging
     import traceback
     report = []
@@ -1021,10 +1021,35 @@ async def debug_delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
         return {"error": str(e), "trace": traceback.format_exc(), "report": report}
 
 @router.get("/debug/all-tables")
-async def debug_all_tables(db: AsyncSession = Depends(get_db)):
+async def debug_all_tables(db: AsyncSession = Depends(get_db), _user: User = Depends(require_roles(Role.SUPER_ADMIN))):
     try:
         result = await db.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"))
         tables = [row[0] for row in result.fetchall()]
         return {"tables": tables}
     except Exception as e:
         return {"error": str(e)}
+
+@router.get("/debug/fix-leave-schema")
+async def fix_leave_schema(db: AsyncSession = Depends(get_db), _user: User = Depends(require_roles(Role.SUPER_ADMIN))):
+    try:
+        # Check if batch_id exists
+        result = await db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'leave_requests' AND column_name = 'batch_id'"))
+        if not result.scalar():
+            await db.execute(text("ALTER TABLE leave_requests ADD COLUMN batch_id VARCHAR"))
+            report = "Added batch_id column. "
+        else:
+            report = "batch_id already exists. "
+            
+        # Check if batchId exists (redundant camelCase)
+        result = await db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'leave_requests' AND column_name = 'batchId'"))
+        if not result.scalar():
+            await db.execute(text("ALTER TABLE leave_requests ADD COLUMN \"batchId\" VARCHAR"))
+            report += "Added batchId column. "
+        else:
+            report += "batchId already exists. "
+
+        await db.commit()
+        return {"status": "success", "message": report}
+    except Exception as e:
+        await db.rollback()
+        return {"status": "error", "message": str(e)}

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_roles
 from app.models.user import User, Role
-from app.models.attendance import Attendance, AttendanceStatus, LeaveRequest, LeaveStatus
+from app.models.attendance import Attendance, AttendanceStatus, LeaveRequest, LeaveStatus, LeaveType
 from app.models.course import Batch, BatchStudent
 from app.models.project import (
     Project, ProjectMilestone, ProjectStatus,
