@@ -372,30 +372,32 @@ async def submit_leave(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    from app.models.attendance import LeaveType
-    
     leave_type_str = body.get("leave_type", "OTHER")
     try:
         leave_type_enum = LeaveType[leave_type_str]
     except KeyError:
         leave_type_enum = LeaveType.OTHER
 
-    # Optional: Logic to save the base64 proof to S3/disk. For now, we will just store the string or filename 
+    # 1. Validation Logic based on Type
+    reason = body.get("reason", "").strip()
+    proof_base64 = body.get("proof_base64")
+    
+    if leave_type_enum == LeaveType.MEDICAL:
+        if not proof_base64:
+            raise HTTPException(status_code=400, detail="Proof (PNG/PDF) is required for medical leave.")
+    elif leave_type_enum == LeaveType.OTHER:
+        if not reason:
+            raise HTTPException(status_code=400, detail="Reason is mandatory for 'Other' leave type.")
+
+    # 2. Extract Proof URL
     proof_url = None
-    if body.get("proof_base64"):
+    if proof_base64:
         # In a real app we'd upload proof_base64 to a storage bucket and get a URL back.
-        # For local dev we'll simulate by saving the filename or base64 structure.
+        # For now, we store the filename as a placeholder.
         proof_url = body.get("proof_name", "attached_proof.pdf")
 
     batch_id = body.get("batch_id") or None
-
-    # Only check quota if batch_id provided
-    if batch_id:
-        from app.models.course import Batch
-        batch = await db.get(Batch, batch_id)
-        if not batch:
-             pass # Optional: raise HTTP exception if batch must be valid
-    else:
+    if not batch_id:
         from app.models.course import BatchStudent
         result = await db.execute(select(BatchStudent).where(BatchStudent.student_id == user.id))
         bs = result.scalars().first()
@@ -409,7 +411,7 @@ async def submit_leave(
         proof_url=proof_url,
         start_date=datetime.strptime(body["start_date"], "%Y-%m-%d"),
         end_date=datetime.strptime(body["end_date"], "%Y-%m-%d"),
-        reason=body.get("reason"),
+        reason=reason if leave_type_enum != LeaveType.MEDICAL else (reason or "Medical Leave"),
     )
     db.add(leave)
     await db.flush()

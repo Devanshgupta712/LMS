@@ -11,6 +11,14 @@ export default function StudentLeavesPage() {
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        
+        // Validation for PNG/PDF
+        const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            setError('Please upload a PNG, JPG, or PDF file.');
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = () => {
             setForm(prev => ({ ...prev, proof_base64: reader.result as string, proof_name: file.name }));
@@ -21,13 +29,20 @@ export default function StudentLeavesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        
+        // Client-side validation
+        if (form.leave_type === 'MEDICAL' && !form.proof_base64) {
+            setError('Medical proof is required for medical leave.');
+            return;
+        }
+        if (form.leave_type === 'OTHER' && !form.reason.trim()) {
+            setError('Please provide a reason for the leave.');
+            return;
+        }
+
         const user = getStoredUser();
         if (!user) {
             setError('User session not found. Please log out and log in again.');
-            return;
-        }
-        if (!user.id) {
-            setError('User ID is missing from session. Please log in again.');
             return;
         }
         try {
@@ -62,21 +77,45 @@ export default function StudentLeavesPage() {
                         </div>
                     )}
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="form-group">
+                            <label>Leave Type</label>
+                            <select 
+                                className="form-input" 
+                                value={form.leave_type} 
+                                onChange={e => setForm({ ...form, leave_type: e.target.value })}
+                            >
+                                <option value="MEDICAL">Medical</option>
+                                <option value="INTERVIEW">Interview</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
                             <div className="form-group"><label>End Date</label><input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
                         </div>
 
-                        <div className="form-group">
-                            <label>Reason</label>
-                            <textarea className="form-input" rows={3} required placeholder="Explain reason for leave..." value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} />
-                        </div>
+                        {form.leave_type !== 'INTERVIEW' && (
+                            <div className="form-group">
+                                <label>Reason {form.leave_type === 'OTHER' ? '(Mandatory)' : '(Optional)'}</label>
+                                <textarea 
+                                    className="form-input" 
+                                    rows={3} 
+                                    required={form.leave_type === 'OTHER'}
+                                    placeholder="Explain reason for leave..." 
+                                    value={form.reason} 
+                                    onChange={e => setForm({ ...form, reason: e.target.value })} 
+                                />
+                            </div>
+                        )}
 
-                        <div className="form-group">
-                            <label>Attachment (Optional)</label>
-                            <input type="file" accept="image/*,application/pdf" className="form-input" onChange={handleFile} />
-                            {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
-                        </div>
+                        {form.leave_type === 'MEDICAL' && (
+                            <div className="form-group">
+                                <label>Medical Proof (PNG/PDF) <span style={{color: 'red'}}>*</span></label>
+                                <input type="file" accept="image/*,application/pdf" className="form-input" onChange={handleFile} />
+                                {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
+                            </div>
+                        )}
 
                         <button type="submit" className="btn btn-primary">Submit Request</button>
                     </form>

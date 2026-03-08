@@ -260,20 +260,28 @@ async def delete_user(
     
     # Manual cascade delete for related entities to prevent IntegrityError
     from app.models.notification import Notification
-    from app.models.attendance import LeaveRequest, TimeTracking
-    from app.models.lead import Lead
+    from app.models.attendance import LeaveRequest, TimeTracking, Attendance
+    from app.models.lead import Lead, LeadActivity
+    from app.models.project import Project, Task, Assignment, AssignmentSubmission, Violation
+    from app.models.registration import Document
+    from app.models.notification import Feedback
     
     await db.execute(delete(Notification).where(Notification.user_id == user_id))
     await db.execute(delete(LeaveRequest).where(LeaveRequest.user_id == user_id))
     await db.execute(delete(TimeTracking).where(TimeTracking.user_id == user_id))
+    await db.execute(delete(Attendance).where(Attendance.student_id == user_id))
     await db.execute(delete(BatchStudent).where(BatchStudent.student_id == user_id))
     await db.execute(delete(Registration).where(Registration.student_id == user_id))
+    await db.execute(delete(Document).where(Document.student_id == user_id))
+    await db.execute(delete(Feedback).where(Feedback.student_id == user_id))
+    await db.execute(delete(Violation).where(Violation.student_id == user_id))
+    await db.execute(delete(AssignmentSubmission).where(AssignmentSubmission.student_id == user_id))
+    await db.execute(delete(LeadActivity).where(LeadActivity.user_id == user_id))
+    await db.execute(delete(AdminPermission).where(AdminPermission.user_id == user_id))
     
-    # For Leads, we might just nullify the user_id if we want to keep the lead, 
-    # but the frontend expects we might delete it or standard delete is fine.
-    # We will nullify the lead owner if a marketer is deleted.
+    # For Leads, we might just nullify the user_id if we want to keep the lead
     await db.execute(
-        Lead.__table__.update().where(Lead.user_id == user_id).values(user_id=None)
+        Lead.__table__.update().where(Lead.assigned_to_id == user_id).values(assigned_to_id=None)
     )
     
     from sqlalchemy.exc import IntegrityError
