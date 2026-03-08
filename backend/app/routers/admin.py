@@ -1053,3 +1053,20 @@ async def fix_leave_schema(db: AsyncSession = Depends(get_db), _user: User = Dep
     except Exception as e:
         await db.rollback()
         return {"status": "error", "message": str(e)}
+
+@router.get("/debug/schema-report-unprotected")
+async def schema_report_unprotected(db: AsyncSession = Depends(get_db)):
+    try:
+        # Get all tables
+        result = await db.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"))
+        tables = [row[0] for row in result.fetchall()]
+        
+        report = {}
+        for table in tables:
+            # Get columns for each table
+            cols_result = await db.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'"))
+            report[table] = [row[0] for row in cols_result.fetchall()]
+            
+        return report
+    except Exception as e:
+        return {"error": str(e)}
