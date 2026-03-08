@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func, or_, delete
+from sqlalchemy import select, func, or_, delete, update, text
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
@@ -12,8 +12,12 @@ from app.middleware.auth import get_current_user, require_roles
 from app.models.user import User, Role, AdminPermission
 from app.models.course import Course, Batch, BatchStudent
 from app.models.registration import Registration
-from app.models.attendance import LeaveRequest
-from app.models.notification import Notification
+from app.models.attendance import LeaveRequest, Attendance, TimeTracking
+from app.models.notification import Notification, Message, Feedback
+from app.models.project import Project, Task, Assignment, AssignmentSubmission, Violation
+from app.models.lead import Lead, LeadActivity
+from app.models.placement import JobApplication, AssessmentSubmission, MockInterview, CommunicationPractice
+from app.models.registration import Document
 from app.schemas.schemas import (
     CourseCreate, CourseOut, BatchCreate, BatchOut,
     StudentCreate, StudentOut, LeaveAction, LeaveOut,
