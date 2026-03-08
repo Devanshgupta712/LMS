@@ -387,7 +387,7 @@ async def delete_document(
         raise HTTPException(404, "Document not found")
     if doc.student_id != user.id:
         raise HTTPException(403, "Not your document")
-    await db.delete(doc)
+    db.delete(doc)
     await db.flush()
     return {"status": "deleted"}
 

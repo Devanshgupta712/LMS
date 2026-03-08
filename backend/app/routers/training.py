@@ -1319,7 +1319,7 @@ async def delete_time_tracking(
     log = await db.get(TimeTracking, log_id)
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
-        
-    await db.delete(log)
-    await db.flush()
+    if log:
+        db.delete(log)
+        await db.commit()
     return {"status": "success"}

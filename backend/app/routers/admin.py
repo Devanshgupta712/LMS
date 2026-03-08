@@ -135,7 +135,7 @@ async def delete_course(
     batch_count = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == course_id))
     if (batch_count.scalar() or 0) > 0:
         raise HTTPException(status_code=400, detail="Cannot delete course with existing batches. Delete the batches first.")
-    await db.delete(course)
+    db.delete(course)
     await db.flush()
     return {"status": "deleted"}
 
@@ -303,7 +303,7 @@ async def delete_user(
     from sqlalchemy.exc import IntegrityError
     
     try:
-        await db.delete(target_user)
+        db.delete(target_user)
         await db.commit()
     except IntegrityError as e:
         await db.rollback()
@@ -969,11 +969,14 @@ async def debug_delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
         target_user = await db.get(User, user_id)
         if not target_user: return {"error": "user not found"}
         
-        from app.models.notification import Notification, Feedback
+        from app.models.notification import Notification, Feedback, Message
         from app.models.attendance import LeaveRequest, TimeTracking, Attendance
         from app.models.lead import Lead, LeadActivity
-        from app.models.project import Violation, AssignmentSubmission
-        from app.models.registration import Document
+        from app.models.project import Violation, AssignmentSubmission, Task, Assignment, Project
+        from app.models.registration import Document, Registration
+        from app.models.course import Batch, BatchStudent
+        from app.models.placement import JobApplication, AssessmentSubmission, MockInterview, CommunicationPractice
+        from app.models.user import AdminPermission
         
         entities = [
             (Notification, "Notification", "user_id"),
@@ -988,6 +991,10 @@ async def debug_delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
             (AssignmentSubmission, "AssignmentSubmission", "student_id"),
             (LeadActivity, "LeadActivity", "user_id"),
             (AdminPermission, "AdminPermission", "user_id"),
+            (JobApplication, "JobApplication", "student_id"),
+            (AssessmentSubmission, "AssessmentSubmission", "student_id"),
+            (MockInterview, "MockInterview", "student_id"),
+            (CommunicationPractice, "CommunicationPractice", "student_id"),
         ]
         
         for model, name, field in entities:
@@ -1005,7 +1012,7 @@ async def debug_delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
         except Exception as ex:
             report.append(f"Failed Lead.assigned_to_id: {str(ex)}")
 
-        await db.delete(target_user)
+        db.delete(target_user)
         report.append("Deleted User object")
         
         await db.flush()
