@@ -1053,24 +1053,3 @@ async def fix_leave_schema(db: AsyncSession = Depends(get_db), _user: User = Dep
     except Exception as e:
         await db.rollback()
         return {"status": "error", "message": str(e)}
-
-@router.get("/debug/fix-leave-schema-unprotected")
-async def fix_leave_schema_unprotected(db: AsyncSession = Depends(get_db)):
-    try:
-        result = await db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'leave_requests' AND column_name = 'batch_id'"))
-        if not result.scalar():
-            await db.execute(text("ALTER TABLE leave_requests ADD COLUMN batch_id VARCHAR"))
-            report = "Added batch_id column. "
-        else:
-            report = "batch_id already exists. "
-        result = await db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'leave_requests' AND column_name = 'batchId'"))
-        if not result.scalar():
-            await db.execute(text("ALTER TABLE leave_requests ADD COLUMN \"batchId\" VARCHAR"))
-            report += "Added batchId column. "
-        else:
-            report += "batchId already exists. "
-        await db.commit()
-        return {"status": "success", "message": report}
-    except Exception as e:
-        await db.rollback()
-        return {"status": "error", "message": str(e)}
