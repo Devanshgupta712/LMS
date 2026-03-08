@@ -28,6 +28,19 @@ class AssignBatchRequest(BaseModel):
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
+@router.get("/debug/columns/{table_name}")
+async def debug_list_columns(table_name: str, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import text
+    try:
+        # PostgreSQL specific query to list columns
+        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name = :t")
+        result = await db.execute(query, {"t": table_name})
+        cols = [row[0] for row in result.all()]
+        return {"table": table_name, "columns": cols}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
