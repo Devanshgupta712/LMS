@@ -175,26 +175,35 @@ async def list_batches(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    query = select(Batch)
-    if user.role == Role.TRAINER:
-        query = query.where(Batch.trainer_id == user.id)
-        
-    result = await db.execute(query.order_by(Batch.created_at.desc()))
-    batches = result.scalars().all()
-    out = []
-    for b in batches:
-        course = await db.get(Course, b.course_id)
-        trainer = await db.get(User, b.trainer_id) if b.trainer_id else None
-        stu_q = await db.execute(select(func.count(BatchStudent.id)).where(BatchStudent.batch_id == b.id))
-        out.append(BatchOut(
-            id=b.id, name=b.name, start_date=b.start_date, end_date=b.end_date,
-            is_active=b.is_active,
-            schedule_time=b.schedule_time,
-            course_name=course.name if course else "",
-            trainer_name=trainer.name if trainer else None,
-            student_count=stu_q.scalar() or 0,
-        ))
-    return out
+    try:
+        query = select(Batch)
+        if user.role == Role.TRAINER:
+            query = query.where(Batch.trainer_id == user.id)
+            
+        result = await db.execute(query.order_by(Batch.created_at.desc()))
+        batches = result.scalars().all()
+        out = []
+        for b in batches:
+            try:
+                course = await db.get(Course, b.course_id)
+                trainer = await db.get(User, b.trainer_id) if b.trainer_id else None
+                stu_q = await db.execute(select(func.count(BatchStudent.id)).where(BatchStudent.batch_id == b.id))
+                out.append(BatchOut(
+                    id=b.id, name=b.name, start_date=b.start_date, end_date=b.end_date,
+                    is_active=b.is_active,
+                    schedule_time=b.schedule_time,
+                    course_name=course.name if course else "",
+                    trainer_name=trainer.name if trainer else None,
+                    student_count=stu_q.scalar() or 0,
+                ))
+            except Exception as loop_e:
+                import traceback
+                raise HTTPException(status_code=500, detail=f"BATCH_LOOP_ERR on {b.id}: {str(loop_e)}\n{traceback.format_exc()}")
+        return out
+    except Exception as e:
+        import traceback
+        if isinstance(e, HTTPException): raise e
+        raise HTTPException(status_code=500, detail=f"BATCH_LIST_ERR: {str(e)}\n{traceback.format_exc()}")
 
 
 
