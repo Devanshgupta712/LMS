@@ -395,6 +395,12 @@ async def submit_leave(
         batch = await db.get(Batch, batch_id)
         if not batch:
              pass # Optional: raise HTTP exception if batch must be valid
+    else:
+        from app.models.course import BatchStudent
+        result = await db.execute(select(BatchStudent).where(BatchStudent.student_id == user.id))
+        bs = result.scalars().first()
+        if bs:
+            batch_id = bs.batch_id
 
     leave = LeaveRequest(
         user_id=user.id,
@@ -411,13 +417,12 @@ async def submit_leave(
 
 @router.get("/leave-stats")
 async def get_leave_stats(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    from app.models.registration import Registration, RegistrationStatus
-    from app.models.course import Batch
+    from app.models.course import Batch, BatchStudent
     
     # Get user's batches
     result = await db.execute(
-        select(Batch).join(Registration, Registration.batch_id == Batch.id)
-        .where(Registration.student_id == user.id, Registration.status == RegistrationStatus.APPROVED)
+        select(Batch).join(BatchStudent, BatchStudent.batch_id == Batch.id)
+        .where(BatchStudent.student_id == user.id)
     )
     batches = result.scalars().all()
     

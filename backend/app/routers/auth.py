@@ -235,6 +235,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
             if first_batch:
                 bs = BatchStudent(batch_id=first_batch.id, student_id=user.id)
                 db.add(bs)
+                reg.batch_id = first_batch.id
             
             await db.flush()
 
