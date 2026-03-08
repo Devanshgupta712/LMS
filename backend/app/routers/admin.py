@@ -240,6 +240,7 @@ async def update_user_password(
     if _user.role == Role.SUPER_ADMIN and target_user.role == Role.SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Cannot change password for SUPER_ADMIN")
         
+    from app.routers.auth import get_password_hash
     hashed = get_password_hash(body.new_password)
     target_user.password = hashed
     await db.flush()
@@ -418,6 +419,7 @@ async def create_student(
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already exists")
 
+    from app.routers.auth import get_password_hash
     hashed = get_password_hash(body.password)
     student_id = None
     if body.role == "STUDENT":
