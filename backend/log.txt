@@ -1,0 +1,150 @@
+﻿    self.dialect.do_exe
+cute(
+    ~~~~~~~~~~~~~~~~~~~
+~~~~^
+        cursor, 
+str_statement, 
+effective_parameters, 
+context
+        ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\sqlalchemy
+\engine\default.py", 
+line 952, in do_execute
+    cursor.execute(stat
+ement, parameters)
+    ~~~~~~~~~~~~~~^^^^^
+^^^^^^^^^^^^^^^^^^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\sqlalchemy
+\dialects\sqlite\aiosql
+ite.py", line 182, in 
+execute
+    self._adapt_connect
+ion._handle_exception(e
+rror)
+    ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~^^
+^^^^^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\sqlalchemy
+\dialects\sqlite\aiosql
+ite.py", line 342, in 
+_handle_exception
+    raise error
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\sqlalchemy
+\dialects\sqlite\aiosql
+ite.py", line 164, in 
+execute
+    self.await_(_cursor
+.execute(operation, 
+parameters))
+    ~~~~~~~~~~~^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\sqlalchemy
+\util\_concurrency_py3k
+.py", line 132, in 
+await_only
+    return current.pare
+nt.switch(awaitable)  
+# type: ignore[no-any-r
+eturn,attr-defined] # 
+noqa: E501
+           ~~~~~~~~~~~~
+~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\sqlalchemy
+\util\_concurrency_py3k
+.py", line 196, in 
+greenlet_spawn
+    value = await 
+result
+            
+^^^^^^^^^^^^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\aiosqlite\
+cursor.py", line 40, 
+in execute
+    await self._execute
+(self._cursor.execute, 
+sql, parameters)
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\aiosqlite\
+cursor.py", line 32, 
+in _execute
+    return await self._
+conn._execute(fn, 
+*args, **kwargs)
+           ^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\aiosqlite\
+core.py", line 160, in 
+_execute
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\devan\
+OneDrive\Desktop\lmspro
+ject\backend\venv\Lib\s
+ite-packages\aiosqlite\
+core.py", line 63, in _
+connection_worker_threa
+d
+    result = function()
+sqlalchemy.exc.Operatio
+nalError: (sqlite3.Oper
+ationalError) no such 
+column: 
+users.student_id
+[SQL: SELECT users.id, 
+users.email, 
+users.password, 
+users.name, 
+users.phone, 
+users.role, 
+users.avatar, 
+users.student_id, 
+users.dob, users.educat
+ion_status, users.highe
+st_education, 
+users.degree, 
+users.passing_year, 
+users.is_active, 
+users.is_verified, user
+s.verification_code, us
+ers.verification_expiry
+, users.created_at, 
+users.updated_at 
+FROM users 
+WHERE users.email = ?]
+[parameters: ('devanshd
+7124g@gmail.com',)]
+(Background on this 
+error at: https://sqlal
+che.me/e/20/e3q8)

@@ -54,6 +54,18 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    # Support for camelCase redundant columns in DB
+    studentId: Mapped[str | None] = mapped_column("studentId", String, nullable=True)
+    isActive: Mapped[bool] = mapped_column("isActive", Boolean, default=True)
+    isVerified: Mapped[bool] = mapped_column("isVerified", Boolean, default=False)
+    verificationCode: Mapped[str | None] = mapped_column("verificationCode", String, nullable=True)
+    verificationExpiry: Mapped[datetime | None] = mapped_column("verificationExpiry", DateTime, nullable=True)
+    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
+    educationStatus: Mapped[str | None] = mapped_column("educationStatus", String, nullable=True)
+    highestEducation: Mapped[str | None] = mapped_column("highestEducation", String, nullable=True)
+    passingYear: Mapped[str | None] = mapped_column("passingYear", String, nullable=True)
+
     # Relationships
     trainer_batches = relationship("Batch", back_populates="trainer", foreign_keys="Batch.trainer_id")
     batch_enrollments = relationship("BatchStudent", back_populates="student")
