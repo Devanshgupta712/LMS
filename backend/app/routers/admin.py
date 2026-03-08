@@ -929,24 +929,52 @@ async def update_geofence_settings(
 
 from sqlalchemy import text
 
-@router.get("/debug/tables")
-async def debug_tables(db: AsyncSession = Depends(get_db)):
-    tables = ['users', 'batches', 'courses', 'registrations', 'batch_students', 'projects', 'tasks', 'assignments']
-    schema = {}
-    
-    for table in tables:
-        try:
-            # PostgreSQL logic
-            result = await db.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'"))
-            cols = [row[0] for row in result.fetchall()]
+@router.get("/debug/columns/{table_name}")
+async def debug_columns(table_name: str, db: AsyncSession = Depends(get_db)):
+    try:
+        # PostgreSQL logic
+        result = await db.execute(text(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}'"))
+        cols = [{"name": row[0], "type": row[1]} for row in result.fetchall()]
+        
+        # Fallback for SQLite locally
+        if not cols:
+            result = await db.execute(text(f"PRAGMA table_info({table_name})"))
+            cols = [{"name": row[1], "type": row[2]} for row in result.fetchall()]
             
-            # Fallback for SQLite locally
-            if not cols:
-                result = await db.execute(text(f"PRAGMA table_info({table})"))
-                cols = [row[1] for row in result.fetchall()]
-                
-            schema[table] = cols
-        except Exception as e:
-            schema[table] = {"error": str(e)}
-            
-    return schema
+        return {table_name: cols}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/debug/error/delete-user/{user_id}")
+async def debug_delete_user(user_id: str, db: AsyncSession = Depends(get_db), _user: User = Depends(require_roles(Role.SUPER_ADMIN))):
+    import traceback
+    try:
+        # Simulate local deletion logic to catch error
+        target_user = await db.get(User, user_id)
+        if not target_user: return {"error": "user not found"}
+        
+        from app.models.notification import Notification
+        from app.models.attendance import LeaveRequest, TimeTracking, Attendance
+        from app.models.lead import Lead, LeadActivity
+        from app.models.project import Violation, AssignmentSubmission
+        from app.models.registration import Document
+        from app.models.notification import Feedback
+        
+        await db.execute(delete(Notification).where(Notification.user_id == user_id))
+        await db.execute(delete(LeaveRequest).where(LeaveRequest.user_id == user_id))
+        await db.execute(delete(TimeTracking).where(TimeTracking.user_id == user_id))
+        await db.execute(delete(Attendance).where(Attendance.student_id == user_id))
+        await db.execute(delete(BatchStudent).where(BatchStudent.student_id == user_id))
+        await db.execute(delete(Registration).where(Registration.student_id == user_id))
+        await db.execute(delete(Document).where(Document.student_id == user_id))
+        await db.execute(delete(Feedback).where(Feedback.student_id == user_id))
+        await db.execute(delete(Violation).where(Violation.student_id == user_id))
+        await db.execute(delete(AssignmentSubmission).where(AssignmentSubmission.student_id == user_id))
+        await db.execute(delete(LeadActivity).where(LeadActivity.user_id == user_id))
+        await db.execute(delete(AdminPermission).where(AdminPermission.user_id == user_id))
+        
+        await db.delete(target_user)
+        await db.flush()
+        return {"status": "success_pre_commit"}
+    except Exception as e:
+        return {"error": str(e), "trace": traceback.format_exc()}
