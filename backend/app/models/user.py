@@ -20,13 +20,13 @@ class AdminPermission(Base):
     __tablename__ = "admin_permissions"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), name="userId", unique=True)
-    manage_users: Mapped[bool] = mapped_column(Boolean, name="manageUsers", default=False)
-    manage_batches: Mapped[bool] = mapped_column(Boolean, name="manageBatches", default=False)
-    manage_courses: Mapped[bool] = mapped_column(Boolean, name="manageCourses", default=False)
-    manage_leaves: Mapped[bool] = mapped_column(Boolean, name="manageLeaves", default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, name="createdAt", server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, name="updatedAt", server_default=func.now(), onupdate=func.now())
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), unique=True)
+    manage_users: Mapped[bool] = mapped_column(Boolean, default=False)
+    manage_batches: Mapped[bool] = mapped_column(Boolean, default=False)
+    manage_courses: Mapped[bool] = mapped_column(Boolean, default=False)
+    manage_leaves: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", back_populates="admin_permission")
 
@@ -41,18 +41,18 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(String, nullable=True)
     role: Mapped[Role] = mapped_column(Enum(Role), default=Role.STUDENT)
     avatar: Mapped[str | None] = mapped_column(String, nullable=True)
-    student_id: Mapped[str | None] = mapped_column(String, name="studentId", unique=True, nullable=True)
+    student_id: Mapped[str | None] = mapped_column(String, unique=True, nullable=True)
     dob: Mapped[str | None] = mapped_column(String, nullable=True)
-    education_status: Mapped[str | None] = mapped_column(String, name="educationStatus", nullable=True) # e.g. Studying, Passout
-    highest_education: Mapped[str | None] = mapped_column(String, name="highestEducation", nullable=True)
+    education_status: Mapped[str | None] = mapped_column(String, nullable=True) # e.g. Studying, Passout
+    highest_education: Mapped[str | None] = mapped_column(String, nullable=True)
     degree: Mapped[str | None] = mapped_column(String, nullable=True)
-    passing_year: Mapped[str | None] = mapped_column(String, name="passingYear", nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, name="isActive", default=True)
-    is_verified: Mapped[bool] = mapped_column(Boolean, name="isVerified", default=False)
-    verification_code: Mapped[str | None] = mapped_column(String, name="verificationCode", nullable=True)
-    verification_expiry: Mapped[datetime | None] = mapped_column(DateTime, name="verificationExpiry", nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, name="createdAt", server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, name="updatedAt", server_default=func.now(), onupdate=func.now())
+    passing_year: Mapped[str | None] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verification_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    verification_expiry: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     trainer_batches = relationship("Batch", back_populates="trainer", foreign_keys="Batch.trainer_id")

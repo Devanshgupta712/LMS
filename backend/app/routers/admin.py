@@ -57,16 +57,6 @@ async def dashboard_stats(
     )
 
 
-@router.get("/debug-columns")
-async def debug_columns(db: AsyncSession = Depends(get_db)):
-    results = {}
-    for table_name in ["users", "leave_requests", "attendance", "batches", "courses"]:
-        try:
-            res = await db.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}'"))
-            results[table_name] = [r[0] for r in res]
-        except Exception as e:
-            results[table_name] = str(e)
-    return results
 
 # ─── Courses ──────────────────────────────────────────
 @router.get("/courses")
@@ -649,55 +639,52 @@ async def list_leaves(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER))
 ):
-    try:
-        query = select(LeaveRequest)
+    query = select(LeaveRequest)
 
-        if current_user.role == Role.TRAINER:
-            # Only show leaves from students in the trainer's assigned batches
-            from app.models.course import BatchStudent
-            batch_result = await db.execute(
-                select(Batch.id).where(Batch.trainer_id == current_user.id)
-            )
-            trainer_batch_ids = batch_result.scalars().all()
+    if current_user.role == Role.TRAINER:
+        # Only show leaves from students in the trainer's assigned batches
+        from app.models.course import BatchStudent
+        batch_result = await db.execute(
+            select(Batch.id).where(Batch.trainer_id == current_user.id)
+        )
+        trainer_batch_ids = batch_result.scalars().all()
 
-            if not trainer_batch_ids:
-                return []  # Trainer has no batches assigned
+        if not trainer_batch_ids:
+            return []  # Trainer has no batches assigned
 
-            # Get students in those batches
-            student_result = await db.execute(
-                select(BatchStudent.student_id).where(BatchStudent.batch_id.in_(trainer_batch_ids))
-            )
-            student_ids = student_result.scalars().all()
+        # Get students in those batches
+        student_result = await db.execute(
+            select(BatchStudent.student_id).where(BatchStudent.batch_id.in_(trainer_batch_ids))
+        )
+        student_ids = student_result.scalars().all()
 
-            # Also include trainer's own leave requests
-            query = query.where(
-                (LeaveRequest.user_id.in_(student_ids)) |
-                (LeaveRequest.user_id == current_user.id)
-            )
-        elif batch_id:
-            query = query.where(LeaveRequest.batch_id == batch_id)
+        # Also include trainer's own leave requests
+        query = query.where(
+            (LeaveRequest.user_id.in_(student_ids)) |
+            (LeaveRequest.user_id == current_user.id)
+        )
+    elif batch_id:
+        query = query.where(LeaveRequest.batch_id == batch_id)
 
-        result = await db.execute(query.order_by(LeaveRequest.created_at.desc()))
-        leaves = result.scalars().all()
-        out = []
-        for l in leaves:
-            user = await db.get(User, l.user_id)
-            approver = await db.get(User, l.approved_by_id) if l.approved_by_id else None
-            out.append(LeaveOut(
-                id=l.id,
-                user_name=user.name if user else "",
-                user_role=user.role.value if user else "",
-                user_student_id=user.student_id if user else None,
-                leave_type=l.leave_type.value if hasattr(l, 'leave_type') and hasattr(l.leave_type, 'value') else str(getattr(l, 'leave_type', 'OTHER')),
-                proof_url=l.proof_url,
-                start_date=l.start_date, end_date=l.end_date,
-                reason=l.reason, status=l.status.value,
-                approved_by_name=approver.name if approver else None,
-                created_at=l.created_at,
-            ))
-        return out
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"LEAVES_ERR: {str(e)}")
+    result = await db.execute(query.order_by(LeaveRequest.created_at.desc()))
+    leaves = result.scalars().all()
+    out = []
+    for l in leaves:
+        user = await db.get(User, l.user_id)
+        approver = await db.get(User, l.approved_by_id) if l.approved_by_id else None
+        out.append(LeaveOut(
+            id=l.id,
+            user_name=user.name if user else "",
+            user_role=user.role.value if user else "",
+            user_student_id=user.student_id if user else None,
+            leave_type=l.leave_type.value if hasattr(l, 'leave_type') and hasattr(l.leave_type, 'value') else str(getattr(l, 'leave_type', 'OTHER')),
+            proof_url=l.proof_url,
+            start_date=l.start_date, end_date=l.end_date,
+            reason=l.reason, status=l.status.value,
+            approved_by_name=approver.name if approver else None,
+            created_at=l.created_at,
+        ))
+    return out
 
 
 
