@@ -28,6 +28,38 @@ class AssignBatchRequest(BaseModel):
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
+@router.get("/debug/tables")
+async def debug_list_tables(db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import text
+    try:
+        query = text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+        result = await db.execute(query)
+        return {"tables": [row[0] for row in result.all()]}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/debug/columns/{table_name}")
+async def debug_list_columns(table_name: str, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import text
+    try:
+        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name = :t")
+        result = await db.execute(query, {"t": table_name})
+        return {"table": table_name, "columns": [row[0] for row in result.all()]}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/debug/error/batches")
+async def debug_batches_error(db: AsyncSession = Depends(get_db)):
+    import traceback
+    try:
+        query = select(Batch)
+        result = await db.execute(query)
+        batches = result.scalars().all()
+        return {"count": len(batches)}
+    except Exception as e:
+        return {"error": str(e), "trace": traceback.format_exc()}
+
+
 @router.get("/dashboard")
 async def dashboard_stats(
     db: AsyncSession = Depends(get_db),
