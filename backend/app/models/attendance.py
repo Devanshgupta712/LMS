@@ -61,9 +61,6 @@ class LeaveRequest(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    # Support for camelCase redundant columns in DB
-    leaveType: Mapped[str | None] = mapped_column("leaveType", String, nullable=True)
-    proofUrl: Mapped[str | None] = mapped_column("proofUrl", String, nullable=True)
 
     user = relationship("User", back_populates="leave_requests", foreign_keys=[user_id])
     approved_by = relationship("User", back_populates="leaves_approved", foreign_keys=[approved_by_id])
