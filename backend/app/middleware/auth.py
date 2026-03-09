@@ -34,7 +34,7 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid token")
 
     result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user = result.scalars().first()
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     return user
@@ -70,7 +70,7 @@ def require_admin_permissions(
             raise HTTPException(status_code=403, detail="Admin access required")
             
         result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user.id))
-        perm = result.scalar_one_or_none()
+        perm = result.scalars().first()
         
         if not perm:
             raise HTTPException(status_code=403, detail="Admin permissions not configured")

@@ -506,11 +506,11 @@ async def scan_attendance_qr(
     if scan_lat is not None and scan_lng is not None:
         # Fetch office location settings
         loc_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_latitude"))
-        lat_setting = loc_result.scalar_one_or_none()
+        lat_setting = loc_result.scalars().first()
         loc_result2 = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_longitude"))
-        lng_setting = loc_result2.scalar_one_or_none()
+        lng_setting = loc_result2.scalars().first()
         loc_result3 = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_radius_meters"))
-        radius_setting = loc_result3.scalar_one_or_none()
+        radius_setting = loc_result3.scalars().first()
         
         if lat_setting and lng_setting and lat_setting.value != "0.0" and lng_setting.value != "0.0":
             office_lat = float(lat_setting.value)
@@ -526,7 +526,7 @@ async def scan_attendance_qr(
     else:
         # Fetch office location settings to see if they are configured
         loc_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "office_latitude"))
-        lat_setting = loc_result.scalar_one_or_none()
+        lat_setting = loc_result.scalars().first()
         if lat_setting and lat_setting.value != "0.0":
             raise HTTPException(
                 status_code=403,
@@ -536,7 +536,7 @@ async def scan_attendance_qr(
 
     # --- Validate QR token ---
     result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
-    setting = result.scalar_one_or_none()
+    setting = result.scalars().first()
     
     is_valid = True # Bypassing QR secret check for now as requested to remove all verification
     """

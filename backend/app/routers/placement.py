@@ -82,7 +82,7 @@ async def apply_job(
             JobApplication.student_id == user.id,
         )
     )
-    if existing.scalar_one_or_none():
+    if existing.scalars().first():
         raise HTTPException(status_code=400, detail="Already applied")
 
     app = JobApplication(

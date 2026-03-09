@@ -28,7 +28,7 @@ async def get_qr_config(
 ):
     try:
         result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
-        setting = result.scalar_one_or_none()
+        setting = result.scalars().first()
         
         if not setting:
             # Auto-generate if missing
@@ -51,7 +51,7 @@ async def regenerate_qr_config(
     try:
         new_secret = f"atc_punch_{uuid.uuid4().hex}"
         result = await db.execute(select(SystemSetting).where(SystemSetting.key == "active_qr_secret"))
-        setting = result.scalar_one_or_none()
+        setting = result.scalars().first()
         
         if setting:
             setting.value = new_secret
@@ -75,7 +75,7 @@ async def get_punch_settings(
     settings = {}
     for key in ["office_latitude", "office_longitude", "office_radius_meters", "late_threshold_time"]:
         result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
-        setting = result.scalar_one_or_none()
+        setting = result.scalars().first()
         settings[key] = setting.value if setting else None
     
     return {
@@ -104,7 +104,7 @@ async def update_punch_settings(
         if not value:
             continue
         result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
-        setting = result.scalar_one_or_none()
+        setting = result.scalars().first()
         if setting:
             setting.value = value
         else:
@@ -288,7 +288,7 @@ async def get_global_qr(
     """Fetches the current persistent global QR token for trainees."""
     query = select(SystemSetting).where(SystemSetting.key == "active_qr_secret")
     result = await db.execute(query)
-    setting = result.scalar_one_or_none()
+    setting = result.scalars().first()
     
     if not setting:
         # Initialize it if it doesn't exist
@@ -308,7 +308,7 @@ async def rotate_global_qr(
     """Invalidates the old global QR token and creates a new one."""
     query = select(SystemSetting).where(SystemSetting.key == "active_qr_secret")
     result = await db.execute(query)
-    setting = result.scalar_one_or_none()
+    setting = result.scalars().first()
     
     new_secret = str(uuid.uuid4())
     
@@ -346,7 +346,7 @@ async def mark_attendance(
                 func.date(Attendance.date) == day.date()
             )
         )
-        existing = existing_result.scalar_one_or_none()
+        existing = existing_result.scalars().first()
         
         if existing:
             existing.status = item.get("status", "PRESENT")
@@ -408,9 +408,9 @@ async def submit_leave(
         user_id=user.id,
         batch_id=batch_id,
         leave_type=leave_type_enum,
-        leaveType=leave_type_enum.value,
+
         proof_url=proof_url,
-        proofUrl=proof_url,
+
         start_date=datetime.strptime(body["start_date"], "%Y-%m-%d"),
         end_date=datetime.strptime(body["end_date"], "%Y-%m-%d"),
         reason=reason if leave_type_enum != LeaveType.MEDICAL else (reason or "Medical Leave"),
@@ -698,7 +698,7 @@ async def submit_assignment(
             AssignmentSubmission.student_id == user.id,
         )
     )
-    if existing.scalar_one_or_none():
+    if existing.scalars().first():
         raise HTTPException(400, "Already submitted")
 
     # Check if late submission → auto-create violation
@@ -839,7 +839,7 @@ async def check_deadlines(
                 Violation.type == ViolationType.DEADLINE_MISSED,
             )
         )
-        if existing.scalar_one_or_none():
+        if existing.scalars().first():
             continue
         # Get students from batch
         if project.batch_id:
@@ -995,7 +995,7 @@ async def get_time_tracking(
         late_minute = 0
         try:
             threshold_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "late_threshold_time"))
-            threshold_setting = threshold_result.scalar_one_or_none()
+            threshold_setting = threshold_result.scalars().first()
             if threshold_setting and threshold_setting.value:
                 parts = threshold_setting.value.split(":")
                 late_hour = int(parts[0])
@@ -1071,7 +1071,7 @@ async def export_time_tracking(
     late_hour, late_minute = 10, 0
     try:
         threshold_result = await db.execute(select(SystemSetting).where(SystemSetting.key == "late_threshold_time"))
-        threshold_setting = threshold_result.scalar_one_or_none()
+        threshold_setting = threshold_result.scalars().first()
         if threshold_setting and threshold_setting.value:
             parts = threshold_setting.value.split(":")
             late_hour = int(parts[0])

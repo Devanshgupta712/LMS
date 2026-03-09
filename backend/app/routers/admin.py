@@ -377,7 +377,7 @@ async def get_all_permissions(
     out = []
     for u in users:
         perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == u.id))
-        perm = perm_result.scalar_one_or_none()
+        perm = perm_result.scalars().first()
         out.append({
             "user_id": u.id,
             "name": u.name,
@@ -404,7 +404,7 @@ async def get_admin_permissions(
         raise HTTPException(status_code=404, detail="Admin or Trainer not found")
         
     perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
-    perm = perm_result.scalar_one_or_none()
+    perm = perm_result.scalars().first()
     
     if not perm:
         perm = AdminPermission(user_id=user_id)
@@ -426,7 +426,7 @@ async def update_admin_permissions(
         raise HTTPException(status_code=404, detail="Admin or Trainer not found")
         
     perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
-    perm = perm_result.scalar_one_or_none()
+    perm = perm_result.scalars().first()
     
     if not perm:
         perm = AdminPermission(user_id=user_id)
@@ -467,7 +467,7 @@ async def create_student(
 ):
     # Check duplicate
     result = await db.execute(select(User).where(User.email == body.email))
-    if result.scalar_one_or_none():
+    if result.scalars().first():
         raise HTTPException(status_code=400, detail="Email already exists")
 
     from app.routers.auth import get_password_hash
@@ -536,7 +536,7 @@ async def assign_user_batch(
             BatchStudent.student_id == user_id
         )
     )
-    if existing.scalar_one_or_none():
+    if existing.scalars().first():
         return {"status": "success", "message": "Student is already in this batch"}
     
     # 4. Link Student to Batch
@@ -997,7 +997,7 @@ async def update_geofence_settings(
 
     for key, value in updates.items():
         result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
-        setting = result.scalar_one_or_none()
+        setting = result.scalars().first()
         if setting:
             setting.value = value
         else:
