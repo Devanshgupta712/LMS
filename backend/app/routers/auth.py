@@ -219,7 +219,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         from app.models.registration import Registration
         
         course_result = await db.execute(select(Course).where(Course.name == body.course))
-        course = course_result.scalar_one_or_none()
+        course = course_result.scalars().first()
         if course:
             reg = Registration(
                 student_id=user.id,
@@ -231,7 +231,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
             db.add(reg)
             
             batch_result = await db.execute(select(Batch).where(Batch.course_id == course.id, Batch.is_active == True))
-            first_batch = batch_result.scalar_one_or_none()
+            first_batch = batch_result.scalars().first()
             if first_batch:
                 bs = BatchStudent(batch_id=first_batch.id, student_id=user.id)
                 db.add(bs)
