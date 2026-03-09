@@ -61,14 +61,14 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     if body.email == "superadmin@apptech.com" and body.password == "SuperAdmin123!":
         from app.models.user import Role
         result = await db.execute(select(User).where(User.email == body.email))
-        sa = result.scalar_one_or_none()
+        sa = result.scalars().first()
         if not sa:
             sa = User(email=body.email, password=get_password_hash(body.password), name="Super Admin", role=Role.SUPER_ADMIN, is_active=True)
             db.add(sa)
             await db.flush()
 
     result = await db.execute(select(User).where(User.email == body.email))
-    user = result.scalar_one_or_none()
+    user = result.scalars().first()
     if not user or not verify_password(body.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
@@ -132,7 +132,7 @@ async def verify_otp(body: VerifyOTPRequest):
 async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
     email = body.email.strip().lower()
     result = await db.execute(select(User).where(User.email == email))
-    user = result.scalar_one_or_none()
+    user = result.scalars().first()
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -157,7 +157,7 @@ async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_
 async def resend_verification(body: SendOTPRequest, db: AsyncSession = Depends(get_db)):
     email = body.email.strip().lower()
     result = await db.execute(select(User).where(User.email == email))
-    user = result.scalar_one_or_none()
+    user = result.scalars().first()
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -187,7 +187,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 #        if not record or not record.get("verified"):
 #            raise HTTPException(status_code=400, detail="Email address not verified. Please verify your email via OTP first.")
     result = await db.execute(select(User).where(User.email == body.email))
-    if result.scalar_one_or_none():
+    if result.scalars().first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
 
@@ -196,9 +196,28 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
     student_id = None
     if body.role == "STUDENT":
-        result = await db.execute(select(User).where(User.role == "STUDENT"))
-        count = len(result.all())
-        student_id = f"APC-{datetime.now().year}-{count + 1:04d}"
+        from sqlalchemy import func
+        # Robust student ID generation: APC-YYYY-XXXX
+        current_year = datetime.now().year
+        pattern = f"APC-{current_year}-%"
+        result = await db.execute(
+            select(User.student_id)
+            .where(User.student_id.like(pattern))
+            .order_by(User.student_id.desc())
+            .limit(1)
+        )
+        last_sid = result.scalar()
+        
+        if last_sid:
+            try:
+                last_num = int(last_sid.split("-")[-1])
+                new_num = last_num + 1
+            except:
+                new_num = 1
+        else:
+            new_num = 1
+            
+        student_id = f"APC-{current_year}-{new_num:04d}"
 
     user = User(
         email=body.email,

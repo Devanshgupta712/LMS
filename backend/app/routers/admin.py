@@ -474,9 +474,25 @@ async def create_student(
     hashed = get_password_hash(body.password)
     student_id = None
     if body.role == "STUDENT":
-        count_q = await db.execute(select(func.count(User.id)).where(User.role == Role.STUDENT))
-        count = count_q.scalar() or 0
-        student_id = f"APC-{datetime.now().year}-{count + 1:04d}"
+        from sqlalchemy import func
+        current_year = datetime.now().year
+        pattern = f"APC-{current_year}-%"
+        count_q = await db.execute(
+            select(User.student_id)
+            .where(User.student_id.like(pattern))
+            .order_by(User.student_id.desc())
+            .limit(1)
+        )
+        last_sid = count_q.scalar()
+        if last_sid:
+            try:
+                last_num = int(last_sid.split("-")[-1])
+                new_num = last_num + 1
+            except:
+                new_num = 1
+        else:
+            new_num = 1
+        student_id = f"APC-{current_year}-{new_num:04d}"
 
     user = User(
         email=body.email, password=hashed, name=body.name,
