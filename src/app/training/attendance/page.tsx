@@ -101,7 +101,7 @@ export default function AttendancePage() {
     };
 
     const cycleStatus = (studentId: string, currentStatus: string) => {
-        const order = ['PRESENT', 'ABSENT', 'LATE', 'LEAVE'];
+        const order = ['PRESENT', 'ABSENT', 'LATE', 'ON_LEAVE'];
         const next = order[(order.indexOf(currentStatus) + 1) % order.length];
         setLocalStatus(prev => ({ ...prev, [studentId]: next }));
     };
@@ -128,7 +128,7 @@ export default function AttendancePage() {
                 reason: leaveForm.reason,
             });
             setLeaveMsg('Leave request created successfully!');
-            setLocalStatus(prev => ({ ...prev, [leaveModal.studentId]: 'LEAVE' }));
+            setLocalStatus(prev => ({ ...prev, [leaveModal.studentId]: 'ON_LEAVE' }));
             setTimeout(() => setLeaveModal(null), 1200);
         } catch {
             setLeaveMsg('Failed to create leave request.');
@@ -139,13 +139,13 @@ export default function AttendancePage() {
         PRESENT: { color: '#4ade80', icon: '✅', btnClass: 'btn-success' },
         ABSENT: { color: '#f87171', icon: '❌', btnClass: 'btn-danger' },
         LATE: { color: '#fbbf24', icon: '⏰', btnClass: 'btn-warning' },
-        LEAVE: { color: '#3399ff', icon: '🗓️', btnClass: 'btn-accent' },
+        ON_LEAVE: { color: '#3399ff', icon: '🗓️', btnClass: 'btn-accent' },
     };
 
     const presentCount = Object.values(localStatus).filter(s => s === 'PRESENT').length;
     const absentCount = Object.values(localStatus).filter(s => s === 'ABSENT').length;
     const lateCount = Object.values(localStatus).filter(s => s === 'LATE').length;
-    const leaveCount = Object.values(localStatus).filter(s => s === 'LEAVE').length;
+    const leaveCount = Object.values(localStatus).filter(s => s === 'ON_LEAVE').length;
 
     const handleActionLeave = async (id: string, action: 'APPROVED' | 'REJECTED') => {
         if (!confirm(`Are you sure you want to ${action.toLowerCase()} this leave?`)) return;
@@ -255,7 +255,7 @@ export default function AttendancePage() {
                                     <td>
                                         <button onClick={() => cycleStatus(s.id, st)} className={`btn btn-sm ${cfg.btnClass}`}
                                             style={{ minWidth: '120px', justifyContent: 'center' }}>
-                                            {cfg.icon} {st}
+                                            {cfg.icon} {st.replace('_', ' ')}
                                         </button>
                                     </td>
                                     <td>
