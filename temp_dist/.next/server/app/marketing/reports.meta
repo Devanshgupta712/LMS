@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/marketing/layout,_N_T_/marketing/reports/layout,_N_T_/marketing/reports/page,_N_T_/marketing/reports"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/marketing/reports/__PAGE__",
+    "/marketing/reports",
+    "/marketing",
+    "/_index",
+    "/_head"
+  ]
+}

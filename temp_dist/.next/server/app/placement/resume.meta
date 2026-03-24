@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/placement/layout,_N_T_/placement/resume/layout,_N_T_/placement/resume/page,_N_T_/placement/resume"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/placement/resume/__PAGE__",
+    "/placement/resume",
+    "/placement",
+    "/_index",
+    "/_head"
+  ]
+}

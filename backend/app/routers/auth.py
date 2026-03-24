@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
 from datetime import datetime, date, time, timezone, timedelta
-import os, uuid, base64, json, random, logging, resend
+import os, uuid, base64, json, random, logging
 
 from app.database import get_db
 from app.models.user import User

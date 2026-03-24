@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import engine, Base
+from app.database import engine, Base, AsyncSessionLocal
 
 # Import all models so tables can be created
 from app.models import *  # noqa: F401, F403
@@ -14,18 +14,17 @@ from app.routers import auth, admin, marketing, training, placement
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create tables if they don't exist
-    print("Starting up: checking database connection and creating tables...")
+    # Startup: verify DB connection (tables already exist in production)
+    print("Starting up LMS API...")
     try:
         from sqlalchemy import text
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-            
-            # Auto-migrate tables to align with camelCase schema
-            if "sqlite" in str(engine.url):
-                print("Running SQLite migrations...")
-                
-                # Migrate users table
+        is_sqlite = "sqlite" in str(engine.url)
+
+        if is_sqlite:
+            # For local SQLite development: create tables and run migrations
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+
                 result = await conn.execute(text("PRAGMA table_info(users)"))
                 user_cols = [row[1] for row in result.fetchall()]
                 user_migrations = [
@@ -47,24 +46,27 @@ async def lifespan(app: FastAPI):
                         print(f"Adding column {col_name} to users...")
                         await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
 
-                # Migrate leave_requests table
                 result = await conn.execute(text("PRAGMA table_info(leave_requests)"))
                 leave_cols = [row[1] for row in result.fetchall()]
                 if "leaveType" not in leave_cols:
                     await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN leaveType TEXT DEFAULT 'OTHER' NOT NULL"))
                 if "proofUrl" not in leave_cols:
                     await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN proofUrl TEXT"))
-            else:
-                print("PostgreSQL detected - no additional migrations needed.")
+            print("SQLite startup complete.")
+        else:
+            # For PostgreSQL production: skip the startup check to prevent hangs.
+            # Connections are established lazily on request.
+            print("PostgreSQL detected - app ready.")
 
-        print("Database startup successful!")
     except Exception as e:
-        print(f"DATABASE STARTUP CRITICAL ERROR: {e}")
-        # Re-raise so Render knows the service failed to start correctly
-        raise e 
+        # Log the error but do NOT crash the app. The API can still serve requests
+        # even if the startup check fails (e.g. brief network blip at boot time).
+        print(f"WARNING - Startup DB check failed (non-fatal): {e}")
+
     yield
-    # Shutdown
+    # Shutdown: clean up connection pool
     await engine.dispose()
+    print("LMS API shut down.")
 
 
 app = FastAPI(

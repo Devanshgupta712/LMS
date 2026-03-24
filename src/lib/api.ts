@@ -3,7 +3,7 @@
  * All frontend pages should use this instead of raw `fetch`.
  */
 
-const API_BASE = '';  // Same origin — proxied via next.config.ts
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com';
 
 function getToken(): string | null {
     if (typeof window === 'undefined') return null;

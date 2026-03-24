@@ -4,30 +4,35 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 db_url = settings.DATABASE_URL.strip()
-# Managed databases often provide urls starting with postgres:// but SQLAlchemy async requires postgresql+asyncpg://
+
+# Ensure the URL uses the asyncpg driver prefix
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-elif db_url.startswith("postgresql://"):
+elif db_url.startswith("postgresql://") and "+asyncpg" not in db_url:
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Aggressively remove all query parameters to avoid asyncpg connection errors (e.g., sslmode)
-# We handle SSL via connect_args below instead.
+# Drop any parameters that asyncpg doesn't support but Neon might provide
+# (like channel_binding=prefer which is meant for libpq, and sslmode)
 if "?" in db_url:
-    db_url = db_url.split("?")[0]
+    base, qs = db_url.split("?", 1)
+    params = [p for p in qs.split("&") if "channel_binding" not in p and "sslmode" not in p]
+    db_url = f"{base}?{'&'.join(params)}" if params else base
 
-if db_url.startswith("sqlite"):
-    engine = create_async_engine(
-        db_url, 
-        echo=False,
-        connect_args={"check_same_thread": False}
-    )
-else:
-    # Managed Postgres requires SSL, but asyncpg uses 'ssl' instead of 'sslmode'
-    engine = create_async_engine(
-        db_url, 
-        echo=False,
-        connect_args={"ssl": True}
-    )
+connect_args = {"timeout": 10}
+# Neon databases require SSL. asyncpg expects `ssl=True` in connect kwargs
+# rather than `sslmode=require` in the query string.
+if "neon.tech" in db_url:
+    connect_args["ssl"] = True
+
+engine = create_async_engine(
+    db_url,
+    echo=False,
+    pool_size=3,
+    max_overflow=5,
+    pool_timeout=10,
+    pool_recycle=1800,
+    connect_args=connect_args,
+)
     
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

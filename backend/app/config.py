@@ -6,8 +6,13 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "apptech-careers-lms-secret-key-2026"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
-    CORS_ORIGINS: list[str] = ["*"]
-    
+    CORS_ORIGINS: list[str] = [
+        "https://lms.appteknow.com",
+        "https://appteknow.com",
+        "https://www.appteknow.com",
+        "http://lms.appteknow.com",
+        "http://localhost:3000",
+    ]
     # Cloudinary Config (Optional for local dev, required for production files)
     CLOUDINARY_CLOUD_NAME: str = ""
     CLOUDINARY_API_KEY: str = ""
@@ -16,8 +21,8 @@ class Settings(BaseSettings):
     # SMTP Email Config (for OTP verification)
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = "devanshd7124g@gmail.com"  # e.g. your-email@gmail.com
-    SMTP_PASSWORD: str = "tgkaabovxwnvxlqq"  # Gmail App Password
+    SMTP_USER: str = ""  # Set in .env
+    SMTP_PASSWORD: str = ""  # Set in .env
     SMTP_SENDER: str = "AppTechno Software <devanshd7124g@gmail.com>"
 
     class Config:

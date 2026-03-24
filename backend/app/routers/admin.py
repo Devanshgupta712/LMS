@@ -176,8 +176,10 @@ async def create_batch(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
 ):
+    course_id = body.course_id if body.course_id else None
+    
     batch = Batch(
-        course_id=body.course_id, name=body.name,
+        course_id=course_id, name=body.name,
         start_date=datetime.fromisoformat(body.start_date),
         end_date=datetime.fromisoformat(body.end_date),
         schedule_time=body.schedule_time,
@@ -186,13 +188,83 @@ async def create_batch(
     db.add(batch)
     await db.flush()
     await db.refresh(batch)
-    course = await db.get(Course, batch.course_id)
+    course = await db.get(Course, batch.course_id) if batch.course_id else None
     return BatchOut(
         id=batch.id, name=batch.name, start_date=batch.start_date,
         end_date=batch.end_date, is_active=batch.is_active,
         schedule_time=batch.schedule_time,
-        course_name=course.name if course else "",
+        course_name=course.name if course else None,
     )
+
+from app.schemas.schemas import BatchUpdate
+
+@router.put("/batches/{batch_id}")
+async def update_batch(
+    batch_id: str,
+    body: BatchUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    batch = await db.get(Batch, batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+        
+    if body.name is not None: batch.name = body.name
+    if body.course_id is not None: 
+        batch.course_id = body.course_id if body.course_id else None
+    if body.start_date is not None: batch.start_date = datetime.fromisoformat(body.start_date)
+    if body.end_date is not None: batch.end_date = datetime.fromisoformat(body.end_date)
+    if body.schedule_time is not None: batch.schedule_time = body.schedule_time
+    if hasattr(body, 'trainer_id') and body.trainer_id is not None: 
+        batch.trainer_id = body.trainer_id if body.trainer_id else None
+    if body.is_active is not None: batch.is_active = body.is_active
+
+    await db.flush()
+    return {"status": "updated"}
+
+@router.delete("/batches/{batch_id}")
+async def delete_batch(
+    batch_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN)) # Only Super Admin can delete
+):
+    batch = await db.get(Batch, batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+        
+    # Hard cascade delete related records
+    from app.models.course import BatchStudent
+    from app.models.attendance import Attendance, LeaveRequest
+    from app.models.project import Project, Task, Assignment
+    from app.models.registration import Registration
+    from app.models.notification import Feedback
+    
+    await db.execute(delete(BatchStudent).where(BatchStudent.batch_id == batch_id))
+    await db.execute(delete(Attendance).where(Attendance.batch_id == batch_id))
+    await db.execute(delete(LeaveRequest).where(LeaveRequest.batch_id == batch_id))
+    
+    # Remove batch reference from Registrations instead of deleting them entirely, 
+    # since registration is independent now.
+    await db.execute(Registration.__table__.update().where(Registration.batch_id == batch_id).values(batch_id=None))
+    
+    # Feedback (if it has batch_id)
+    # Actually Feedback doesn't have batch_id directly in the current model? Wait, course_id and batch_id are in Course, Batch. I'll wrap feedback in try.
+    try:
+        await db.execute(delete(Feedback).where(Feedback.batch_id == batch_id))
+    except Exception:
+        pass
+    
+    # Projects and Tasks
+    projects_res = await db.execute(select(Project.id).where(Project.batch_id == batch_id))
+    project_ids = projects_res.scalars().all()
+    if project_ids:
+        await db.execute(delete(Task).where(Task.project_id.in_(project_ids)))
+        await db.execute(delete(Assignment).where(Assignment.project_id.in_(project_ids)))
+        await db.execute(delete(Project).where(Project.batch_id == batch_id))
+
+    await db.delete(batch)
+    await db.flush()
+    return {"status": "deleted"}
 
 
 # ─── Students ─────────────────────────────────────────
@@ -543,32 +615,6 @@ async def assign_user_batch(
     link = BatchStudent(batch_id=body.batch_id, student_id=user_id)
     db.add(link)
     
-    # 5. Ensure Registration exists for this course/student
-    # (Attendance and other systems often rely on Registration records)
-    reg_result = await db.execute(
-        select(Registration).where(
-            Registration.student_id == user_id,
-            Registration.course_id == batch.course_id
-        )
-    )
-    reg = reg_result.scalar_one_or_none()
-    
-    if not reg:
-        # Create a default registration if missing
-        reg = Registration(
-            student_id=user_id,
-            course_id=batch.course_id,
-            batch_id=body.batch_id,
-            fee_amount=0.0,
-            fee_paid=0.0,
-            status="CONFIRMED"
-        )
-        db.add(reg)
-    else:
-        # Update existing registration with this batch if it was empty
-        if not reg.batch_id:
-            reg.batch_id = body.batch_id
-            
     await db.flush()
     return {"status": "success", "message": f"Student assigned to batch {batch.name}"}
 

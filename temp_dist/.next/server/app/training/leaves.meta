@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/training/layout,_N_T_/training/leaves/layout,_N_T_/training/leaves/page,_N_T_/training/leaves"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/training/leaves/__PAGE__",
+    "/training/leaves",
+    "/training",
+    "/_index",
+    "/_head"
+  ]
+}
