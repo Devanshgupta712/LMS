@@ -70,7 +70,7 @@ export default function StudentProfilePage() {
     };
 
     const handleSaveProfile = async () => {
-        await fetch('https://api.appteknow.com/api/auth/profile', {
+        await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/profile', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
             body: JSON.stringify(editForm),
@@ -103,7 +103,7 @@ export default function StudentProfilePage() {
 
     const handleDelete = async (docId: string) => {
         if (!confirm('Delete this document?')) return;
-        await fetch('https://api.appteknow.com/api/auth/documents/' + docId, {
+        await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/documents/' + docId, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
@@ -122,7 +122,7 @@ export default function StudentProfilePage() {
             const reader = new FileReader();
             reader.onload = async () => {
                 const base64 = reader.result as string;
-                await fetch('https://api.appteknow.com/api/auth/profile', {
+                await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/profile', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
                     body: JSON.stringify({ avatar: base64 }),

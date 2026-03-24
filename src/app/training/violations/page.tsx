@@ -87,7 +87,7 @@ export default function ViolationsPage() {
 
     const handleResolve = async (action: 'RESOLVED' | 'DISMISSED') => {
         if (!showResolveModal) return;
-        await fetch('https://api.appteknow.com/api/training/violations/' + showResolveModal, {
+        await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/training/violations/' + showResolveModal, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
             body: JSON.stringify({ status: action, resolution_note: resolveNote }),

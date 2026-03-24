@@ -37,7 +37,7 @@ function VerifyEmailContent() {
         setLoading(true);
 
         try {
-            const res = await fetch('https://api.appteknow.com/api/auth/verify-email', {
+            const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/verify-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, code: otp }),
@@ -69,7 +69,7 @@ function VerifyEmailContent() {
         setResendLoading(true);
 
         try {
-            const res = await fetch('https://api.appteknow.com/api/auth/resend-verification', {
+            const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/resend-verification', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),

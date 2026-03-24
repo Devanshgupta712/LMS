@@ -54,7 +54,7 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            const res = await fetch('https://api.appteknow.com/api/auth/register', {
+            const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -92,7 +92,7 @@ export default function RegisterPage() {
         setPhoneLoading(true);
 
         try {
-            const res = await fetch('https://api.appteknow.com/api/auth/send-otp', {
+            const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: form.email }),
@@ -121,7 +121,7 @@ export default function RegisterPage() {
         setPhoneSuccess('');
         setPhoneLoading(true);
         try {
-            const res = await fetch('https://api.appteknow.com/api/auth/verify-otp', {
+            const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: form.email, otp: otp }),
