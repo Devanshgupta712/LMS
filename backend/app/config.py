@@ -12,6 +12,8 @@ class Settings(BaseSettings):
         "https://www.appteknow.com",
         "http://lms.appteknow.com",
         "http://localhost:3000",
+        "https://lms-beta-lilac.vercel.app",
+        "*"
     ]
     # Cloudinary Config (Optional for local dev, required for production files)
     CLOUDINARY_CLOUD_NAME: str = ""
