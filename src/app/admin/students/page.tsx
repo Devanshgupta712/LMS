@@ -149,7 +149,7 @@ export default function StudentsPage() {
                                 </div>
 
                                 {/* Metrics Grid */}
-                                <div className="grid-3 mb-24" style={{ gap: '16px' }}>
+                                <div className="grid-4 mb-24" style={{ gap: '16px' }}>
                                     <div className="stat-card" style={{padding: '20px', border: '1px solid var(--border)'}}>
                                         <div style={{color: 'var(--success)', fontWeight: 800, fontSize: '28px'}}>{reportModal.data.stats.days_present}</div>
                                         <div style={{fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)'}}>Days Present</div>
@@ -162,36 +162,77 @@ export default function StudentsPage() {
                                         <div style={{color: 'var(--accent)', fontWeight: 800, fontSize: '28px'}}>{reportModal.data.stats.leaves_taken}</div>
                                         <div style={{fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)'}}>Approved Leaves</div>
                                     </div>
+                                    <div className="stat-card" style={{padding: '20px', border: '1px solid var(--border)'}}>
+                                        <div style={{color: '#38bdf8', fontWeight: 800, fontSize: '28px'}}>
+                                            {Math.floor((reportModal.data.stats.total_punch_minutes || 0) / 60)}h {(reportModal.data.stats.total_punch_minutes || 0) % 60}m
+                                        </div>
+                                        <div style={{fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)'}}>Inst. Hours</div>
+                                    </div>
                                 </div>
 
-                                {/* Timeline */}
-                                <h3 style={{fontSize: '18px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)'}}>Daily Attendance Timeline</h3>
-                                <div style={{background: 'var(--bg-secondary)', borderRadius: '20px', padding: '4px', border: '1px solid var(--border)'}}>
+                                {/* Class Attendance Timeline */}
+                                <h3 style={{fontSize: '18px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)'}}>Class Attendance Timeline</h3>
+                                <div style={{background: 'var(--bg-secondary)', borderRadius: '20px', padding: '4px', border: '1px solid var(--border)', marginBottom: '32px'}}>
                                     {reportModal.data.attendance_logs.length === 0 ? (
-                                        <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500}}>No attendance records have been logged yet.</div>
+                                        <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500}}>No class attendance records logged.</div>
                                     ) : (
-                                        <table className="table" style={{background: 'transparent', margin: 0}}>
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Batch Session</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {reportModal.data.attendance_logs.map((log: any) => (
-                                                    <tr key={log.id} style={{borderBottom: '1px solid var(--border)'}}>
-                                                        <td style={{fontWeight: 500, color: 'var(--text-primary)'}}>{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                                                        <td style={{color: 'var(--text-muted)'}}>{log.batch_name}</td>
-                                                        <td>
-                                                            <span className={`badge ${log.status === 'PRESENT' || log.status === 'LATE' ? 'badge-success' : 'badge-danger'}`} style={{fontWeight: 700, padding: '4px 10px'}}>
-                                                                {log.status === 'LATE' ? 'LATE (PRESENT)' : log.status}
-                                                            </span>
-                                                        </td>
+                                        <div style={{maxHeight: '300px', overflowY: 'auto'}}>
+                                            <table className="table" style={{background: 'transparent', margin: 0}}>
+                                                <thead>
+                                                    <tr>
+                                                        <th style={{position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1}}>Date</th>
+                                                        <th style={{position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1}}>Batch Session</th>
+                                                        <th style={{position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1}}>Status</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {reportModal.data.attendance_logs.map((log: any) => (
+                                                        <tr key={log.id} style={{borderBottom: '1px solid var(--border)'}}>
+                                                            <td style={{fontWeight: 500, color: 'var(--text-primary)'}}>{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                                            <td style={{color: 'var(--text-muted)'}}>{log.batch_name}</td>
+                                                            <td>
+                                                                <span className={`badge ${log.status === 'PRESENT' || log.status === 'LATE' ? 'badge-success' : 'badge-danger'}`} style={{fontWeight: 700, padding: '4px 10px'}}>
+                                                                    {log.status === 'LATE' ? 'LATE (PRESENT)' : log.status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Institute Time Tracking Timeline */}
+                                <h3 style={{fontSize: '18px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)'}}>Institute Tracking (Punch In/Out)</h3>
+                                <div style={{background: 'var(--bg-secondary)', borderRadius: '20px', padding: '4px', border: '1px solid var(--border)'}}>
+                                    {!reportModal.data.time_logs || reportModal.data.time_logs.length === 0 ? (
+                                        <div style={{padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500}}>No punch records found for this student.</div>
+                                    ) : (
+                                        <div style={{maxHeight: '300px', overflowY: 'auto'}}>
+                                            <table className="table" style={{background: 'transparent', margin: 0}}>
+                                                <thead>
+                                                    <tr>
+                                                        <th style={{position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1}}>Date</th>
+                                                        <th style={{position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1}}>Punch In</th>
+                                                        <th style={{position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1}}>Punch Out</th>
+                                                        <th style={{position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1}}>Duration</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {reportModal.data.time_logs.map((log: any) => (
+                                                        <tr key={log.id} style={{borderBottom: '1px solid var(--border)'}}>
+                                                            <td style={{fontWeight: 500, color: 'var(--text-primary)'}}>{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                                            <td style={{color: 'var(--success)', fontWeight: 600}}>{new Date(log.login_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</td>
+                                                            <td style={{color: 'var(--danger)', fontWeight: 600}}>{log.logout_time ? new Date(log.logout_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}</td>
+                                                            <td style={{fontWeight: 700, color: '#38bdf8'}}>
+                                                                {log.total_minutes ? `${Math.floor(log.total_minutes / 60)}h ${log.total_minutes % 60}m` : (log.logout_time ? '0m' : 'Active...')}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     )}
                                 </div>
                             </div>

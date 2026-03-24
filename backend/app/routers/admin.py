@@ -585,7 +585,7 @@ async def get_student_report(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    from app.models.attendance import Attendance, LeaveRequest
+    from app.models.attendance import Attendance, LeaveRequest, TimeTracking
     from app.models.course import Batch
 
     att_res = await db.execute(
@@ -601,10 +601,16 @@ async def get_student_report(
     )
     leaves = leave_res.scalars().all()
 
+    time_res = await db.execute(
+        select(TimeTracking).where(TimeTracking.user_id == user_id).order_by(TimeTracking.date.desc())
+    )
+    time_logs = time_res.scalars().all()
+
     present = sum(1 for a in attendances if (a.status.value if hasattr(a.status, 'value') else a.status) in ('PRESENT', 'LATE'))
     absent = sum(1 for a in attendances if (a.status.value if hasattr(a.status, 'value') else a.status) == 'ABSENT')
     total = present + absent
     pct = int((present / total) * 100) if total > 0 else 0
+    total_punch_minutes = sum(t.total_minutes for t in time_logs if t.total_minutes)
 
     return {
         "student": {
@@ -618,7 +624,8 @@ async def get_student_report(
             "attendance_percentage": pct,
             "days_present": present,
             "days_absent": absent,
-            "leaves_taken": len([l for l in leaves if (l.status.value if hasattr(l.status, 'value') else l.status) == 'APPROVED'])
+            "leaves_taken": len([l for l in leaves if (l.status.value if hasattr(l.status, 'value') else l.status) == 'APPROVED']),
+            "total_punch_minutes": total_punch_minutes
         },
         "attendance_logs": [
             {
@@ -637,6 +644,15 @@ async def get_student_report(
                 "status": l.status.value if hasattr(l.status, 'value') else l.status,
                 "leave_type": l.leave_type.value if hasattr(l.leave_type, 'value') else l.leave_type
             } for l in leaves
+        ],
+        "time_logs": [
+            {
+                "id": t.id,
+                "date": t.date,
+                "login_time": t.login_time,
+                "logout_time": t.logout_time,
+                "total_minutes": t.total_minutes
+            } for t in time_logs
         ]
     }
 
