@@ -9,7 +9,7 @@ from app.database import engine, Base, AsyncSessionLocal
 # Import all models so tables can be created
 from app.models import *  # noqa: F401, F403
 
-from app.routers import auth, admin, marketing, training, placement
+from app.routers import auth, admin, marketing, training, placement, chat
 
 
 @asynccontextmanager
@@ -91,7 +91,7 @@ app.include_router(admin.router)
 app.include_router(marketing.router)
 app.include_router(training.router)
 app.include_router(placement.router)
-
+app.include_router(chat.router)
 
 @app.get("/api/health")
 async def health_check():
