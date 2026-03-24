@@ -138,6 +138,10 @@ class StudentOut(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
+    attendance_percentage: int | None = None
+    days_present: int = 0
+    days_absent: int = 0
+    leaves_taken: int = 0
 
     class Config:
         from_attributes = True

@@ -528,7 +528,117 @@ async def list_students(
             select(User).where(User.role == role).order_by(User.created_at.desc())
         )
     users = result.scalars().all()
-    return [StudentOut.model_validate(u) for u in users]
+    
+    if not users:
+        return []
+
+    user_ids = [u.id for u in users]
+    from app.models.attendance import Attendance, LeaveRequest
+
+    att_result = await db.execute(
+        select(Attendance.student_id, Attendance.status)
+        .where(Attendance.student_id.in_(user_ids))
+    )
+    attendances = att_result.all()
+
+    att_map = { uid: {'P': 0, 'A': 0} for uid in user_ids }
+    for student_id, status in attendances:
+        val = status.value if hasattr(status, 'value') else status
+        if val in ('PRESENT', 'LATE'):
+            att_map[student_id]['P'] += 1
+        elif val == 'ABSENT':
+            att_map[student_id]['A'] += 1
+
+    leave_result = await db.execute(
+        select(LeaveRequest.user_id)
+        .where(LeaveRequest.user_id.in_(user_ids), LeaveRequest.status == 'APPROVED')
+    )
+    leaves = leave_result.scalars().all()
+    leave_map = { uid: 0 for uid in user_ids }
+    for uid in leaves:
+        leave_map[uid] += 1
+
+    response = []
+    for u in users:
+        p = att_map[u.id]['P']
+        a = att_map[u.id]['A']
+        total = p + a
+        pct = int((p / total) * 100) if total > 0 else 0
+        
+        s = StudentOut.model_validate(u)
+        s.attendance_percentage = pct
+        s.days_present = p
+        s.days_absent = a
+        s.leaves_taken = leave_map[u.id]
+        response.append(s)
+
+    return response
+
+
+@router.get("/students/{user_id}/report")
+async def get_student_report(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
+):
+    student = await db.get(User, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    from app.models.attendance import Attendance, LeaveRequest
+    from app.models.course import Batch
+
+    att_res = await db.execute(
+        select(Attendance.id, Attendance.date, Attendance.status, Batch.name)
+        .outerjoin(Batch, Batch.id == Attendance.batch_id)
+        .where(Attendance.student_id == user_id)
+        .order_by(Attendance.date.desc())
+    )
+    attendances = att_res.all()
+
+    leave_res = await db.execute(
+        select(LeaveRequest).where(LeaveRequest.user_id == user_id).order_by(LeaveRequest.start_date.desc())
+    )
+    leaves = leave_res.scalars().all()
+
+    present = sum(1 for a in attendances if (a.status.value if hasattr(a.status, 'value') else a.status) in ('PRESENT', 'LATE'))
+    absent = sum(1 for a in attendances if (a.status.value if hasattr(a.status, 'value') else a.status) == 'ABSENT')
+    total = present + absent
+    pct = int((present / total) * 100) if total > 0 else 0
+
+    return {
+        "student": {
+            "id": student.id,
+            "name": student.name,
+            "student_id": student.student_id,
+            "email": student.email,
+            "phone": student.phone
+        },
+        "stats": {
+            "attendance_percentage": pct,
+            "days_present": present,
+            "days_absent": absent,
+            "leaves_taken": len([l for l in leaves if (l.status.value if hasattr(l.status, 'value') else l.status) == 'APPROVED'])
+        },
+        "attendance_logs": [
+            {
+                "id": a.id,
+                "date": a.date,
+                "status": a.status.value if hasattr(a.status, 'value') else a.status,
+                "batch_name": a.name or "Unknown Batch"
+            } for a in attendances
+        ],
+        "leave_requests": [
+            {
+                "id": l.id,
+                "start_date": l.start_date,
+                "end_date": l.end_date,
+                "reason": l.reason,
+                "status": l.status.value if hasattr(l.status, 'value') else l.status,
+                "leave_type": l.leave_type.value if hasattr(l.leave_type, 'value') else l.leave_type
+            } for l in leaves
+        ]
+    }
 
 
 @router.post("/students", status_code=201)
