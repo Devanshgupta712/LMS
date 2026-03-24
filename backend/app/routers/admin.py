@@ -586,7 +586,8 @@ async def get_student_report(
         raise HTTPException(status_code=404, detail="Student not found")
 
     from app.models.attendance import Attendance, LeaveRequest, TimeTracking
-    from app.models.course import Batch
+    from app.models.course import Batch, Course
+    from app.models.registration import Registration
 
     att_res = await db.execute(
         select(Attendance.id, Attendance.date, Attendance.status, Batch.name)
@@ -605,6 +606,14 @@ async def get_student_report(
         select(TimeTracking).where(TimeTracking.user_id == user_id).order_by(TimeTracking.date.desc())
     )
     time_logs = time_res.scalars().all()
+
+    reg_res = await db.execute(
+        select(Registration, Course.name, Batch.name)
+        .join(Course, Course.id == Registration.course_id)
+        .outerjoin(Batch, Batch.id == Registration.batch_id)
+        .where(Registration.student_id == user_id)
+    )
+    registrations = reg_res.all()
 
     present = sum(1 for a in attendances if (a.status.value if hasattr(a.status, 'value') else a.status) in ('PRESENT', 'LATE'))
     absent = sum(1 for a in attendances if (a.status.value if hasattr(a.status, 'value') else a.status) == 'ABSENT')
@@ -627,6 +636,16 @@ async def get_student_report(
             "leaves_taken": len([l for l in leaves if (l.status.value if hasattr(l.status, 'value') else l.status) == 'APPROVED']),
             "total_punch_minutes": total_punch_minutes
         },
+        "registrations": [
+            {
+                "id": r[0].id,
+                "course_name": r[1],
+                "batch_name": r[2] or "Unassigned",
+                "fee_amount": r[0].fee_amount,
+                "fee_paid": r[0].fee_paid,
+                "status": r[0].status.value if hasattr(r[0].status, 'value') else r[0].status
+            } for r in registrations
+        ],
         "attendance_logs": [
             {
                 "id": a.id,

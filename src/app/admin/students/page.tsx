@@ -148,6 +148,25 @@ export default function StudentsPage() {
                                     </div>
                                 </div>
 
+                                {/* Enrolled Courses */}
+                                {reportModal.data.registrations && reportModal.data.registrations.length > 0 && (
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <h3 style={{fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)'}}>Enrolled Courses</h3>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                                            {reportModal.data.registrations.map((reg: any) => (
+                                                <div key={reg.id} style={{ background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border)', flex: '1 1 min-content', minWidth: '200px' }}>
+                                                    <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '4px' }}>{reg.course_name}</div>
+                                                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Batch: {reg.batch_name}</div>
+                                                    <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span className={`badge ${reg.status === 'ACTIVE' ? 'badge-success' : 'badge-outline'}`} style={{fontSize: '11px', padding: '2px 8px'}}>{reg.status}</span>
+                                                        <span style={{ fontSize: '12px', fontWeight: 600, color: reg.fee_paid >= reg.fee_amount ? 'var(--success)' : 'var(--accent)' }}>₹{reg.fee_paid} / ₹{reg.fee_amount}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Metrics Grid */}
                                 <div className="grid-4 mb-24" style={{ gap: '16px' }}>
                                     <div className="stat-card" style={{padding: '20px', border: '1px solid var(--border)'}}>
