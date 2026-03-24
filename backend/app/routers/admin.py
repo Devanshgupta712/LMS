@@ -761,6 +761,20 @@ async def create_registration(
     )
 
 
+@router.delete("/registrations/{registration_id}")
+async def delete_registration(
+    registration_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    result = await db.execute(delete(Registration).where(Registration.id == registration_id))
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Registration not found")
+    
+    await db.flush()
+    return {"status": "success", "message": "Registration removed successfully"}
+
+
 # ─── Leaves ───────────────────────────────────────────
 @router.get("/leaves")
 async def list_leaves(
