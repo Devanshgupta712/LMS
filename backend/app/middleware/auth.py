@@ -29,9 +29,12 @@ async def get_current_user(
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(status_code=401, detail="Invalid token: missing subject")
+    except JWTError as e:
+        err_str = str(e).lower()
+        if "expired" in err_str or "expir" in err_str:
+            raise HTTPException(status_code=401, detail="Session expired. Please log out and log in again.")
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()

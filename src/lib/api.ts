@@ -38,7 +38,17 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    return fetch(`${API_BASE}${path}`, { ...options, headers });
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    // Auto-handle expired/invalid token: clear session and redirect to login
+    if (res.status === 401 && typeof window !== 'undefined') {
+        const body = await res.clone().json().catch(() => ({}));
+        const detail: string = body?.detail || '';
+        if (detail.toLowerCase().includes('expired') || detail.toLowerCase().includes('invalid token')) {
+            clearToken();
+            window.location.href = '/login?reason=session_expired';
+        }
+    }
+    return res;
 }
 
 export async function apiGet(path: string) {
