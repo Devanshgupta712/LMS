@@ -32,9 +32,13 @@ export function setStoredUser(user: any) {
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
     const token = getToken();
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
         ...(options.headers as Record<string, string> || {}),
     };
+
+    // Only set Content-Type: application/json if not already set and body is not FormData
+    if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }

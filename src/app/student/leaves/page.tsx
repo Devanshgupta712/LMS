@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiPost, apiGet, getStoredUser } from '@/lib/api';
+import { apiPost, apiGet, apiFetch, getStoredUser } from '@/lib/api';
 
 interface LeaveHistory {
     id: string;
@@ -22,6 +22,7 @@ export default function StudentLeavesPage() {
     const [history, setHistory] = useState<LeaveHistory[]>([]);
     const [stats, setStats] = useState({ quota: 0, taken: 0, remaining: 0, pending: 0 });
     const [loading, setLoading] = useState(true);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     useEffect(() => {
         loadData();
@@ -55,48 +56,27 @@ export default function StudentLeavesPage() {
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file) {
+            setSelectedFile(null);
+            setForm(prev => ({ ...prev, proof_base64: '', proof_name: '' }));
+            return;
+        }
         
-        // Support Images and PDFs
         const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
         if (!allowedTypes.includes(file.type)) {
             setError('Please upload a PNG, JPG image or a PDF file.');
             return;
         }
 
-        if (file.type === 'application/pdf') {
-            if (file.size > 5 * 1024 * 1024) {
-                setError('PDF file too large. Max 5MB.');
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => {
-                setForm(prev => ({ ...prev, proof_base64: reader.result as string, proof_name: file.name }));
-            };
-            reader.readAsDataURL(file);
-            setError('');
-            return;
-        }
-
-        // Compress image client-side for smaller payload
-        const img = new Image();
-        img.onload = () => {
-            const MAX = 800; // Increased quality slightly since we use Cloudinary now
-            let w = img.width, h = img.height;
-            if (w > MAX || h > MAX) {
-                const ratio = Math.min(MAX / w, MAX / h);
-                w = Math.round(w * ratio);
-                h = Math.round(h * ratio);
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-            const compressed = canvas.toDataURL('image/jpeg', 0.6);
-            setForm(prev => ({ ...prev, proof_base64: compressed, proof_name: file.name }));
-            setError('');
+        setSelectedFile(file);
+        
+        // Preview handling
+        const reader = new FileReader();
+        reader.onload = () => {
+            setForm(prev => ({ ...prev, proof_base64: reader.result as string, proof_name: file.name }));
         };
-        img.src = URL.createObjectURL(file);
+        reader.readAsDataURL(file);
+        setError('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -104,7 +84,7 @@ export default function StudentLeavesPage() {
         setError('');
         
         // Client-side validation
-        if (form.leave_type === 'OTHER' && !form.reason.trim()) {
+        if ((form.leave_type === 'OTHER' || form.leave_type === 'WORK_FROM_HOME') && !form.reason.trim()) {
             setError('Please provide a reason for the leave.');
             return;
         }
@@ -114,12 +94,27 @@ export default function StudentLeavesPage() {
             setError('User session not found. Please log out and log in again.');
             return;
         }
+
         try {
-            const res = await apiPost('/api/training/leave-request', { user_id: user.id, ...form });
+            const formData = new FormData();
+            formData.append('start_date', form.start_date);
+            formData.append('end_date', form.end_date);
+            formData.append('leave_type', form.leave_type);
+            formData.append('reason', form.reason || '');
+            if (selectedFile) {
+                formData.append('proof', selectedFile);
+            }
+
+            const res = await apiFetch('/api/training/submit-leave', {
+                method: 'POST',
+                body: formData,
+            });
+
             if (res.ok) {
                 setSubmitted(true);
                 setForm({ start_date: '', end_date: '', leave_type: 'OTHER', reason: '', proof_base64: '', proof_name: '' });
-                loadHistory(); // Refresh history
+                setSelectedFile(null);
+                loadHistory(); 
                 setTimeout(() => setSubmitted(false), 5000);
             } else {
                 const data = await res.json().catch(() => ({}));
@@ -133,7 +128,7 @@ export default function StudentLeavesPage() {
     const handleCancel = async (id: string) => {
         if (!confirm('Are you sure you want to cancel this pending leave request?')) return;
         try {
-            const res = await apiPost(`/api/training/leave-cancel/${id}`, {});
+            const res = await apiFetch(`/api/training/leave-cancel/${id}`, { method: 'POST' });
             if (res.ok) {
                 loadHistory();
             } else {
