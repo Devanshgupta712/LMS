@@ -30,7 +30,10 @@ from app.schemas.schemas import (
 from app.models.setting import SystemSetting
 
 class AssignBatchRequest(BaseModel):
-    batch_id: str
+    batchId: str = Field(alias="batch_id")
+    
+    class Config:
+        populate_by_name = True
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -45,16 +48,16 @@ async def dashboard_stats(
     from app.models.lead import Lead
     leads = await db.execute(select(func.count(Lead.id)))
     from app.models.placement import Job
-    jobs = await db.execute(select(func.count(Job.id)).where(Job.is_active == True))
+    jobs = await db.execute(select(func.count(Job.id)).where(Job.isActive == True))
     pending = await db.execute(select(func.count(LeaveRequest.id)).where(LeaveRequest.status == "PENDING"))
 
     return DashboardStats(
-        total_students=students.scalar() or 0,
-        total_courses=courses.scalar() or 0,
-        total_batches=batches.scalar() or 0,
-        total_leads=leads.scalar() or 0,
-        active_jobs=jobs.scalar() or 0,
-        pending_leaves=pending.scalar() or 0,
+        totalStudents=students.scalar() or 0,
+        totalCourses=courses.scalar() or 0,
+        totalBatches=batches.scalar() or 0,
+        totalLeads=leads.scalar() or 0,
+        activeJobs=jobs.scalar() or 0,
+        pendingLeaves=pending.scalar() or 0,
     )
 
 
@@ -63,19 +66,19 @@ async def dashboard_stats(
 @router.get("/courses")
 async def list_courses(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Course).order_by(Course.created_at.desc())
+        select(Course).order_by(Course.createdAt.desc())
     )
     courses = result.scalars().all()
     out = []
     for c in courses:
-        batches_q = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == c.id))
-        regs_q = await db.execute(select(func.count(Registration.id)).where(Registration.course_id == c.id))
+        batches_q = await db.execute(select(func.count(Batch.id)).where(Batch.courseId == c.id))
+        regs_q = await db.execute(select(func.count(Registration.id)).where(Registration.courseId == c.id))
         out.append(CourseOut(
             id=c.id, name=c.name, description=c.description,
-            duration=c.duration, fee=c.fee, is_active=c.is_active,
-            created_at=c.created_at,
-            batch_count=batches_q.scalar() or 0,
-            student_count=regs_q.scalar() or 0,
+            duration=c.duration, fee=c.fee, isActive=c.isActive,
+            createdAt=c.createdAt,
+            batchCount=batches_q.scalar() or 0,
+            studentCount=regs_q.scalar() or 0,
         ))
     return out
 
@@ -93,8 +96,8 @@ async def create_course(
     await db.refresh(course)
     return CourseOut(
         id=course.id, name=course.name, description=course.description,
-        duration=course.duration, fee=course.fee, is_active=course.is_active,
-        created_at=course.created_at,
+        duration=course.duration, fee=course.fee, isActive=course.isActive,
+        createdAt=course.createdAt,
     )
 
 
@@ -103,7 +106,7 @@ class CourseUpdate(BaseModel):
     description: Optional[str] = None
     duration: Optional[str] = None
     fee: Optional[float] = None
-    is_active: Optional[bool] = None
+    isActive: Optional[bool] = Field(None, alias="is_active")
 
 @router.patch("/courses/{course_id}")
 async def update_course(
@@ -119,7 +122,7 @@ async def update_course(
     if body.description is not None: course.description = body.description
     if body.duration is not None: course.duration = body.duration
     if body.fee is not None: course.fee = body.fee
-    if body.is_active is not None: course.is_active = body.is_active
+    if body.isActive is not None: course.isActive = body.isActive
     await db.flush()
     return {"status": "updated"}
 
@@ -134,7 +137,7 @@ async def delete_course(
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     # Check for active batches
-    batch_count = await db.execute(select(func.count(Batch.id)).where(Batch.course_id == course_id))
+    batch_count = await db.execute(select(func.count(Batch.id)).where(Batch.courseId == course_id))
     if (batch_count.scalar() or 0) > 0:
         raise HTTPException(status_code=400, detail="Cannot delete course with existing batches. Delete the batches first.")
     db.delete(course)
@@ -151,22 +154,22 @@ async def list_batches(
 ):
     query = select(Batch)
     if user.role == Role.TRAINER:
-        query = query.where(Batch.trainer_id == user.id)
+        query = query.where(Batch.trainerId == user.id)
         
-    result = await db.execute(query.order_by(Batch.created_at.desc()))
+    result = await db.execute(query.order_by(Batch.createdAt.desc()))
     batches = result.scalars().all()
     out = []
     for b in batches:
-        course = await db.get(Course, b.course_id)
-        trainer = await db.get(User, b.trainer_id) if b.trainer_id else None
-        stu_q = await db.execute(select(func.count(BatchStudent.id)).where(BatchStudent.batch_id == b.id))
+        course = await db.get(Course, b.courseId)
+        trainer = await db.get(User, b.trainerId) if b.trainerId else None
+        stu_q = await db.execute(select(func.count(BatchStudent.id)).where(BatchStudent.batchId == b.id))
         out.append(BatchOut(
-            id=b.id, name=b.name, start_date=b.start_date, end_date=b.end_date,
-            is_active=b.is_active,
-            schedule_time=b.schedule_time,
-            course_name=course.name if course else "",
-            trainer_name=trainer.name if trainer else None,
-            student_count=stu_q.scalar() or 0,
+            id=b.id, name=b.name, startDate=b.startDate, endDate=b.endDate,
+            isActive=b.isActive,
+            scheduleTime=b.scheduleTime,
+            courseName=course.name if course else "",
+            trainerName=trainer.name if trainer else None,
+            studentCount=stu_q.scalar() or 0,
         ))
     return out
 
@@ -178,24 +181,24 @@ async def create_batch(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
 ):
-    course_id = body.course_id if body.course_id else None
+    course_id = body.courseId if body.courseId else None
     
     batch = Batch(
-        course_id=course_id, name=body.name,
-        start_date=datetime.fromisoformat(body.start_date),
-        end_date=datetime.fromisoformat(body.end_date),
-        schedule_time=body.schedule_time,
-        trainer_id=body.trainer_id or None,
+        courseId=course_id, name=body.name,
+        startDate=datetime.fromisoformat(body.startDate),
+        endDate=datetime.fromisoformat(body.endDate),
+        scheduleTime=body.scheduleTime,
+        trainerId=body.trainerId or None,
     )
     db.add(batch)
     await db.flush()
     await db.refresh(batch)
-    course = await db.get(Course, batch.course_id) if batch.course_id else None
+    course = await db.get(Course, batch.courseId) if batch.courseId else None
     return BatchOut(
-        id=batch.id, name=batch.name, start_date=batch.start_date,
-        end_date=batch.end_date, is_active=batch.is_active,
-        schedule_time=batch.schedule_time,
-        course_name=course.name if course else None,
+        id=batch.id, name=batch.name, startDate=batch.startDate,
+        endDate=batch.endDate, isActive=batch.isActive,
+        scheduleTime=batch.scheduleTime,
+        courseName=course.name if course else None,
     )
 
 from app.schemas.schemas import BatchUpdate
@@ -212,14 +215,14 @@ async def update_batch(
         raise HTTPException(status_code=404, detail="Batch not found")
         
     if body.name is not None: batch.name = body.name
-    if body.course_id is not None: 
-        batch.course_id = body.course_id if body.course_id else None
-    if body.start_date is not None: batch.start_date = datetime.fromisoformat(body.start_date)
-    if body.end_date is not None: batch.end_date = datetime.fromisoformat(body.end_date)
-    if body.schedule_time is not None: batch.schedule_time = body.schedule_time
-    if hasattr(body, 'trainer_id') and body.trainer_id is not None: 
-        batch.trainer_id = body.trainer_id if body.trainer_id else None
-    if body.is_active is not None: batch.is_active = body.is_active
+    if body.courseId is not None: 
+        batch.courseId = body.courseId if body.courseId else None
+    if body.startDate is not None: batch.startDate = datetime.fromisoformat(body.startDate)
+    if body.endDate is not None: batch.endDate = datetime.fromisoformat(body.endDate)
+    if body.scheduleTime is not None: batch.scheduleTime = body.scheduleTime
+    if hasattr(body, 'trainerId') and body.trainerId is not None: 
+        batch.trainerId = body.trainerId if body.trainerId else None
+    if body.isActive is not None: batch.isActive = body.isActive
 
     await db.flush()
     return {"status": "updated"}
@@ -241,28 +244,28 @@ async def delete_batch(
     from app.models.registration import Registration
     from app.models.notification import Feedback
     
-    await db.execute(delete(BatchStudent).where(BatchStudent.batch_id == batch_id))
-    await db.execute(delete(Attendance).where(Attendance.batch_id == batch_id))
-    await db.execute(delete(LeaveRequest).where(LeaveRequest.batch_id == batch_id))
+    await db.execute(delete(BatchStudent).where(BatchStudent.batchId == batch_id))
+    await db.execute(delete(Attendance).where(Attendance.batchId == batch_id))
+    await db.execute(delete(LeaveRequest).where(LeaveRequest.batchId == batch_id))
     
     # Remove batch reference from Registrations instead of deleting them entirely, 
     # since registration is independent now.
-    await db.execute(Registration.__table__.update().where(Registration.batch_id == batch_id).values(batch_id=None))
+    await db.execute(Registration.__table__.update().where(Registration.batchId == batch_id).values(batchId=None))
     
     # Feedback (if it has batch_id)
     # Actually Feedback doesn't have batch_id directly in the current model? Wait, course_id and batch_id are in Course, Batch. I'll wrap feedback in try.
     try:
-        await db.execute(delete(Feedback).where(Feedback.batch_id == batch_id))
+        await db.execute(delete(Feedback).where(Feedback.batchId == batch_id))
     except Exception:
         pass
     
     # Projects and Tasks
-    projects_res = await db.execute(select(Project.id).where(Project.batch_id == batch_id))
+    projects_res = await db.execute(select(Project.id).where(Project.batchId == batch_id))
     project_ids = projects_res.scalars().all()
     if project_ids:
-        await db.execute(delete(Task).where(Task.project_id.in_(project_ids)))
-        await db.execute(delete(Assignment).where(Assignment.project_id.in_(project_ids)))
-        await db.execute(delete(Project).where(Project.batch_id == batch_id))
+        await db.execute(delete(Task).where(Task.projectId.in_(project_ids)))
+        await db.execute(delete(Assignment).where(Assignment.projectId.in_(project_ids)))
+        await db.execute(delete(Project).where(Project.batchId == batch_id))
 
     await db.delete(batch)
     await db.flush()
@@ -276,7 +279,7 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
 ):
-    result = await db.execute(select(User).order_by(User.created_at.desc()))
+    result = await db.execute(select(User).order_by(User.createdAt.desc()))
     users = result.scalars().all()
     return [UserOut.model_validate(u) for u in users]
 
@@ -296,9 +299,9 @@ async def update_user_status(
     if target_user.role == Role.SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Cannot modify SUPER_ADMIN status")
     
-    target_user.is_active = body.is_active
+    target_user.isActive = body.isActive
     await db.flush()
-    return {"status": "updated", "is_active": target_user.is_active}
+    return {"status": "updated", "isActive": target_user.isActive}
 
 
 @router.patch("/users/{user_id}/password")
@@ -319,7 +322,7 @@ async def update_user_password(
         raise HTTPException(status_code=403, detail="Cannot change password for SUPER_ADMIN")
         
     from app.routers.auth import get_password_hash
-    hashed = get_password_hash(body.new_password)
+    hashed = get_password_hash(body.newPassword)
     target_user.password = hashed
     await db.flush()
     return {"status": "password_updated"}
@@ -352,22 +355,22 @@ async def delete_user(
         
         # 1. DELETE records where user is the primary subject
         entities = [
-            (Notification, "Notification", "user_id"),
-            (LeaveRequest, "LeaveRequest", "user_id"),
-            (TimeTracking, "TimeTracking", "user_id"),
-            (Attendance, "Attendance", "student_id"),
-            (BatchStudent, "BatchStudent", "student_id"),
-            (Registration, "Registration", "student_id"),
-            (Document, "Document", "student_id"),
-            (Feedback, "Feedback", "student_id"),
-            (Violation, "Violation", "student_id"),
-            (AssignmentSubmission, "AssignmentSubmission", "student_id"),
-            (LeadActivity, "LeadActivity", "user_id"),
-            (AdminPermission, "AdminPermission", "user_id"),
-            (JobApplication, "JobApplication", "student_id"),
-            (AssessmentSubmission, "AssessmentSubmission", "student_id"),
-            (MockInterview, "MockInterview", "student_id"),
-            (CommunicationPractice, "CommunicationPractice", "student_id"),
+            (Notification, "Notification", "userId"),
+            (LeaveRequest, "LeaveRequest", "userId"),
+            (TimeTracking, "TimeTracking", "userId"),
+            (Attendance, "Attendance", "studentId"),
+            (BatchStudent, "BatchStudent", "studentId"),
+            (Registration, "Registration", "studentId"),
+            (Document, "Document", "studentId"),
+            (Feedback, "Feedback", "studentId"),
+            (Violation, "Violation", "studentId"),
+            (AssignmentSubmission, "AssignmentSubmission", "studentId"),
+            (LeadActivity, "LeadActivity", "userId"),
+            (AdminPermission, "AdminPermission", "userId"),
+            (JobApplication, "JobApplication", "studentId"),
+            (AssessmentSubmission, "AssessmentSubmission", "studentId"),
+            (MockInterview, "MockInterview", "studentId"),
+            (CommunicationPractice, "CommunicationPractice", "studentId"),
         ]
 
         for model, name, field in entities:
@@ -380,38 +383,38 @@ async def delete_user(
 
         # Messages (sender or recipient)
         try:
-            await db.execute(delete(Message).where(or_(Message.sender_id == user_id, Message.recipient_id == user_id)))
+            await db.execute(delete(Message).where(or_(Message.senderId == user_id, Message.recipientId == user_id)))
             report.append("Cleared Messages")
         except Exception as e:
             report.append(f"Failed Messages: {str(e)}")
 
         # 2. NULLIFY references
         try:
-            await db.execute(Lead.__table__.update().where(Lead.assigned_to_id == user_id).values(assigned_to_id=None))
+            await db.execute(Lead.__table__.update().where(Lead.assignedToId == user_id).values(assignedToId=None))
             report.append("Nullified Lead")
         except Exception as e:
             report.append(f"Failed Nullify Lead: {str(e)}")
 
         try:
-            await db.execute(Batch.__table__.update().where(Batch.trainer_id == user_id).values(trainer_id=None))
+            await db.execute(Batch.__table__.update().where(Batch.trainerId == user_id).values(trainerId=None))
             report.append("Nullified Batch")
         except Exception as e:
             report.append(f"Failed Nullify Batch: {str(e)}")
 
         try:
-            await db.execute(Project.__table__.update().where(Project.trainer_id == user_id).values(trainer_id=None))
+            await db.execute(Project.__table__.update().where(Project.trainerId == user_id).values(trainerId=None))
             report.append("Nullified Project")
         except Exception as e:
             report.append(f"Failed Nullify Project: {str(e)}")
 
         try:
-            await db.execute(Task.__table__.update().where(Task.assigned_by == user_id).values(assigned_by=None))
+            await db.execute(Task.__table__.update().where(Task.assignedBy == user_id).values(assignedBy=None))
             report.append("Nullified Task")
         except Exception as e:
             report.append(f"Failed Nullify Task: {str(e)}")
 
         try:
-            await db.execute(Assignment.__table__.update().where(Assignment.assigned_by == user_id).values(assigned_by=None))
+            await db.execute(Assignment.__table__.update().where(Assignment.assignedBy == user_id).values(assignedBy=None))
             report.append("Nullified Assignment")
         except Exception as e:
             report.append(f"Failed Nullify Assignment: {str(e)}")
@@ -450,18 +453,18 @@ async def get_all_permissions(
     users = result.scalars().all()
     out = []
     for u in users:
-        perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == u.id))
+        perm_result = await db.execute(select(AdminPermission).where(AdminPermission.userId == u.id))
         perm = perm_result.scalars().first()
         out.append({
-            "user_id": u.id,
+            "userId": u.id,
             "name": u.name,
             "email": u.email,
             "role": u.role.value,
             "permissions": {
-                "manage_users": perm.manage_users if perm else False,
-                "manage_batches": perm.manage_batches if perm else False,
-                "manage_courses": perm.manage_courses if perm else False,
-                "manage_leaves": perm.manage_leaves if perm else False,
+                "manageUsers": perm.manageUsers if perm else False,
+                "manageBatches": perm.manageBatches if perm else False,
+                "manageCourses": perm.manageCourses if perm else False,
+                "manageLeaves": perm.manageLeaves if perm else False,
             }
         })
     return out
@@ -477,11 +480,11 @@ async def get_admin_permissions(
     if not target_user or target_user.role not in [Role.ADMIN, Role.TRAINER]:
         raise HTTPException(status_code=404, detail="Admin or Trainer not found")
         
-    perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
+    perm_result = await db.execute(select(AdminPermission).where(AdminPermission.userId == user_id))
     perm = perm_result.scalars().first()
     
     if not perm:
-        perm = AdminPermission(user_id=user_id)
+        perm = AdminPermission(userId=user_id)
         db.add(perm)
         await db.flush()
         
@@ -499,17 +502,17 @@ async def update_admin_permissions(
     if not target_user or target_user.role not in [Role.ADMIN, Role.TRAINER]:
         raise HTTPException(status_code=404, detail="Admin or Trainer not found")
         
-    perm_result = await db.execute(select(AdminPermission).where(AdminPermission.user_id == user_id))
+    perm_result = await db.execute(select(AdminPermission).where(AdminPermission.userId == user_id))
     perm = perm_result.scalars().first()
     
     if not perm:
-        perm = AdminPermission(user_id=user_id)
+        perm = AdminPermission(userId=user_id)
         db.add(perm)
         
-    perm.manage_users = body.manage_users
-    perm.manage_batches = body.manage_batches
-    perm.manage_courses = body.manage_courses
-    perm.manage_leaves = body.manage_leaves
+    perm.manageUsers = body.manageUsers
+    perm.manageBatches = body.manageBatches
+    perm.manageCourses = body.manageCourses
+    perm.manageLeaves = body.manageLeaves
     
     await db.flush()
     return perm
@@ -524,10 +527,10 @@ async def list_students(
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))
 ):
     if all == "true":
-        result = await db.execute(select(User).order_by(User.created_at.desc()))
+        result = await db.execute(select(User).order_by(User.createdAt.desc()))
     else:
         result = await db.execute(
-            select(User).where(User.role == role).order_by(User.created_at.desc())
+            select(User).where(User.role == role).order_by(User.createdAt.desc())
         )
     users = result.scalars().all()
     
@@ -538,8 +541,8 @@ async def list_students(
     from app.models.attendance import Attendance, LeaveRequest
 
     att_result = await db.execute(
-        select(Attendance.student_id, Attendance.status)
-        .where(Attendance.student_id.in_(user_ids))
+        select(Attendance.studentId, Attendance.status)
+        .where(Attendance.studentId.in_(user_ids))
     )
     attendances = att_result.all()
 
@@ -552,8 +555,8 @@ async def list_students(
             att_map[student_id]['A'] += 1
 
     leave_result = await db.execute(
-        select(LeaveRequest.user_id)
-        .where(LeaveRequest.user_id.in_(user_ids), LeaveRequest.status == 'APPROVED')
+        select(LeaveRequest.userId)
+        .where(LeaveRequest.userId.in_(user_ids), LeaveRequest.status == 'APPROVED')
     )
     leaves = leave_result.scalars().all()
     leave_map = { uid: 0 for uid in user_ids }
@@ -568,10 +571,10 @@ async def list_students(
         pct = int((p / total) * 100) if total > 0 else 0
         
         s = StudentOut.model_validate(u)
-        s.attendance_percentage = pct
-        s.days_present = p
-        s.days_absent = a
-        s.leaves_taken = leave_map[u.id]
+        s.attendancePercentage = pct
+        s.daysPresent = p
+        s.daysAbsent = a
+        s.leavesTaken = leave_map[u.id]
         response.append(s)
 
     return response
@@ -593,27 +596,27 @@ async def get_student_report(
 
     att_res = await db.execute(
         select(Attendance.id, Attendance.date, Attendance.status, Batch.name)
-        .outerjoin(Batch, Batch.id == Attendance.batch_id)
-        .where(Attendance.student_id == user_id)
+        .outerjoin(Batch, Batch.id == Attendance.batchId)
+        .where(Attendance.studentId == user_id)
         .order_by(Attendance.date.desc())
     )
     attendances = att_res.all()
 
     leave_res = await db.execute(
-        select(LeaveRequest).where(LeaveRequest.user_id == user_id).order_by(LeaveRequest.start_date.desc())
+        select(LeaveRequest).where(LeaveRequest.userId == user_id).order_by(LeaveRequest.startDate.desc())
     )
     leaves = leave_res.scalars().all()
 
     time_res = await db.execute(
-        select(TimeTracking).where(TimeTracking.user_id == user_id).order_by(TimeTracking.date.desc())
+        select(TimeTracking).where(TimeTracking.userId == user_id).order_by(TimeTracking.date.desc())
     )
     time_logs = time_res.scalars().all()
 
     reg_res = await db.execute(
         select(Registration, Course.name, Batch.name)
-        .join(Course, Course.id == Registration.course_id)
-        .outerjoin(Batch, Batch.id == Registration.batch_id)
-        .where(Registration.student_id == user_id)
+        .join(Course, Course.id == Registration.courseId)
+        .outerjoin(Batch, Batch.id == Registration.batchId)
+        .where(Registration.studentId == user_id)
     )
     registrations = reg_res.all()
 
@@ -621,30 +624,30 @@ async def get_student_report(
     absent = sum(1 for a in attendances if (a.status.value if hasattr(a.status, 'value') else a.status) == 'ABSENT')
     total = present + absent
     pct = int((present / total) * 100) if total > 0 else 0
-    total_punch_minutes = sum(t.total_minutes for t in time_logs if t.total_minutes)
+    total_punch_minutes = sum(t.totalMinutes for t in time_logs if t.totalMinutes)
 
     return {
         "student": {
             "id": student.id,
             "name": student.name,
-            "student_id": student.student_id,
+            "studentId": student.studentId,
             "email": student.email,
             "phone": student.phone
         },
         "stats": {
-            "attendance_percentage": pct,
-            "days_present": present,
-            "days_absent": absent,
-            "leaves_taken": len([l for l in leaves if (l.status.value if hasattr(l.status, 'value') else l.status) == 'APPROVED']),
-            "total_punch_minutes": total_punch_minutes
+            "attendancePercentage": pct,
+            "daysPresent": present,
+            "daysAbsent": absent,
+            "leavesTaken": len([l for l in leaves if (l.status.value if hasattr(l.status, 'value') else l.status) == 'APPROVED']),
+            "totalPunchMinutes": total_punch_minutes
         },
         "registrations": [
             {
                 "id": r[0].id,
-                "course_name": r[1],
-                "batch_name": r[2] or "Unassigned",
-                "fee_amount": r[0].fee_amount,
-                "fee_paid": r[0].fee_paid,
+                "courseName": r[1],
+                "batchName": r[2] or "Unassigned",
+                "feeAmount": r[0].feeAmount,
+                "feePaid": r[0].feePaid,
                 "status": r[0].status.value if hasattr(r[0].status, 'value') else r[0].status
             } for r in registrations
         ],
@@ -653,26 +656,26 @@ async def get_student_report(
                 "id": a.id,
                 "date": a.date,
                 "status": a.status.value if hasattr(a.status, 'value') else a.status,
-                "batch_name": a.name or "Unknown Batch"
+                "batchName": a.name or "Unknown Batch"
             } for a in attendances
         ],
         "leave_requests": [
             {
                 "id": l.id,
-                "start_date": l.start_date,
-                "end_date": l.end_date,
+                "startDate": l.startDate,
+                "endDate": l.endDate,
                 "reason": l.reason,
                 "status": l.status.value if hasattr(l.status, 'value') else l.status,
-                "leave_type": l.leave_type.value if hasattr(l.leave_type, 'value') else l.leave_type
+                "leaveType": l.leaveType.value if hasattr(l.leaveType, 'value') else l.leaveType
             } for l in leaves
         ],
         "time_logs": [
             {
                 "id": t.id,
                 "date": t.date,
-                "login_time": t.login_time,
-                "logout_time": t.logout_time,
-                "total_minutes": t.total_minutes
+                "loginTime": t.loginTime,
+                "logoutTime": t.logoutTime,
+                "totalMinutes": t.totalMinutes
             } for t in time_logs
         ]
     }
@@ -697,9 +700,9 @@ async def create_student(
         current_year = datetime.now().year
         pattern = f"APC-{current_year}-%"
         count_q = await db.execute(
-            select(User.student_id)
-            .where(User.student_id.like(pattern))
-            .order_by(User.student_id.desc())
+            select(User.studentId)
+            .where(User.studentId.like(pattern))
+            .order_by(User.studentId.desc())
             .limit(1)
         )
         last_sid = count_q.scalar()
@@ -715,7 +718,7 @@ async def create_student(
 
     user = User(
         email=body.email, password=hashed, name=body.name,
-        phone=body.phone, role=body.role, student_id=student_id,
+        phone=body.phone, role=body.role, studentId=student_id,
     )
     db.add(user)
     await db.flush()
@@ -736,12 +739,12 @@ async def assign_user_batch(
         raise HTTPException(status_code=404, detail="User not found")
     
     # 2. Verify batch
-    batch = await db.get(Batch, body.batch_id)
+    batch = await db.get(Batch, body.batchId)
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
 
     if target_user.role == Role.TRAINER:
-        batch.trainer_id = target_user.id
+        batch.trainerId = target_user.id
         await db.flush()
         return {"status": "success", "message": f"Trainer {target_user.name} assigned to batch {batch.name}"}
     
@@ -751,15 +754,15 @@ async def assign_user_batch(
     # 3. Check if already in this batch
     existing = await db.execute(
         select(BatchStudent).where(
-            BatchStudent.batch_id == body.batch_id,
-            BatchStudent.student_id == user_id
+            BatchStudent.batchId == body.batchId,
+            BatchStudent.studentId == user_id
         )
     )
     if existing.scalars().first():
         return {"status": "success", "message": "Student is already in this batch"}
     
     # 4. Link Student to Batch
-    link = BatchStudent(batch_id=body.batch_id, student_id=user_id)
+    link = BatchStudent(batchId=body.batchId, studentId=user_id)
     db.add(link)
     
     await db.flush()
@@ -783,8 +786,8 @@ async def get_student_details(
     if student.role == Role.TRAINER:
         batch_links_result = await db.execute(
             select(Batch, Course.name.label("course_name"))
-            .join(Course, Course.id == Batch.course_id)
-            .where(Batch.trainer_id == user_id)
+            .join(Course, Course.id == Batch.courseId)
+            .where(Batch.trainerId == user_id)
         )
         for b, cname in batch_links_result.all():
             batches.append({
@@ -795,28 +798,28 @@ async def get_student_details(
     else:
         batch_links_result = await db.execute(
             select(BatchStudent, Batch.name, Course.name.label("course_name"))
-            .join(Batch, Batch.id == BatchStudent.batch_id)
-            .join(Course, Course.id == Batch.course_id)
-            .where(BatchStudent.student_id == user_id)
+            .join(Batch, Batch.id == BatchStudent.batchId)
+            .join(Course, Course.id == Batch.courseId)
+            .where(BatchStudent.studentId == user_id)
         )
         for row in batch_links_result.all():
             batches.append({
-                "id": row[0].batch_id,
+                "id": row[0].batchId,
                 "name": row[1],
-                "course_name": row[2]
+                "courseName": row[2]
             })
 
         # Get registrations
         reg_result = await db.execute(
             select(Registration, Course.name)
-            .join(Course, Course.id == Registration.course_id)
-            .where(Registration.student_id == user_id)
+            .join(Course, Course.id == Registration.courseId)
+            .where(Registration.studentId == user_id)
         )
         for row in reg_result.all():
             registrations.append({
                 "id": row[0].id,
-                "course_id": row[0].course_id,
-                "course_name": row[1],
+                "courseId": row[0].courseId,
+                "courseName": row[1],
                 "status": row[0].status
             })
 
@@ -840,15 +843,15 @@ async def remove_user_batch(
 
     if target_user.role == Role.TRAINER:
         batch = await db.get(Batch, batch_id)
-        if batch and batch.trainer_id == user_id:
-            batch.trainer_id = None
+        if batch and batch.trainerId == user_id:
+            batch.trainerId = None
             await db.flush()
         return {"status": "removed"}
 
     result = await db.execute(
         delete(BatchStudent).where(
-            BatchStudent.student_id == user_id,
-            BatchStudent.batch_id == batch_id
+            BatchStudent.studentId == user_id,
+            BatchStudent.batchId == batch_id
         )
     )
     if result.rowcount == 0:
@@ -862,10 +865,10 @@ async def remove_user_batch(
 @router.get("/registrations")
 async def list_registrations(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Registration, User.name, User.email, User.student_id, Course.name, Batch.name)
-        .join(User, User.id == Registration.student_id)
-        .join(Course, Course.id == Registration.course_id)
-        .outerjoin(Batch, Batch.id == Registration.batch_id)
+        select(Registration, User.name, User.email, User.studentId, Course.name, Batch.name)
+        .join(User, User.id == Registration.studentId)
+        .join(Course, Course.id == Registration.courseId)
+        .outerjoin(Batch, Batch.id == Registration.batchId)
     )
     regs = []
     for row in result.all():
@@ -877,10 +880,10 @@ async def list_registrations(db: AsyncSession = Depends(get_db)):
             student_sid=sid,
             course_name=cname,
             batch_name=bname,
-            fee_amount=r.fee_amount,
-            fee_paid=r.fee_paid,
+            fee_amount=r.feeAmount,
+            fee_paid=r.feePaid,
             status=r.status,
-            created_at=r.created_at
+            created_at=r.createdAt
         ))
     return regs
 
@@ -892,19 +895,19 @@ async def create_registration(
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
 ):
     reg = Registration(
-        student_id=body.student_id, course_id=body.course_id,
-        batch_id=body.batch_id, fee_amount=body.fee_amount, fee_paid=body.fee_paid,
+        studentId=body.studentId, courseId=body.courseId,
+        batchId=body.batchId, feeAmount=body.feeAmount, feePaid=body.feePaid,
     )
     db.add(reg)
     await db.flush()
     await db.refresh(reg)
-    student = await db.get(User, reg.student_id)
-    course = await db.get(Course, reg.course_id)
+    student = await db.get(User, reg.studentId)
+    course = await db.get(Course, reg.courseId)
     return RegistrationOut(
         id=reg.id, student_name=student.name if student else "",
         course_name=course.name if course else "",
-        fee_amount=reg.fee_amount, fee_paid=reg.fee_paid,
-        status=reg.status, created_at=reg.created_at,
+        fee_amount=reg.feeAmount, fee_paid=reg.feePaid,
+        status=reg.status, created_at=reg.createdAt,
     )
 
 
@@ -935,7 +938,7 @@ async def list_leaves(
         # Only show leaves from students in the trainer's assigned batches
         from app.models.course import BatchStudent
         batch_result = await db.execute(
-            select(Batch.id).where(Batch.trainer_id == current_user.id)
+            select(Batch.id).where(Batch.trainerId == current_user.id)
         )
         trainer_batch_ids = batch_result.scalars().all()
 
@@ -944,35 +947,35 @@ async def list_leaves(
 
         # Get students in those batches
         student_result = await db.execute(
-            select(BatchStudent.student_id).where(BatchStudent.batch_id.in_(trainer_batch_ids))
+            select(BatchStudent.studentId).where(BatchStudent.batchId.in_(trainer_batch_ids))
         )
         student_ids = student_result.scalars().all()
 
         # Also include trainer's own leave requests
         query = query.where(
-            (LeaveRequest.user_id.in_(student_ids)) |
-            (LeaveRequest.user_id == current_user.id)
+            (LeaveRequest.userId.in_(student_ids)) |
+            (LeaveRequest.userId == current_user.id)
         )
     elif batch_id:
-        query = query.where(LeaveRequest.batch_id == batch_id)
+        query = query.where(LeaveRequest.batchId == batch_id)
 
-    result = await db.execute(query.order_by(LeaveRequest.created_at.desc()))
+    result = await db.execute(query.order_by(LeaveRequest.createdAt.desc()))
     leaves = result.scalars().all()
     out = []
     for l in leaves:
-        user = await db.get(User, l.user_id)
-        approver = await db.get(User, l.approved_by_id) if l.approved_by_id else None
+        user = await db.get(User, l.userId)
+        approver = await db.get(User, l.approvedById) if l.approvedById else None
         out.append(LeaveOut(
             id=l.id,
             user_name=user.name if user else "",
             user_role=user.role.value if user else "",
-            user_student_id=user.student_id if user else None,
-            leave_type=l.leave_type.value if hasattr(l, 'leave_type') and hasattr(l.leave_type, 'value') else str(getattr(l, 'leave_type', 'OTHER')),
-            proof_url=l.proof_url,
-            start_date=l.start_date, end_date=l.end_date,
+            user_student_id=user.studentId if user else None,
+            leave_type=l.leaveType.value if hasattr(l, 'leaveType') and hasattr(l.leaveType, 'value') else str(getattr(l, 'leaveType', 'OTHER')),
+            proof_url=l.proofUrl,
+            start_date=l.startDate, end_date=l.endDate,
             reason=l.reason, status=l.status.value,
             approved_by_name=approver.name if approver else None,
-            created_at=l.created_at,
+            created_at=l.createdAt,
         ))
     return out
 
@@ -990,7 +993,7 @@ async def action_leave(
         raise HTTPException(status_code=404, detail="Leave request not found")
     
     # Fetch the leave requester
-    requester = await db.get(User, leave.user_id)
+    requester = await db.get(User, leave.userId)
     if not requester:
          raise HTTPException(status_code=404, detail="User who requested leave not found")
 
@@ -1000,22 +1003,22 @@ async def action_leave(
 
     old_status = leave.status
     leave.status = body.status
-    leave.approved_by_id = current_user.id
+    leave.approvedById = current_user.id
     
     if body.status == LeaveStatus.REJECTED:
-        leave.rejection_reason = body.rejection_reason
+        leave.rejectionReason = body.rejectionReason
     else:
-        leave.rejection_reason = None
+        leave.rejectionReason = None
 
     # Handle Auto-marking attendance if approved
     if body.status == LeaveStatus.APPROVED:
         # Loop through each day of the leave
-        current_date = leave.start_date
-        while current_date <= leave.end_date:
+        current_date = leave.startDate
+        while current_date <= leave.endDate:
             # Check if attendance record exists
             att_result = await db.execute(
                 select(Attendance).where(
-                    Attendance.student_id == leave.user_id,
+                    Attendance.studentId == leave.userId,
                     Attendance.date == current_date
                 )
             )
@@ -1026,11 +1029,11 @@ async def action_leave(
             else:
                 # Create new record
                 new_att = Attendance(
-                    student_id=leave.user_id,
-                    batch_id=leave.batch_id or "UNKNOWN", # Fallback if batch not linked
+                    studentId=leave.userId,
+                    batchId=leave.batchId or "UNKNOWN", # Fallback if batch not linked
                     date=current_date,
                     status=AttendanceStatus.ON_LEAVE,
-                    remarks=f"Auto-marked: Leave Approved ({leave.leave_type})"
+                    remarks=f"Auto-marked: Leave Approved ({leave.leaveType})"
                 )
                 db.add(new_att)
             
@@ -1040,15 +1043,15 @@ async def action_leave(
     
     # Send Email Notification in background
     leave_details = {
-        "start_date": leave.start_date.strftime("%Y-%m-%d"),
-        "end_date": leave.end_date.strftime("%Y-%m-%d")
+        "start_date": leave.startDate.strftime("%Y-%m-%d"),
+        "end_date": leave.endDate.strftime("%Y-%m-%d")
     }
     background_tasks.add_task(
         send_leave_status_email, 
         requester.email, 
         body.status, 
         leave_details, 
-        body.rejection_reason
+        body.rejectionReason
     )
 
     return {"status": "updated"}
@@ -1070,16 +1073,16 @@ async def list_notifications(
     # Group by title and message for SQLite compatibility to mimic distinct on specific columns
     result = await db.execute(
         select(Notification)
-        .where(Notification.reference_id.in_(["admin_broadcast", "admin_direct"]))
+        .where(Notification.referenceId.in_(["admin_broadcast", "admin_direct"]))
         .group_by(Notification.title, Notification.message)
-        .order_by(Notification.created_at.desc())
+        .order_by(Notification.createdAt.desc())
         .limit(50)
     )
     notifs = result.scalars().all()
     return [
         {
             "id": n.id, "title": n.title, "message": n.message,
-            "read": n.read, "created_at": n.created_at.isoformat() if n.created_at else None,
+            "read": n.read, "created_at": n.createdAt.isoformat() if n.createdAt else None,
         }
         for n in notifs
     ]
@@ -1092,7 +1095,7 @@ async def delete_all_notifications(
     from app.models.notification import Notification
     await db.execute(
         delete(Notification).where(
-            Notification.reference_id.in_(["admin_broadcast", "admin_direct"])
+            Notification.referenceId.in_(["admin_broadcast", "admin_direct"])
         )
     )
     await db.flush()
@@ -1108,7 +1111,7 @@ async def delete_notification(
     result = await db.execute(
         delete(Notification).where(
             Notification.id == notification_id,
-            Notification.reference_id.in_(["admin_broadcast", "admin_direct"])
+            Notification.referenceId.in_(["admin_broadcast", "admin_direct"])
         )
     )
     if result.rowcount == 0:
@@ -1125,31 +1128,31 @@ async def send_notification(
     from app.models.notification import Notification
 
     if body.target == "ALL":
-        result = await db.execute(select(User).where(User.is_active == True))
+        result = await db.execute(select(User).where(User.isActive == True))
         users = result.scalars().all()
         for u in users:
-            n = Notification(user_id=u.id, title=body.title, message=body.message, type="SYSTEM", reference_id="admin_broadcast")
+            n = Notification(userId=u.id, title=body.title, message=body.message, type="SYSTEM", referenceId="admin_broadcast")
             db.add(n)
         await db.flush()
         return {"status": "sent", "count": len(users)}
         
     elif body.target == "ROLE" and body.role:
-        result = await db.execute(select(User).where(User.is_active == True, User.role == body.role))
+        result = await db.execute(select(User).where(User.isActive == True, User.role == body.role))
         users = result.scalars().all()
         if not users:
             raise HTTPException(status_code=404, detail=f"No active users found with role {body.role}")
         
         for u in users:
-            n = Notification(user_id=u.id, title=body.title, message=body.message, type="SYSTEM", reference_id="admin_broadcast")
+            n = Notification(userId=u.id, title=body.title, message=body.message, type="SYSTEM", referenceId="admin_broadcast")
             db.add(n)
         await db.flush()
         return {"status": "sent", "count": len(users)}
 
-    elif body.target == "USER" and body.user_id:
-        user = await db.get(User, body.user_id)
+    elif body.target == "USER" and body.userId:
+        user = await db.get(User, body.userId)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        n = Notification(user_id=user.id, title=body.title, message=body.message, type="SYSTEM", reference_id="admin_direct")
+        n = Notification(userId=user.id, title=body.title, message=body.message, type="SYSTEM", referenceId="admin_direct")
 
         db.add(n)
         await db.flush()

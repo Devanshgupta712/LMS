@@ -30,9 +30,9 @@ class Job(Base):
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     location: Mapped[str | None] = mapped_column(String, nullable=True)
     salary: Mapped[str | None] = mapped_column(String, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    isActive: Mapped[bool] = mapped_column("isActive", Boolean, default=True)
+    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
 
     applications = relationship("JobApplication", back_populates="job")
 
@@ -41,13 +41,13 @@ class JobApplication(Base):
     __tablename__ = "job_applications"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    job_id: Mapped[str] = mapped_column(String, ForeignKey("jobs.id"))
-    student_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
-    resume_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    video_resume_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    jobId: Mapped[str] = mapped_column("jobId", String, ForeignKey("jobs.id"))
+    studentId: Mapped[str] = mapped_column("studentId", String, ForeignKey("users.id"))
+    resumeUrl: Mapped[str | None] = mapped_column("resumeUrl", String, nullable=True)
+    videoResumeUrl: Mapped[str | None] = mapped_column("videoResumeUrl", String, nullable=True)
     status: Mapped[JobApplicationStatus] = mapped_column(Enum(JobApplicationStatus), default=JobApplicationStatus.APPLIED)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
 
     job = relationship("Job", back_populates="applications")
     student = relationship("User", back_populates="job_applications")
@@ -59,11 +59,11 @@ class Assessment(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     title: Mapped[str] = mapped_column(String)
     type: Mapped[AssessmentType] = mapped_column(Enum(AssessmentType))
-    course_id: Mapped[str | None] = mapped_column(String, ForeignKey("courses.id"), nullable=True)
+    courseId: Mapped[str | None] = mapped_column("courseId", String, ForeignKey("courses.id"), nullable=True)
     questions: Mapped[str] = mapped_column(String)  # JSON string
     duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    isActive: Mapped[bool] = mapped_column("isActive", Boolean, default=True)
+    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
 
     course = relationship("Course", back_populates="assessments")
     submissions = relationship("AssessmentSubmission", back_populates="assessment")
@@ -73,11 +73,11 @@ class AssessmentSubmission(Base):
     __tablename__ = "assessment_submissions"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    assessment_id: Mapped[str] = mapped_column(String, ForeignKey("assessments.id"))
-    student_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
+    assessmentId: Mapped[str] = mapped_column("assessmentId", String, ForeignKey("assessments.id"))
+    studentId: Mapped[str] = mapped_column("studentId", String, ForeignKey("users.id"))
     answers: Mapped[str] = mapped_column(String)  # JSON string
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    submitted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    submittedAt: Mapped[datetime] = mapped_column("submittedAt", DateTime, server_default=func.now())
 
     assessment = relationship("Assessment", back_populates="submissions")
     student = relationship("User", back_populates="assessment_submissions")
@@ -87,13 +87,13 @@ class MockInterview(Base):
     __tablename__ = "mock_interviews"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    student_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
-    scheduled_at: Mapped[datetime] = mapped_column(DateTime)
+    studentId: Mapped[str] = mapped_column("studentId", String, ForeignKey("users.id"))
+    scheduledAt: Mapped[datetime] = mapped_column("scheduledAt", DateTime)
     feedback: Mapped[str | None] = mapped_column(String, nullable=True)
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    report_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    reportUrl: Mapped[str | None] = mapped_column("reportUrl", String, nullable=True)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
 
     student = relationship("User", back_populates="mock_interviews")
 
@@ -102,11 +102,11 @@ class CommunicationPractice(Base):
     __tablename__ = "communication_practice"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    student_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
+    studentId: Mapped[str] = mapped_column("studentId", String, ForeignKey("users.id"))
     type: Mapped[str] = mapped_column(String)
-    recording_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    recordingUrl: Mapped[str | None] = mapped_column("recordingUrl", String, nullable=True)
     feedback: Mapped[str | None] = mapped_column(String, nullable=True)
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
 
     student = relationship("User", back_populates="comm_practice")

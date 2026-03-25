@@ -13,18 +13,18 @@ router = APIRouter(prefix="/api/marketing", tags=["Marketing"])
 
 @router.get("/leads")
 async def list_leads(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Lead).order_by(Lead.created_at.desc()))
+    result = await db.execute(select(Lead).order_by(Lead.createdAt.desc()))
     leads = result.scalars().all()
     out = []
     for l in leads:
-        assignee = await db.get(User, l.assigned_to_id) if l.assigned_to_id else None
-        act_q = await db.execute(select(func.count(LeadActivity.id)).where(LeadActivity.lead_id == l.id))
+        assignee = await db.get(User, l.assignedToId) if l.assignedToId else None
+        act_q = await db.execute(select(func.count(LeadActivity.id)).where(LeadActivity.leadId == l.id))
         out.append(LeadOut(
             id=l.id, name=l.name, email=l.email, phone=l.phone,
             source=l.source, status=l.status.value, notes=l.notes,
-            assigned_to_name=assignee.name if assignee else None,
-            activity_count=act_q.scalar() or 0,
-            created_at=l.created_at,
+            assignedToName=assignee.name if assignee else None,
+            activityCount=act_q.scalar() or 0,
+            createdAt=l.createdAt,
         ))
     return out
 
@@ -38,7 +38,7 @@ async def create_lead(
     lead = Lead(
         name=body.name, email=body.email, phone=body.phone,
         source=body.source, notes=body.notes,
-        assigned_to_id=body.assigned_to_id,
+        assignedToId=body.assignedToId,
     )
     db.add(lead)
     await db.flush()
@@ -46,7 +46,7 @@ async def create_lead(
     return LeadOut(
         id=lead.id, name=lead.name, email=lead.email, phone=lead.phone,
         source=lead.source, status=lead.status.value, notes=lead.notes,
-        created_at=lead.created_at,
+        createdAt=lead.createdAt,
     )
 
 
@@ -82,11 +82,11 @@ async def export_marketing_report(
 ):
     query = select(Lead)
     if start_date:
-        query = query.where(Lead.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
+        query = query.where(Lead.createdAt >= datetime.strptime(start_date, "%Y-%m-%d"))
     if end_date:
-        query = query.where(Lead.created_at <= datetime.strptime(end_date, "%Y-%m-%d"))
+        query = query.where(Lead.createdAt <= datetime.strptime(end_date, "%Y-%m-%d"))
         
-    result = await db.execute(query.order_by(Lead.created_at.desc()))
+    result = await db.execute(query.order_by(Lead.createdAt.desc()))
     leads = result.scalars().all()
     
     output = io.StringIO()
@@ -96,9 +96,9 @@ async def export_marketing_report(
     ])
     
     for lead in leads:
-        assigned_user = await db.get(User, lead.assigned_to_id) if lead.assigned_to_id else None
+        assigned_user = await db.get(User, lead.assignedToId) if lead.assignedToId else None
         writer.writerow([
-            lead.created_at.strftime("%Y-%m-%d %H:%M") if lead.created_at else "",
+            lead.createdAt.strftime("%Y-%m-%d %H:%M") if lead.createdAt else "",
             lead.name,
             lead.email or "",
             lead.phone or "",
@@ -118,13 +118,13 @@ async def export_marketing_report(
 @router.get("/leads/{lead_id}/activities")
 async def list_activities(lead_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(LeadActivity).where(LeadActivity.lead_id == lead_id).order_by(LeadActivity.created_at.desc())
+        select(LeadActivity).where(LeadActivity.leadId == lead_id).order_by(LeadActivity.createdAt.desc())
     )
     return [
         {
             "id": a.id, "type": a.type, "message": a.message,
-            "scheduled_at": a.scheduled_at, "sent_at": a.sent_at,
-            "response": a.response, "created_at": a.created_at,
+            "scheduledAt": a.scheduledAt, "sentAt": a.sentAt,
+            "response": a.response, "createdAt": a.createdAt,
         }
         for a in result.scalars().all()
     ]
@@ -138,10 +138,10 @@ async def create_activity(
     user: User = Depends(get_current_user),
 ):
     activity = LeadActivity(
-        lead_id=lead_id,
+        leadId=lead_id,
         type=body.get("type", "NOTE"),
         message=body.get("message"),
-        user_id=user.id,
+        userId=user.id,
     )
     db.add(activity)
     await db.flush()

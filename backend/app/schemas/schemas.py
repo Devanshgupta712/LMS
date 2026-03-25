@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasPath, AliasChoices
 
 
 # ─── Auth ──────────────────────────────────────────────
@@ -19,7 +19,6 @@ class VerifyEmailRequest(BaseModel):
     code: str
 
 
-
 class RegisterRequest(BaseModel):
     name: str
     email: str
@@ -29,12 +28,15 @@ class RegisterRequest(BaseModel):
     course: str | None = None
 
 class AdminPasswordChangeRequest(BaseModel):
-    new_password: str
+    newPassword: str = Field(alias="new_password")
     
 class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+    access_token: str = Field(alias="access_token")
+    token_type: str = Field(default="bearer", alias="token_type")
     user: "UserOut"
+
+    class Config:
+        populate_by_name = True
 
 class UserOut(BaseModel):
     id: str
@@ -42,31 +44,40 @@ class UserOut(BaseModel):
     name: str
     phone: str | None
     role: str
-    student_id: str | None
+    studentId: str | None = None
     dob: str | None = None
-    education_status: str | None = None
-    highest_education: str | None = None
+    educationStatus: str | None = None
+    highestEducation: str | None = None
     degree: str | None = None
-    passing_year: str | None = None
-    is_active: bool
-    created_at: datetime
+    passingYear: str | None = None
+    isActive: bool
+    createdAt: datetime
 
     class Config:
         from_attributes = True
         use_enum_values = True
+        populate_by_name = True
 
 class AdminPermissionUpdate(BaseModel):
-    manage_users: bool = False
-    manage_batches: bool = False
-    manage_courses: bool = False
-    manage_leaves: bool = False
+    manageUsers: bool = Field(default=False, alias="manage_users")
+    manageBatches: bool = Field(default=False, alias="manage_batches")
+    manageCourses: bool = Field(default=False, alias="manage_courses")
+    manageLeaves: bool = Field(default=False, alias="manage_leaves")
 
-class AdminPermissionOut(AdminPermissionUpdate):
+    class Config:
+        populate_by_name = True
+
+class AdminPermissionOut(BaseModel):
     id: str
-    user_id: str
+    userId: str
+    manageUsers: bool = False
+    manageBatches: bool = False
+    manageCourses: bool = False
+    manageLeaves: bool = False
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Courses ───────────────────────────────────────────
 class CourseCreate(BaseModel):
@@ -81,45 +92,53 @@ class CourseOut(BaseModel):
     description: str | None
     duration: str | None
     fee: float
-    is_active: bool
-    created_at: datetime
-    batch_count: int = 0
-    student_count: int = 0
+    isActive: bool
+    createdAt: datetime
+    batchCount: int = 0
+    studentCount: int = 0
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Batches ───────────────────────────────────────────
 class BatchCreate(BaseModel):
-    course_id: str | None = None
+    courseId: str | None = Field(default=None, alias="course_id")
     name: str
-    start_date: str
-    end_date: str
-    schedule_time: str | None = None
-    trainer_id: str | None = None
+    startDate: str = Field(alias="start_date")
+    endDate: str = Field(alias="end_date")
+    scheduleTime: str | None = Field(default=None, alias="schedule_time")
+    trainerId: str | None = Field(default=None, alias="trainer_id")
+
+    class Config:
+        populate_by_name = True
 
 class BatchUpdate(BaseModel):
-    course_id: str | None = None
+    courseId: str | None = Field(default=None, alias="course_id")
     name: str | None = None
-    start_date: str | None = None
-    end_date: str | None = None
-    schedule_time: str | None = None
-    trainer_id: str | None = None
-    is_active: bool | None = None
+    startDate: str | None = Field(default=None, alias="start_date")
+    endDate: str | None = Field(default=None, alias="end_date")
+    scheduleTime: str | None = Field(default=None, alias="schedule_time")
+    trainerId: str | None = Field(default=None, alias="trainer_id")
+    isActive: bool | None = Field(default=None, alias="is_active")
+
+    class Config:
+        populate_by_name = True
 
 class BatchOut(BaseModel):
     id: str
     name: str
-    start_date: datetime
-    end_date: datetime
-    is_active: bool
-    schedule_time: str | None = None
-    course_name: str | None = None
-    trainer_name: str | None = None
-    student_count: int = 0
+    startDate: datetime
+    endDate: datetime
+    isActive: bool
+    scheduleTime: str | None = None
+    courseName: str | None = None
+    trainerName: str | None = None
+    studentCount: int = 0
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Students ─────────────────────────────────────────
 class StudentCreate(BaseModel):
@@ -134,17 +153,18 @@ class StudentOut(BaseModel):
     name: str
     email: str
     phone: str | None
-    student_id: str | None
+    studentId: str | None = None
     role: str
-    is_active: bool
-    created_at: datetime
-    attendance_percentage: int | None = None
-    days_present: int = 0
-    days_absent: int = 0
-    leaves_taken: int = 0
+    isActive: bool
+    createdAt: datetime
+    attendancePercentage: int | None = None
+    daysPresent: int = 0
+    daysAbsent: int = 0
+    leavesTaken: int = 0
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Leads ─────────────────────────────────────────────
 class LeadCreate(BaseModel):
@@ -153,7 +173,10 @@ class LeadCreate(BaseModel):
     phone: str | None = None
     source: str | None = None
     notes: str | None = None
-    assigned_to_id: str | None = None
+    assignedToId: str | None = Field(default=None, alias="assigned_to_id")
+
+    class Config:
+        populate_by_name = True
 
 class LeadUpdate(BaseModel):
     status: str | None = None
@@ -167,96 +190,113 @@ class LeadOut(BaseModel):
     source: str | None
     status: str
     notes: str | None
-    assigned_to_name: str | None = None
-    activity_count: int = 0
-    created_at: datetime
+    assignedToName: str | None = None
+    activityCount: int = 0
+    createdAt: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Attendance ────────────────────────────────────────
 class AttendanceRecord(BaseModel):
-    student_id: str
-    batch_id: str
+    studentId: str = Field(alias="student_id")
+    batchId: str = Field(alias="batch_id")
     date: str
     status: str
+
+    class Config:
+        populate_by_name = True
 
 class AttendanceBulk(BaseModel):
     records: list[AttendanceRecord]
 
 class AttendanceOut(BaseModel):
     id: str
-    student_id: str
-    student_name: str = ""
-    student_sid: str | None = None
-    batch_id: str
+    studentId: str
+    studentName: str = ""
+    studentSid: str | None = None
+    batchId: str
     date: datetime
     status: str
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Leave ─────────────────────────────────────────────
 class LeaveCreate(BaseModel):
-    start_date: str
-    end_date: str
+    startDate: str = Field(alias="start_date")
+    endDate: str = Field(alias="end_date")
     reason: str | None = None
+
+    class Config:
+        populate_by_name = True
 
 class LeaveAction(BaseModel):
     id: str
     status: str
-    rejection_reason: str | None = None
-    approved_by_id: str | None = None
+    rejectionReason: str | None = Field(default=None, alias="rejection_reason")
+    approvedById: str | None = Field(default=None, alias="approved_by_id")
+
+    class Config:
+        populate_by_name = True
 
 class LeaveOut(BaseModel):
     id: str
-    user_name: str = ""
-    user_role: str = ""
-    user_student_id: str | None = None
-    leave_type: str = "OTHER"
-    proof_url: str | None = None
-    is_cloudinary: bool = False
-    start_date: datetime
-    end_date: datetime
+    userName: str = ""
+    userRole: str = ""
+    userStudentId: str | None = None
+    leaveType: str = "OTHER"
+    proofUrl: str | None = None
+    isCloudinary: bool = False
+    startDate: datetime
+    endDate: datetime
     reason: str | None
-    rejection_reason: str | None = None
+    rejectionReason: str | None = None
     status: str
-    approved_by_name: str | None = None
-    created_at: datetime
+    approvedByName: str | None = None
+    createdAt: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Projects / Tasks ─────────────────────────────────
 class ProjectCreate(BaseModel):
-    batch_id: str
+    batchId: str = Field(alias="batch_id")
     title: str
     description: str | None = None
     deadline: str | None = None
+
+    class Config:
+        populate_by_name = True
 
 class TaskOut(BaseModel):
     id: str
     title: str
     status: str
     deadline: datetime | None
-    violation_flag: bool
-    student_name: str | None = None
-    student_sid: str | None = None
+    violationFlag: bool = False
+    studentName: str | None = None
+    studentSid: str | None = None
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 class ProjectOut(BaseModel):
     id: str
     title: str
     description: str | None
     deadline: datetime | None
-    batch_name: str = ""
-    task_count: int = 0
+    batchName: str = ""
+    taskCount: int = 0
     tasks: list[TaskOut] = []
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Jobs ──────────────────────────────────────────────
 class JobCreate(BaseModel):
@@ -273,42 +313,50 @@ class JobOut(BaseModel):
     description: str | None
     location: str | None
     salary: str | None
-    is_active: bool
-    application_count: int = 0
-    created_at: datetime
+    isActive: bool
+    applicationCount: int = 0
+    createdAt: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Registrations ─────────────────────────────────────
 class RegistrationCreate(BaseModel):
-    student_id: str
-    course_id: str
-    batch_id: str | None = None
-    fee_amount: float = 0
-    fee_paid: float = 0
+    studentId: str = Field(alias="student_id")
+    courseId: str = Field(alias="course_id")
+    batchId: str | None = Field(default=None, alias="batch_id")
+    feeAmount: float = 0
+    feePaid: float = 0
+
+    class Config:
+        populate_by_name = True
 
 class RegistrationOut(BaseModel):
     id: str
-    student_name: str = ""
-    student_email: str = ""
-    student_sid: str | None = None
-    course_name: str = ""
-    batch_name: str | None = None
-    fee_amount: float
-    fee_paid: float
+    studentName: str = ""
+    studentEmail: str = ""
+    studentSid: str | None = None
+    courseName: str = ""
+    batchName: str | None = None
+    feeAmount: float
+    feePaid: float
     status: str
-    created_at: datetime
+    createdAt: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # ─── Dashboard ─────────────────────────────────────────
 class DashboardStats(BaseModel):
-    total_students: int = 0
-    total_courses: int = 0
-    total_batches: int = 0
-    total_leads: int = 0
-    active_jobs: int = 0
-    pending_leaves: int = 0
-    recent_leads: list[LeadOut] = []
+    totalStudents: int = Field(default=0, alias="total_students")
+    totalCourses: int = Field(default=0, alias="total_courses")
+    totalBatches: int = Field(default=0, alias="total_batches")
+    totalLeads: int = Field(default=0, alias="total_leads")
+    activeJobs: int = Field(default=0, alias="active_jobs")
+    pendingLeaves: int = Field(default=0, alias="pending_leaves")
+    recentLeads: list[LeadOut] = Field(default=[], alias="recent_leads")
+
+    class Config:
+        populate_by_name = True
