@@ -100,6 +100,7 @@ export default function StudentLeavesPage() {
                             >
                                 <option value="MEDICAL">Medical</option>
                                 <option value="INTERVIEW">Interview</option>
+                                <option value="WORK_FROM_HOME">Work From Home</option>
                                 <option value="OTHER">Other</option>
                             </select>
                         </div>
@@ -111,12 +112,12 @@ export default function StudentLeavesPage() {
 
                         {form.leave_type !== 'INTERVIEW' && (
                             <div className="form-group">
-                                <label>Reason {form.leave_type === 'OTHER' ? '(Mandatory)' : '(Optional)'}</label>
+                                <label>Reason {(form.leave_type === 'OTHER' || form.leave_type === 'WORK_FROM_HOME') ? '(Mandatory)' : '(Optional)'}</label>
                                 <textarea 
                                     className="form-input" 
                                     rows={3} 
-                                    required={form.leave_type === 'OTHER'}
-                                    placeholder="Explain reason for leave..." 
+                                    required={form.leave_type === 'OTHER' || form.leave_type === 'WORK_FROM_HOME'}
+                                    placeholder={form.leave_type === 'WORK_FROM_HOME' ? 'Describe the work you will do from home...' : 'Explain reason for leave...'} 
                                     value={form.reason} 
                                     onChange={e => setForm({ ...form, reason: e.target.value })} 
                                 />

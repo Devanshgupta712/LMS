@@ -64,6 +64,15 @@ export default function TrainerLeavesPage() {
                         </div>
                     )}
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="form-group">
+                            <label>Leave Type</label>
+                            <select className="form-input" value={form.leave_type} onChange={e => setForm({ ...form, leave_type: e.target.value })}>
+                                <option value="OTHER">Leave</option>
+                                <option value="MEDICAL">Medical</option>
+                                <option value="WORK_FROM_HOME">Work From Home</option>
+                            </select>
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
                             <div className="form-group"><label>End Date</label><input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
@@ -71,7 +80,7 @@ export default function TrainerLeavesPage() {
 
                         <div className="form-group">
                             <label>Reason</label>
-                            <textarea className="form-input" rows={3} required placeholder="Explain reason for leave..." value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} />
+                            <textarea className="form-input" rows={3} required placeholder={form.leave_type === 'WORK_FROM_HOME' ? 'Describe the work you will do from home...' : 'Explain reason for leave...'} value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} />
                         </div>
 
                         <div className="form-group">

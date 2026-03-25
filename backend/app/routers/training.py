@@ -382,9 +382,9 @@ async def submit_leave(
     reason = body.get("reason", "").strip()
     proof_base64 = body.get("proof_base64")
     
-    if leave_type_enum == LeaveType.OTHER:
+    if leave_type_enum in (LeaveType.OTHER, LeaveType.WORK_FROM_HOME):
         if not reason:
-            raise HTTPException(status_code=400, detail="Reason is mandatory for 'Other' leave type.")
+            raise HTTPException(status_code=400, detail="Reason is mandatory for this leave type.")
 
     # 2. Store proof image as base64 data URI directly (no file system needed)
     proof_url = None

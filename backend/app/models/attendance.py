@@ -24,6 +24,7 @@ class LeaveStatus(str, enum.Enum):
 class LeaveType(str, enum.Enum):
     INTERVIEW = "INTERVIEW"
     MEDICAL = "MEDICAL"
+    WORK_FROM_HOME = "WORK_FROM_HOME"
     OTHER = "OTHER"
 
 
