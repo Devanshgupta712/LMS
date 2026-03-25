@@ -285,13 +285,13 @@ async def update_profile(
     if "dob" in body:
         user.dob = body["dob"]
     if "education_status" in body:
-        user.education_status = body["education_status"]
+        user.educationStatus = body["education_status"]
     if "highest_education" in body:
-        user.highest_education = body["highest_education"]
+        user.highestEducation = body["highest_education"]
     if "degree" in body:
         user.degree = body["degree"]
     if "passing_year" in body:
-        user.passing_year = body["passing_year"]
+        user.passingYear = body["passing_year"]
     await db.flush()
     return {"status": "updated", "name": user.name, "phone": user.phone}
 

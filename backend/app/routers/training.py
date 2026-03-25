@@ -17,7 +17,7 @@ from app.models.project import (
     Violation, ViolationType, ViolationSeverity, ViolationStatus,
 )
 from app.models.notification import Video, Feedback
-
+from app.schemas.schemas import LeaveOut, LeaveAction
 from app.models.setting import SystemSetting
 import uuid
 
@@ -992,8 +992,8 @@ async def list_videos(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Video).order_by(Video.createdAt.desc()))
     return [
         {
-            "id": v.id, "title": v.title, "url": v.url,
-            "topic": v.topic, "duration": v.duration,
+            "id": v.id, "title": v.title, "videoUrl": v.videoUrl,
+            "description": v.description, "duration": v.duration,
             "createdAt": v.createdAt.isoformat() if v.createdAt else None,
         }
         for v in result.scalars().all()
