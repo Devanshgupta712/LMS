@@ -382,10 +382,7 @@ async def submit_leave(
     reason = body.get("reason", "").strip()
     proof_base64 = body.get("proof_base64")
     
-    if leave_type_enum == LeaveType.MEDICAL:
-        if not proof_base64:
-            raise HTTPException(status_code=400, detail="Proof (PNG/PDF) is required for medical leave.")
-    elif leave_type_enum == LeaveType.OTHER:
+    if leave_type_enum == LeaveType.OTHER:
         if not reason:
             raise HTTPException(status_code=400, detail="Reason is mandatory for 'Other' leave type.")
 

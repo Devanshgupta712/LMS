@@ -3,7 +3,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+
 
 from app.config import settings
 from app.database import engine, Base, AsyncSessionLocal
@@ -94,21 +94,7 @@ app.include_router(marketing.router)
 app.include_router(training.router)
 app.include_router(placement.router)
 
-# /api/uploads/{filename} — serve uploaded proof files through FastAPI (ASGI-routed; LiteSpeed-safe)
-import mimetypes
-from fastapi import Response
 
-@app.get("/api/uploads/{filename}")
-async def serve_upload(filename: str):
-    _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    file_path = os.path.join(_base, "uploads", os.path.basename(filename))
-    if not os.path.isfile(file_path):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="File not found")
-    mime, _ = mimetypes.guess_type(file_path)
-    with open(file_path, "rb") as f:
-        content = f.read()
-    return Response(content=content, media_type=mime or "application/octet-stream")
 
 
 @app.get("/api/health")

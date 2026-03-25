@@ -49,10 +49,6 @@ export default function StudentLeavesPage() {
         setError('');
         
         // Client-side validation
-        if (form.leave_type === 'MEDICAL' && !form.proof_base64) {
-            setError('Medical proof is required for medical leave.');
-            return;
-        }
         if (form.leave_type === 'OTHER' && !form.reason.trim()) {
             setError('Please provide a reason for the leave.');
             return;
