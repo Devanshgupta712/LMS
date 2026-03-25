@@ -1,9 +1,11 @@
-from datetime import datetime
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func, or_, delete, update, text
-from sqlalchemy.orm import selectinload
+from datetime import datetime, timedelta
+import enum
+import uuid
+import traceback
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, update, func, or_
 import bcrypt
 from pydantic import BaseModel
 
@@ -12,7 +14,7 @@ from app.middleware.auth import get_current_user, require_roles
 from app.models.user import User, Role, AdminPermission
 from app.models.course import Course, Batch, BatchStudent
 from app.models.registration import Registration
-from app.models.attendance import LeaveRequest, Attendance, TimeTracking
+from app.models.attendance import LeaveRequest, Attendance, TimeTracking, AttendanceStatus, LeaveStatus, LeaveType
 from app.models.notification import Notification, Message, Feedback
 from app.models.project import Project, Task, Assignment, AssignmentSubmission, Violation
 from app.models.lead import Lead, LeadActivity
@@ -979,6 +981,7 @@ async def list_leaves(
 @router.patch("/leaves")
 async def action_leave(
     body: LeaveAction,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
@@ -986,15 +989,68 @@ async def action_leave(
     if not leave:
         raise HTTPException(status_code=404, detail="Leave request not found")
     
-    # Fetch the leave requester's role
+    # Fetch the leave requester
     requester = await db.get(User, leave.user_id)
+    if not requester:
+         raise HTTPException(status_code=404, detail="User who requested leave not found")
+
     # Only SUPER_ADMIN can approve/reject trainer leaves
-    if requester and requester.role == Role.TRAINER and current_user.role != Role.SUPER_ADMIN:
+    if requester.role == Role.TRAINER and current_user.role != Role.SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Only Super Admin can approve or reject trainer leave requests.")
 
+    old_status = leave.status
     leave.status = body.status
     leave.approved_by_id = current_user.id
+    
+    if body.status == LeaveStatus.REJECTED:
+        leave.rejection_reason = body.rejection_reason
+    else:
+        leave.rejection_reason = None
+
+    # Handle Auto-marking attendance if approved
+    if body.status == LeaveStatus.APPROVED:
+        # Loop through each day of the leave
+        current_date = leave.start_date
+        while current_date <= leave.end_date:
+            # Check if attendance record exists
+            att_result = await db.execute(
+                select(Attendance).where(
+                    Attendance.student_id == leave.user_id,
+                    Attendance.date == current_date
+                )
+            )
+            att = att_result.scalars().first()
+            
+            if att:
+                att.status = AttendanceStatus.ON_LEAVE
+            else:
+                # Create new record
+                new_att = Attendance(
+                    student_id=leave.user_id,
+                    batch_id=leave.batch_id or "UNKNOWN", # Fallback if batch not linked
+                    date=current_date,
+                    status=AttendanceStatus.ON_LEAVE,
+                    remarks=f"Auto-marked: Leave Approved ({leave.leave_type})"
+                )
+                db.add(new_att)
+            
+            current_date += timedelta(days=1)
+
     await db.flush()
+    
+    # Send Email Notification in background
+    leave_details = {
+        "start_date": leave.start_date.strftime("%Y-%m-%d"),
+        "end_date": leave.end_date.strftime("%Y-%m-%d")
+    }
+    background_tasks.add_task(
+        send_leave_status_email, 
+        requester.email, 
+        body.status, 
+        leave_details, 
+        body.rejection_reason
+    )
+
     return {"status": "updated"}
 
 

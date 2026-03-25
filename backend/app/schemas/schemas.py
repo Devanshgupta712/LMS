@@ -205,6 +205,7 @@ class LeaveCreate(BaseModel):
 class LeaveAction(BaseModel):
     id: str
     status: str
+    rejection_reason: str | None = None
     approved_by_id: str | None = None
 
 class LeaveOut(BaseModel):
@@ -214,9 +215,11 @@ class LeaveOut(BaseModel):
     user_student_id: str | None = None
     leave_type: str = "OTHER"
     proof_url: str | None = None
+    is_cloudinary: bool = False
     start_date: datetime
     end_date: datetime
     reason: str | None
+    rejection_reason: str | None = None
     status: str
     approved_by_name: str | None = None
     created_at: datetime

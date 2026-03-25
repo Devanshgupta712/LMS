@@ -4,17 +4,36 @@ import { useState, useEffect } from 'react';
 import { apiGet, apiPatch, getStoredUser } from '@/lib/api';
 
 interface LeaveReq {
-    id: string; start_date: string; end_date: string; reason: string | null;
-    leave_type: string; proof_url: string | null;
-    status: string; created_at: string; user_name: string; user_role: string; user_student_id: string | null;
+    id: string; 
+    start_date: string; 
+    end_date: string; 
+    reason: string | null;
+    rejection_reason: string | null;
+    leave_type: string; 
+    proof_url: string | null;
+    status: string; 
+    created_at: string; 
+    user_name: string; 
+    user_role: string; 
+    user_student_id: string | null;
+    is_cloudinary: boolean;
 }
 
 export default function LeavesPage() {
     const [leaves, setLeaves] = useState<LeaveReq[]>([]);
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<'TABLE' | 'CALENDAR'>('TABLE');
+    const [currentMonth, setCurrentMonth] = useState(new Date());
     const [filter, setFilter] = useState('ALL');
     const [roleFilter, setRoleFilter] = useState('ALL');
+    const [typeFilter, setTypeFilter] = useState('ALL');
     const [actionError, setActionError] = useState<string | null>(null);
+    
+    // Modals
+    const [showRejectionModal, setShowRejectionModal] = useState<string | null>(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [showProofModal, setShowProofModal] = useState<string | null>(null);
+
     const user = getStoredUser();
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
@@ -24,10 +43,12 @@ export default function LeavesPage() {
         try { setLeaves(await apiGet('/api/admin/leaves')); } catch { } finally { setLoading(false); }
     };
 
-    const handleAction = async (id: string, status: string) => {
+    const handleAction = async (id: string, status: string, reason: string | null = null) => {
         setActionError(null);
         try {
-            await apiPatch('/api/admin/leaves', { id, status });
+            await apiPatch('/api/admin/leaves', { id, status, rejection_reason: reason });
+            setShowRejectionModal(null);
+            setRejectionReason('');
             loadLeaves();
         } catch (err: any) {
             setActionError(err?.message || 'Failed to update leave status');
@@ -35,9 +56,12 @@ export default function LeavesPage() {
     };
 
     const ROLES = ['ALL', 'STUDENT', 'TRAINER', 'ADMIN', 'MARKETER'];
+    const TYPES = ['ALL', 'MEDICAL', 'INTERVIEW', 'WORK_FROM_HOME', 'OTHER'];
+    
     const filtered = leaves
         .filter(l => filter === 'ALL' || l.status === filter)
-        .filter(l => roleFilter === 'ALL' || l.user_role === roleFilter);
+        .filter(l => roleFilter === 'ALL' || l.user_role === roleFilter)
+        .filter(l => typeFilter === 'ALL' || l.leave_type === typeFilter);
 
     const getRoleBadge = (role: string) => {
         const map: Record<string, string> = { STUDENT: '#0ea5e9', TRAINER: '#10b981', ADMIN: '#f59e0b', MARKETER: '#ec4899', SUPER_ADMIN: '#6366f1' };
@@ -48,6 +72,24 @@ export default function LeavesPage() {
         <div className="animate-in">
             <div className="page-header">
                 <div><h1 className="page-title">Leave Requests</h1><p className="page-subtitle">Approve or reject leave requests</p></div>
+                <button 
+                    onClick={() => {
+                        const headers = "Person,StudentID,Role,Start Date,End Date,Type,Reason,Status\n";
+                        const rows = filtered.map(l => 
+                            `"${l.user_name}","${l.user_student_id || ''}","${l.user_role}","${l.start_date.split('T')[0]}","${l.end_date.split('T')[0]}","${l.leave_type}","${(l.reason || '').replace(/"/g, '""')}","${l.status}"`
+                        ).join('\n');
+                        const blob = new Blob([headers + rows], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `leave_report_${new Date().toISOString().split('T')[0]}.csv`;
+                        a.click();
+                    }}
+                    className="btn btn-ghost"
+                    style={{ background: 'rgba(255,255,255,0.05)', fontSize: '12px' }}
+                >
+                    📥 Export to CSV
+                </button>
             </div>
 
             {actionError && (
@@ -56,108 +98,261 @@ export default function LeavesPage() {
                 </div>
             )}
 
-            {/* Status Filters */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(s => (
-                    <button key={s} className={`btn ${filter === s ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setFilter(s)}>
-                        {s} ({s === 'ALL' ? leaves.length : leaves.filter(l => l.status === s).length})
-                    </button>
-                ))}
+            {/* Filters Row */}
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                {/* Status Filters */}
+                <div>
+                    <label className="text-sm text-muted mb-8 block">Status</label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(s => (
+                            <button key={s} className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setFilter(s)}>
+                                {s}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Role Filters */}
+                <div>
+                    <label className="text-sm text-muted mb-8 block">Role</label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {ROLES.map(r => (
+                            <button
+                                key={r}
+                                onClick={() => setRoleFilter(r)}
+                                className={`btn btn-sm ${roleFilter === r ? 'btn-primary' : 'btn-ghost'}`}
+                                style={{ background: roleFilter === r ? getRoleBadge(r) : undefined }}
+                            >
+                                {r}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Type Filters */}
+                <div>
+                    <label className="text-sm text-muted mb-8 block">Leave Type</label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {TYPES.map(t => (
+                            <button key={t} className={`btn btn-sm ${typeFilter === t ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTypeFilter(t)}>
+                                {t.replace(/_/g, ' ')}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            {/* Role Filters */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                {ROLES.map(r => (
-                    <button
-                        key={r}
-                        onClick={() => setRoleFilter(r)}
-                        style={{
-                            padding: '5px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-                            fontSize: '12px', fontWeight: 600, transition: 'all 0.2s',
-                            background: roleFilter === r ? getRoleBadge(r) : 'rgba(255,255,255,0.05)',
-                            color: roleFilter === r ? '#fff' : 'var(--text-muted)',
-                        }}
-                    >
-                        {r === 'TRAINER' ? '🏋️' : r === 'STUDENT' ? '🎓' : r === 'ADMIN' ? '🔑' : r === 'MARKETER' ? '📣' : '🌐'} {r}
-                        <span style={{ opacity: 0.7, fontSize: '11px', marginLeft: '4px' }}>
-                            ({r === 'ALL' ? leaves.length : leaves.filter(l => l.user_role === r).length})
-                        </span>
-                    </button>
-                ))}
+            {/* View Toggle */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '12px', width: 'fit-content' }}>
+                <button 
+                    onClick={() => setViewMode('TABLE')} 
+                    className={`btn btn-sm ${viewMode === 'TABLE' ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ borderRadius: '8px' }}
+                >📋 Table View</button>
+                <button 
+                    onClick={() => setViewMode('CALENDAR')} 
+                    className={`btn btn-sm ${viewMode === 'CALENDAR' ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ borderRadius: '8px' }}
+                >📅 Calendar View</button>
             </div>
 
-            <div className="card">
-                {loading ? <p>Loading...</p> : filtered.length === 0 ? (
-                    <div className="empty-state"><div className="empty-icon">🗓️</div><h3>No leave requests</h3></div>
-                ) : (
-                    <div className="table-responsive"><table className="table">
-                        <thead><tr><th>Person</th><th>Period</th><th>Type / Reason</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody>{filtered.map(l => (
-                            <tr key={l.id}>
-                                <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <strong>{l.user_name}</strong>
-                                        <span style={{ background: getRoleBadge(l.user_role), color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 700 }}>
-                                            {l.user_role}
-                                        </span>
-                                        {l.user_role === 'TRAINER' && (
-                                            <span title="Only Super Admin can approve" style={{ fontSize: '12px' }}>🔒</span>
+            {viewMode === 'TABLE' ? (
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    {loading ? (
+                        <div style={{ padding: '40px', textAlign: 'center' }}>Loading leave requests...</div>
+                    ) : filtered.length === 0 ? (
+                        <div className="empty-state" style={{ padding: '60px' }}>
+                            <div className="empty-icon">🗓️</div>
+                            <h3>No matching requests</h3>
+                            <p className="text-muted text-sm">Try adjusting your filters.</p>
+                        </div>
+                    ) : (
+                        <div className="table-responsive"><table className="table">
+                            <thead><tr><th>Person</th><th>Dates</th><th>Type & Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody>{filtered.map(l => (
+                                <tr key={l.id}>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <strong style={{ fontSize: '15px' }}>{l.user_name}</strong>
+                                            <span style={{ background: getRoleBadge(l.user_role), color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 700 }}>
+                                                {l.user_role}
+                                            </span>
+                                        </div>
+                                        <div className="text-sm text-muted">{l.user_student_id || 'Staff'}</div>
+                                    </td>
+                                    <td>
+                                        <div style={{ fontWeight: 600 }}>{new Date(l.start_date).toLocaleDateString()}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>to {new Date(l.end_date).toLocaleDateString()}</div>
+                                    </td>
+                                    <td>
+                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{l.leave_type.replace(/_/g, ' ')}</div>
+                                        <div className="text-muted text-sm" style={{ maxWidth: '300px' }}>{l.reason || '-'}</div>
+                                        
+                                        {l.proof_url && (
+                                            <button 
+                                                onClick={() => setShowProofModal(l.proof_url)}
+                                                style={{ marginTop: '8px', padding: '6px 12px', background: 'rgba(0,102,255,0.1)', border: '1px solid rgba(0,102,255,0.2)', borderRadius: '6px', color: '#0066ff', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                View Attachment {l.proof_url.toLowerCase().endsWith('.pdf') ? '📄' : '🖼️'}
+                                            </button>
                                         )}
+
+                                        {l.rejection_reason && (
+                                            <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', borderLeft: '3px solid #ef4444', fontSize: '12px', color: '#ef4444' }}>
+                                                <strong>Rejection Reason:</strong> {l.rejection_reason}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <span className={`badge ${l.status === 'APPROVED' ? 'badge-success' : l.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'}`}>
+                                            {l.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {l.user_role === 'TRAINER' && !isSuperAdmin ? (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>🔒 Super Admin only</span>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                {l.status !== 'APPROVED' && (
+                                                    <button
+                                                        className="btn btn-sm btn-success"
+                                                        onClick={() => handleAction(l.id, 'APPROVED')}
+                                                        style={{ padding: '4px 10px' }}
+                                                    >Approve</button>
+                                                )}
+                                                {l.status !== 'REJECTED' && (
+                                                    <button
+                                                        className="btn btn-sm btn-danger"
+                                                        onClick={() => setShowRejectionModal(l.id)}
+                                                        style={{ padding: '4px 10px' }}
+                                                    >Reject</button>
+                                                )}
+                                                {l.status !== 'PENDING' && (
+                                                    <button
+                                                        className="btn btn-sm btn-ghost"
+                                                        onClick={() => handleAction(l.id, 'PENDING')}
+                                                        style={{ padding: '4px 10px' }}
+                                                    >Reset</button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}</tbody>
+                        </table></div>
+                    )}
+                </div>
+            ) : (
+                <div className="card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <h3 className="font-semibold">{currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn-sm btn-ghost" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))}>◀ Previous</button>
+                            <button className="btn btn-sm btn-ghost" onClick={() => setCurrentMonth(new Date())}>Today</button>
+                            <button className="btn btn-sm btn-ghost" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))}>Next ▶</button>
+                        </div>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                            <div key={d} style={{ textAlign: 'center', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', paddingBottom: '8px' }}>{d}</div>
+                        ))}
+                        
+                        {Array.from({ length: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay() }).map((_, i) => (
+                            <div key={`empty-${i}`} style={{ height: '100px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}></div>
+                        ))}
+                        
+                        {Array.from({ length: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate() }).map((_, i) => {
+                            const date = i + 1;
+                            const dStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                            const dayLeaves = filtered.filter(l => {
+                                const start = l.start_date.split('T')[0];
+                                const end = l.end_date.split('T')[0];
+                                return dStr >= start && dStr <= end;
+                            });
+                            
+                            return (
+                                <div key={date} style={{ height: '120px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', border: dStr === new Date().toISOString().split('T')[0] ? '1px solid var(--primary-color)' : '1px solid transparent' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 700 }}>{date}</span>
+                                    <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        {dayLeaves.map(l => (
+                                            <div 
+                                                key={l.id} 
+                                                title={`${l.user_name}: ${l.leave_type}`}
+                                                style={{ 
+                                                    fontSize: '9px', 
+                                                    padding: '2px 4px', 
+                                                    borderRadius: '4px', 
+                                                    background: l.status === 'APPROVED' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)',
+                                                    color: l.status === 'APPROVED' ? '#10b981' : '#f59e0b',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    border: `1px solid ${l.status === 'APPROVED' ? '#10b98144' : '#f59e0b44'}`
+                                                }}
+                                            >
+                                                {l.user_name.split(' ')[0]}
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className="text-sm text-muted">{l.user_student_id || l.user_role}</div>
-                                </td>
-                                <td>{new Date(l.start_date).toLocaleDateString()} — {new Date(l.end_date).toLocaleDateString()}</td>
-                                <td>
-                                    <strong>{l.leave_type || 'OTHER'}</strong><br />
-                                    <span className="text-muted text-sm">{l.reason || '-'}</span>
-                                    {l.leave_type === 'MEDICAL' && l.proof_url && (
-                                        <div style={{ marginTop: '6px' }}>
-                                            {l.proof_url.startsWith('data:image') ? (
-                                                <a href={l.proof_url} target="_blank" rel="noopener noreferrer">
-                                                    <img src={l.proof_url} alt="Medical Proof" style={{ maxWidth: '120px', maxHeight: '80px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }} />
-                                                    <div style={{ fontSize: '11px', color: '#0066ff', marginTop: '2px' }}>📄 Click to view full</div>
-                                                </a>
-                                            ) : (
-                                                <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>📎 Proof attached (old format)</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </td>
-                                <td><span className={`badge ${l.status === 'APPROVED' ? 'badge-success' : l.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'}`}>{l.status}</span></td>
-                                <td>
-                                    {l.user_role === 'TRAINER' && !isSuperAdmin ? (
-                                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>🔒 Super Admin only</span>
-                                    ) : (
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            {l.status !== 'APPROVED' && (
-                                                <button
-                                                    className="btn btn-sm btn-success"
-                                                    onClick={() => handleAction(l.id, 'APPROVED')}
-                                                    title={l.status === 'REJECTED' ? 'Reverse rejection → Approve' : 'Approve'}
-                                                >✅ Approve</button>
-                                            )}
-                                            {l.status !== 'REJECTED' && (
-                                                <button
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() => handleAction(l.id, 'REJECTED')}
-                                                    title={l.status === 'APPROVED' ? 'Reverse approval → Reject' : 'Reject'}
-                                                >❌ Reject</button>
-                                            )}
-                                            {l.status !== 'PENDING' && (
-                                                <button
-                                                    className="btn btn-sm btn-ghost"
-                                                    onClick={() => handleAction(l.id, 'PENDING')}
-                                                    title="Reset to Pending"
-                                                >↩ Reset</button>
-                                            )}
-                                        </div>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}</tbody>
-                    </table></div>
-                )}
-            </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+
+            {/* Rejection Reason Modal */}
+            {showRejectionModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)', padding: '20px' }}>
+                    <div className="card" style={{ maxWidth: '500px', width: '100%', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <h3 className="font-semibold mb-8">Reject Leave Request</h3>
+                        <p className="text-sm text-muted mb-16">Enter a reason for rejection (optional). The student will be notified.</p>
+                        
+                        <textarea 
+                            className="form-input" 
+                            rows={4} 
+                            placeholder="Reason for rejection..." 
+                            value={rejectionReason}
+                            onChange={e => setRejectionReason(e.target.value)}
+                            style={{ width: '100%', marginBottom: '16px' }}
+                        />
+                        
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button className="btn btn-ghost" onClick={() => setShowRejectionModal(null)}>Cancel</button>
+                            <button className="btn btn-danger" onClick={() => handleAction(showRejectionModal, 'REJECTED', rejectionReason)}>❌ Reject Leave</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Proof Lightbox Modal */}
+            {showProofModal && (
+                <div 
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 2000, display: 'flex', flexDirection: 'column', padding: '24px' }}
+                    onClick={() => setShowProofModal(null)}
+                >
+                    <div style={{ position: 'absolute', top: '24px', right: '24px', color: '#fff', fontSize: '24px', cursor: 'pointer', zIndex: 10 }}>✕</div>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
+                        {showProofModal.toLowerCase().endsWith('.pdf') ? (
+                            <iframe 
+                                src={showProofModal} 
+                                style={{ width: '100%', height: '100%', maxWidth: '1000px', border: 'none', borderRadius: '12px', background: '#fff' }} 
+                            />
+                        ) : (
+                            <img 
+                                src={showProofModal} 
+                                alt="Proof" 
+                                style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} 
+                            />
+                        )}
+                    </div>
+                    <div style={{ padding: '20px', textAlign: 'center' }}>
+                        <a href={showProofModal} download className="btn btn-primary" onClick={e => e.stopPropagation()}>⬇️ Download Original File</a>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

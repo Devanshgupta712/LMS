@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_roles
 from app.models.user import User, Role
-from app.models.attendance import Attendance, AttendanceStatus, LeaveRequest, LeaveStatus, LeaveType
+from app.models.attendance import Attendance, LeaveRequest, LeaveStatus, LeaveType
+from app.utils.cloudinary import upload_base64_to_cloudinary
 from app.models.course import Batch, BatchStudent
 from app.models.project import (
     Project, ProjectMilestone, ProjectStatus,
@@ -382,14 +383,47 @@ async def submit_leave(
     reason = body.get("reason", "").strip()
     proof_base64 = body.get("proof_base64")
     
+    start_date = datetime.strptime(body["start_date"], "%Y-%m-%d")
+    end_date = datetime.strptime(body["end_date"], "%Y-%m-%d")
+    
+    # 2. Past Date Validation
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    if start_date < today:
+        raise HTTPException(status_code=400, detail="Cannot apply for leave on a past date.")
+
+    # 3. Overlap Check
+    overlap_result = await db.execute(
+        select(LeaveRequest).where(
+            LeaveRequest.user_id == user.id,
+            LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED]),
+            (
+                ((LeaveRequest.start_date <= start_date) & (LeaveRequest.end_date >= start_date)) |
+                ((LeaveRequest.start_date <= end_date) & (LeaveRequest.end_date >= end_date)) |
+                ((LeaveRequest.start_date >= start_date) & (LeaveRequest.end_date <= end_date))
+            )
+        )
+    )
+    if overlap_result.scalars().first():
+        raise HTTPException(status_code=400, detail="You already have a pending or approved leave request for these dates.")
+
     if leave_type_enum in (LeaveType.OTHER, LeaveType.WORK_FROM_HOME):
         if not reason:
             raise HTTPException(status_code=400, detail="Reason is mandatory for this leave type.")
 
-    # 2. Store proof image as base64 data URI directly (no file system needed)
+    # 4. Upload proof to Cloudinary
     proof_url = None
+    is_cloudinary = False
     if proof_base64:
-        proof_url = proof_base64
+        # If it's the old base64 data URI format, upload it
+        if proof_base64.startswith("data:"):
+            proof_url = upload_base64_to_cloudinary(proof_base64)
+            if proof_url:
+                is_cloudinary = True
+            else:
+                # If upload fails, fallback to None (proof is optional except for MEDICAL sometimes, but we made it optional)
+                proof_url = None
+        else:
+            proof_url = proof_base64 # Likely already a URL
 
     batch_id = body.get("batch_id") or None
     if not batch_id:
@@ -403,26 +437,51 @@ async def submit_leave(
         user_id=user.id,
         batch_id=batch_id,
         leave_type=leave_type_enum,
-
         proof_url=proof_url,
-
-        start_date=datetime.strptime(body["start_date"], "%Y-%m-%d"),
-        end_date=datetime.strptime(body["end_date"], "%Y-%m-%d"),
+        is_cloudinary=is_cloudinary,
+        start_date=start_date,
+        end_date=end_date,
         reason=reason if leave_type_enum != LeaveType.MEDICAL else (reason or "Medical Leave"),
     )
     db.add(leave)
     await db.flush()
-    return {"id": leave.id, "status": "submitted"}
+    return {"id": leave.id, "status": "submitted", "proof_url": proof_url}
+
+@router.post("/leave-cancel/{leave_id}")
+async def cancel_leave(
+    leave_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    leave = await db.get(LeaveRequest, leave_id)
+    if not leave:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    
+    if leave.user_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only cancel your own leave requests")
+    
+    if leave.status != LeaveStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Only pending leave requests can be cancelled")
+    
+    await db.delete(leave)
+    await db.commit()
+    return {"status": "cancelled"}
+
+@router.get("/leave-history")
+async def get_my_leaves(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    result = await db.execute(
+        select(LeaveRequest).where(LeaveRequest.user_id == user.id).order_by(LeaveRequest.created_at.desc())
+    )
+    leaves = result.scalars().all()
+    out = []
+    for l in leaves:
+        out.append(LeaveOut.model_validate(l))
+    return out
 
 @router.get("/leave-stats")
 async def get_leave_stats(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     from app.models.course import Batch, BatchStudent
     
-    # Get user's batches
-    result = await db.execute(
-        select(Batch).join(BatchStudent, BatchStudent.batch_id == Batch.id)
-        .where(BatchStudent.student_id == user.id)
-    )
     batches = result.scalars().all()
     
     stats = []
