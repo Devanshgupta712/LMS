@@ -27,15 +27,10 @@ export default function LeavesPage() {
     const handleAction = async (id: string, status: string) => {
         setActionError(null);
         try {
-            const res = await apiPatch('/api/admin/leaves', { id, status });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                setActionError(data.detail || 'Failed to update leave');
-                return;
-            }
+            await apiPatch('/api/admin/leaves', { id, status });
             loadLeaves();
-        } catch {
-            setActionError('Network error');
+        } catch (err: any) {
+            setActionError(err?.message || 'Failed to update leave status');
         }
     };
 
@@ -117,7 +112,7 @@ export default function LeavesPage() {
                                     <span className="text-muted text-sm">{l.reason || '-'}</span>
                                     {l.leave_type === 'MEDICAL' && l.proof_url && (
                                         <div style={{ marginTop: '4px' }}>
-                                            <a href="#" style={{ color: '#0066ff', fontSize: '12px' }}>📄 View Proof ({l.proof_url})</a>
+                                            <a href={l.proof_url} target="_blank" rel="noopener noreferrer" style={{ color: '#0066ff', fontSize: '12px' }}>📄 View Proof</a>
                                         </div>
                                     )}
                                 </td>
