@@ -19,11 +19,24 @@ export default function StudentLeavesPage() {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            setForm(prev => ({ ...prev, proof_base64: reader.result as string, proof_name: file.name }));
+        // Compress image client-side to keep payload small
+        const img = new Image();
+        img.onload = () => {
+            const MAX = 800;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+                const ratio = Math.min(MAX / w, MAX / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.6);
+            setForm(prev => ({ ...prev, proof_base64: compressed, proof_name: file.name }));
         };
-        reader.readAsDataURL(file);
+        img.src = URL.createObjectURL(file);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
