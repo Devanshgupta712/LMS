@@ -36,7 +36,7 @@ class Lead(Base):
     createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
 
-    assigned_to = relationship("User", back_populates="leads_assigned", foreign_keys=[assigned_to_id])
+    assigned_to = relationship("User", back_populates="leads_assigned", foreign_keys=[assignedToId])
     activities = relationship("LeadActivity", back_populates="lead", cascade="all, delete-orphan")
 
 

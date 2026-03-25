@@ -35,8 +35,8 @@ class Message(Base):
     sentAt: Mapped[datetime] = mapped_column("sentAt", DateTime, server_default=func.now())
     readAt: Mapped[datetime | None] = mapped_column("readAt", DateTime, nullable=True)
 
-    sender = relationship("User", foreign_keys=[sender_id])
-    recipient = relationship("User", foreign_keys=[recipient_id])
+    sender = relationship("User", foreign_keys=[senderId], back_populates="sentMessages")
+    recipient = relationship("User", foreign_keys=[recipientId], back_populates="receivedMessages")
 
 
 class Video(Base):
@@ -66,6 +66,6 @@ class Feedback(Base):
     createdById: Mapped[str | None] = mapped_column("createdById", String, ForeignKey("users.id"), nullable=True)
     createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
 
-    student = relationship("User", back_populates="feedback_received", foreign_keys=[student_id])
+    student = relationship("User", back_populates="feedback_received", foreign_keys=[studentId])
     batch = relationship("Batch", back_populates="feedback")
-    created_by = relationship("User", back_populates="feedback_given", foreign_keys=[created_by_id])
+    created_by = relationship("User", back_populates="feedback_given", foreign_keys=[createdById])

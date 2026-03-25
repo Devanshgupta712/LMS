@@ -72,9 +72,12 @@ class User(Base):
     job_applications = relationship("JobApplication", back_populates="student")
     assessment_submissions = relationship("AssessmentSubmission", back_populates="student")
     mock_interviews = relationship("MockInterview", back_populates="student")
+    violations = relationship("Violation", back_populates="student")
     notifications = relationship("Notification", back_populates="user")
     comm_practice = relationship("CommunicationPractice", back_populates="student")
     time_tracking = relationship("TimeTracking", back_populates="user")
     lead_activities = relationship("LeadActivity", back_populates="user")
+    sentMessages = relationship("Message", back_populates="sender", foreign_keys="Message.senderId")
+    receivedMessages = relationship("Message", back_populates="recipient", foreign_keys="Message.recipientId")
     admin_permission = relationship("AdminPermission", back_populates="user", uselist=False)
 

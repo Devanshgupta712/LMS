@@ -81,9 +81,9 @@ class Project(Base):
     createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
 
-    batch = relationship("Batch", back_populates="projects", foreign_keys=[batch_id])
+    batch = relationship("Batch", back_populates="projects", foreign_keys=[batchId])
     milestones = relationship("ProjectMilestone", back_populates="project", cascade="all, delete-orphan")
-    trainer = relationship("User", foreign_keys=[trainer_id])
+    trainer = relationship("User", foreign_keys=[trainerId])
 
 
 class ProjectMilestone(Base):
@@ -115,7 +115,7 @@ class Task(Base):
     createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
 
-    trainer = relationship("User", foreign_keys=[assigned_by])
+    trainer = relationship("User", foreign_keys=[assignedBy], back_populates="tasks_assigned")
 
 
 class Assignment(Base):
@@ -133,9 +133,9 @@ class Assignment(Base):
     createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
 
-    batch = relationship("Batch", foreign_keys=[batch_id])
+    batch = relationship("Batch", foreign_keys=[batchId])
     submissions = relationship("AssignmentSubmission", back_populates="assignment", cascade="all, delete-orphan")
-    trainer = relationship("User", foreign_keys=[assigned_by])
+    trainer = relationship("User", foreign_keys=[assignedBy], back_populates="assignments_assigned")
 
 
 class AssignmentSubmission(Base):
@@ -152,7 +152,7 @@ class AssignmentSubmission(Base):
     gradedAt: Mapped[datetime | None] = mapped_column("gradedAt", DateTime, nullable=True)
 
     assignment = relationship("Assignment", back_populates="submissions")
-    student = relationship("User", foreign_keys=[student_id])
+    student = relationship("User", foreign_keys=[studentId], back_populates="assignment_submissions")
 
 
 class Violation(Base):
@@ -176,5 +176,5 @@ class Violation(Base):
     penaltyPoints: Mapped[int] = mapped_column("penaltyPoints", Integer, default=0)
     createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
 
-    student = relationship("User", foreign_keys=[student_id], backref="violations")
-    resolved_by = relationship("User", foreign_keys=[resolved_by_id])
+    student = relationship("User", foreign_keys=[studentId], back_populates="violations")
+    resolved_by = relationship("User", foreign_keys=[resolvedById])
