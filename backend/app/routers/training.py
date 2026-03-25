@@ -411,7 +411,7 @@ async def submit_leave(
         with open(_os.path.join(uploads_dir, safe_name), "wb") as _f:
             _f.write(file_bytes)
 
-        proof_url = f"https://api.appteknow.com/uploads/{safe_name}"
+        proof_url = f"https://api.appteknow.com/api/uploads/{safe_name}"
 
     batch_id = body.get("batch_id") or None
     if not batch_id:

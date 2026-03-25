@@ -94,16 +94,21 @@ app.include_router(marketing.router)
 app.include_router(training.router)
 app.include_router(placement.router)
 
-# Serve uploaded proof files (medical leave, etc.)
-# Wrapped in try/except — a mount failure must never crash the whole app.
-try:
-    _uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
-    os.makedirs(_uploads_dir, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
-    print(f"[uploads] Serving files from: {_uploads_dir}")
-except Exception as _mount_err:
-    print(f"[WARNING] Could not mount /uploads static route: {_mount_err}")
+# /api/uploads/{filename} — serve uploaded proof files through FastAPI (ASGI-routed; LiteSpeed-safe)
+import mimetypes
+from fastapi import Response
 
+@app.get("/api/uploads/{filename}")
+async def serve_upload(filename: str):
+    _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(_base, "uploads", os.path.basename(filename))
+    if not os.path.isfile(file_path):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="File not found")
+    mime, _ = mimetypes.guess_type(file_path)
+    with open(file_path, "rb") as f:
+        content = f.read()
+    return Response(content=content, media_type=mime or "application/octet-stream")
 
 
 @app.get("/api/health")
