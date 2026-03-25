@@ -154,7 +154,7 @@ export default function AttendancePage() {
             // Wait, looking at api object: apiGet, apiPost. Let's use fetch or check how it's done elsewhere.
             // Using standard fetch since apiPost doesn't support custom methods easily in this custom wrapper unless known.
             const token = localStorage.getItem('token');
-            const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com') + '/api/admin/leaves', {
+            const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://lms-api-bkuw.onrender.com') + '/api/admin/leaves', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({ id, action })
