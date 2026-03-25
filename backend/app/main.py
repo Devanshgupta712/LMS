@@ -95,9 +95,15 @@ app.include_router(training.router)
 app.include_router(placement.router)
 
 # Serve uploaded proof files (medical leave, etc.)
-_uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
-os.makedirs(_uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
+# Wrapped in try/except — a mount failure must never crash the whole app.
+try:
+    _uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+    os.makedirs(_uploads_dir, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
+    print(f"[uploads] Serving files from: {_uploads_dir}")
+except Exception as _mount_err:
+    print(f"[WARNING] Could not mount /uploads static route: {_mount_err}")
+
 
 
 @app.get("/api/health")
