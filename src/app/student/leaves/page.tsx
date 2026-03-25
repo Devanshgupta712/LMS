@@ -19,10 +19,10 @@ export default function StudentLeavesPage() {
             return;
         }
 
-        // Compress image client-side to keep payload small
+        // Compress image client-side to keep payload small for server
         const img = new Image();
         img.onload = () => {
-            const MAX = 800;
+            const MAX = 400;
             let w = img.width, h = img.height;
             if (w > MAX || h > MAX) {
                 const ratio = Math.min(MAX / w, MAX / h);
@@ -33,8 +33,13 @@ export default function StudentLeavesPage() {
             canvas.width = w;
             canvas.height = h;
             canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-            const compressed = canvas.toDataURL('image/jpeg', 0.6);
+            const compressed = canvas.toDataURL('image/jpeg', 0.3);
+            if (compressed.length > 200_000) {
+                setError('Image too large. Please use a smaller or lower-resolution image.');
+                return;
+            }
             setForm(prev => ({ ...prev, proof_base64: compressed, proof_name: file.name }));
+            setError('');
         };
         img.src = URL.createObjectURL(file);
     };
