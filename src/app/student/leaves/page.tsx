@@ -12,10 +12,10 @@ export default function StudentLeavesPage() {
         const file = e.target.files?.[0];
         if (!file) return;
         
-        // Validation for PNG/PDF
-        const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf'];
+        // Validation for images only
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
         if (!allowedTypes.includes(file.type)) {
-            setError('Please upload a PNG, JPG, or PDF file.');
+            setError('Please upload a PNG or JPG image.');
             return;
         }
 
@@ -111,8 +111,8 @@ export default function StudentLeavesPage() {
 
                         {form.leave_type === 'MEDICAL' && (
                             <div className="form-group">
-                                <label>Medical Proof (PNG/PDF) <span style={{color: 'red'}}>*</span></label>
-                                <input type="file" accept="image/*,application/pdf" className="form-input" onChange={handleFile} />
+                                <label>Medical Proof (PNG/JPG Image) <span style={{color: 'red'}}>*</span></label>
+                                <input type="file" accept="image/png,image/jpeg" className="form-input" onChange={handleFile} />
                                 {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
                             </div>
                         )}

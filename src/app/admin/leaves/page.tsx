@@ -110,15 +110,18 @@ export default function LeavesPage() {
                                 <td>
                                     <strong>{l.leave_type || 'OTHER'}</strong><br />
                                     <span className="text-muted text-sm">{l.reason || '-'}</span>
-                                    {l.leave_type === 'MEDICAL' && l.proof_url && (() => {
-                                        const fname = l.proof_url.split('/').pop() || l.proof_url;
-                                        const proofHref = `https://api.appteknow.com/api/uploads/${fname}`;
-                                        return (
-                                            <div style={{ marginTop: '4px' }}>
-                                                <a href={proofHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0066ff', fontSize: '12px' }}>📄 View Proof</a>
-                                            </div>
-                                        );
-                                    })()}
+                                    {l.leave_type === 'MEDICAL' && l.proof_url && (
+                                        <div style={{ marginTop: '6px' }}>
+                                            {l.proof_url.startsWith('data:image') ? (
+                                                <a href={l.proof_url} target="_blank" rel="noopener noreferrer">
+                                                    <img src={l.proof_url} alt="Medical Proof" style={{ maxWidth: '120px', maxHeight: '80px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }} />
+                                                    <div style={{ fontSize: '11px', color: '#0066ff', marginTop: '2px' }}>📄 Click to view full</div>
+                                                </a>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>📎 Proof attached (old format)</span>
+                                            )}
+                                        </div>
+                                    )}
                                 </td>
                                 <td><span className={`badge ${l.status === 'APPROVED' ? 'badge-success' : l.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'}`}>{l.status}</span></td>
                                 <td>

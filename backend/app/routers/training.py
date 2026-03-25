@@ -389,29 +389,10 @@ async def submit_leave(
         if not reason:
             raise HTTPException(status_code=400, detail="Reason is mandatory for 'Other' leave type.")
 
-    # 2. Save proof file (decoded from base64) to disk and record a public URL
+    # 2. Store proof image as base64 data URI directly (no file system needed)
     proof_url = None
     if proof_base64:
-        import os as _os, base64 as _b64, re as _re, uuid as _uuid
-
-        # Strip optional data-URI prefix: "data:image/png;base64,..."
-        raw_b64 = _re.sub(r"^data:[^;]+;base64,", "", proof_base64)
-        file_bytes = _b64.b64decode(raw_b64)
-
-        # Resolve uploads dir: <repo-root>/backend/uploads/
-        _router_dir = _os.path.dirname(_os.path.abspath(__file__))   # .../app/routers
-        uploads_dir = _os.path.join(_router_dir, "..", "..", "uploads")
-        uploads_dir = _os.path.normpath(uploads_dir)
-        _os.makedirs(uploads_dir, exist_ok=True)
-
-        # UUID-based filename to prevent collisions
-        original_name = body.get("proof_name", "proof.pdf")
-        ext = _os.path.splitext(original_name)[-1].lower() or ".pdf"
-        safe_name = f"{_uuid.uuid4().hex}{ext}"
-        with open(_os.path.join(uploads_dir, safe_name), "wb") as _f:
-            _f.write(file_bytes)
-
-        proof_url = f"https://api.appteknow.com/api/uploads/{safe_name}"
+        proof_url = proof_base64
 
     batch_id = body.get("batch_id") or None
     if not batch_id:
