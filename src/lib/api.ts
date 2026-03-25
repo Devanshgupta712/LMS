@@ -3,7 +3,7 @@
  * All frontend pages should use this instead of raw `fetch`.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.appteknow.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://lms-api-bkuw.onrender.com';
 
 function getToken(): string | null {
     if (typeof window === 'undefined') return null;
