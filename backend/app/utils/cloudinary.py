@@ -13,22 +13,21 @@ cloudinary.config(
     secure=True
 )
 
-def upload_base64_to_cloudinary(base64_string: str, folder: str = "lms/leaves"):
+def upload_to_cloudinary(file_data, folder: str = "lms/leaves"):
     """
-    Uploads a base64 encoded image or PDF to Cloudinary.
-    base64_string: data:image/png;base64,xxxx or data:application/pdf;base64,xxxx
+    Uploads a file (base64 string or file-like object) to Cloudinary.
     """
     try:
-        if not base64_string:
+        if not file_data:
             return None
         
-        # Determine resource type (image or raw for PDF)
         resource_type = "auto"
-        if "application/pdf" in base64_string:
+        # If it's a string, it might be base64. Check for PDF to set resource_type='raw'
+        if isinstance(file_data, str) and "application/pdf" in file_data:
             resource_type = "raw"
             
         result = cloudinary.uploader.upload(
-            base64_string,
+            file_data,
             folder=folder,
             resource_type=resource_type
         )
@@ -36,3 +35,6 @@ def upload_base64_to_cloudinary(base64_string: str, folder: str = "lms/leaves"):
     except Exception as e:
         print(f"Error uploading to Cloudinary: {str(e)}")
         return None
+
+def upload_base64_to_cloudinary(base64_string: str, folder: str = "lms/leaves"):
+    return upload_to_cloudinary(base64_string, folder)

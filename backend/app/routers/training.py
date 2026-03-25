@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
+import json
 
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_roles
 from app.models.user import User, Role
 from app.models.attendance import Attendance, LeaveRequest, LeaveStatus, LeaveType
-from app.utils.cloudinary import upload_base64_to_cloudinary
+from app.utils.cloudinary import upload_to_cloudinary
 from app.models.course import Batch, BatchStudent
 from app.models.project import (
     Project, ProjectMilestone, ProjectStatus,
@@ -367,28 +368,32 @@ async def mark_attendance(
 
 
 # ─── Leave Requests ───────────────────────────────────
-@router.post("/leave-request", status_code=201)
+@router.post("/submit-leave", status_code=201)
 async def submit_leave(
-    body: dict,
+    start_date: str = Form(...),
+    end_date: str = Form(...),
+    leave_type: str = Form(...),
+    reason: str = Form(""),
+    proof: UploadFile = File(None),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    leave_type_str = body.get("leave_type", "OTHER")
+    # Parse dates
     try:
-        leave_type_enum = LeaveType[leave_type_str]
+        s_date = datetime.strptime(start_date, "%Y-%m-%d")
+        e_date = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # 1. Validation Logic
+    try:
+        leave_type_enum = LeaveType[leave_type]
     except KeyError:
         leave_type_enum = LeaveType.OTHER
 
-    # 1. Validation Logic based on Type
-    reason = body.get("reason", "").strip()
-    proof_base64 = body.get("proof_base64")
-    
-    start_date = datetime.strptime(body["start_date"], "%Y-%m-%d")
-    end_date = datetime.strptime(body["end_date"], "%Y-%m-%d")
-    
     # 2. Past Date Validation
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    if start_date < today:
+    if s_date < today:
         raise HTTPException(status_code=400, detail="Cannot apply for leave on a past date.")
 
     # 3. Overlap Check
@@ -397,9 +402,9 @@ async def submit_leave(
             LeaveRequest.user_id == user.id,
             LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED]),
             (
-                ((LeaveRequest.start_date <= start_date) & (LeaveRequest.end_date >= start_date)) |
-                ((LeaveRequest.start_date <= end_date) & (LeaveRequest.end_date >= end_date)) |
-                ((LeaveRequest.start_date >= start_date) & (LeaveRequest.end_date <= end_date))
+                ((LeaveRequest.start_date <= s_date) & (LeaveRequest.end_date >= s_date)) |
+                ((LeaveRequest.start_date <= e_date) & (LeaveRequest.end_date >= e_date)) |
+                ((LeaveRequest.start_date >= s_date) & (LeaveRequest.end_date <= e_date))
             )
         )
     )
@@ -407,44 +412,41 @@ async def submit_leave(
         raise HTTPException(status_code=400, detail="You already have a pending or approved leave request for these dates.")
 
     if leave_type_enum in (LeaveType.OTHER, LeaveType.WORK_FROM_HOME):
-        if not reason:
+        if not reason.strip():
             raise HTTPException(status_code=400, detail="Reason is mandatory for this leave type.")
 
     # 4. Upload proof to Cloudinary
     proof_url = None
     is_cloudinary = False
-    if proof_base64:
-        # If it's the old base64 data URI format, upload it
-        if proof_base64.startswith("data:"):
-            proof_url = upload_base64_to_cloudinary(proof_base64)
-            if proof_url:
-                is_cloudinary = True
-            else:
-                # If upload fails, fallback to None (proof is optional except for MEDICAL sometimes, but we made it optional)
-                proof_url = None
-        else:
-            proof_url = proof_base64 # Likely already a URL
+    if proof:
+        # Pass the file object directly to Cloudinary
+        proof_url = upload_to_cloudinary(proof.file)
+        if proof_url:
+            is_cloudinary = True
 
-    batch_id = body.get("batch_id") or None
-    if not batch_id:
-        from app.models.course import BatchStudent
-        result = await db.execute(select(BatchStudent).where(BatchStudent.student_id == user.id))
-        bs = result.scalars().first()
-        if bs:
-            batch_id = bs.batch_id
+    # 5. Determine Batch
+    batch_id = None
+    res = await db.execute(select(BatchStudent).where(BatchStudent.student_id == user.id))
+    bs = res.scalars().first()
+    if bs:
+        batch_id = bs.batch_id
 
+    # 6. Create Record
     leave = LeaveRequest(
         user_id=user.id,
         batch_id=batch_id,
         leave_type=leave_type_enum,
         proof_url=proof_url,
         is_cloudinary=is_cloudinary,
-        start_date=start_date,
-        end_date=end_date,
+        start_date=s_date,
+        end_date=e_date,
         reason=reason if leave_type_enum != LeaveType.MEDICAL else (reason or "Medical Leave"),
+        status=LeaveStatus.PENDING
     )
     db.add(leave)
-    await db.flush()
+    await db.commit()
+    await db.refresh(leave)
+    
     return {"id": leave.id, "status": "submitted", "proof_url": proof_url}
 
 @router.post("/leave-cancel/{leave_id}")
