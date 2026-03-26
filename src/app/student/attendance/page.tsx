@@ -28,6 +28,7 @@ export default function StudentAttendancePage() {
     const [isScanning, setIsScanning] = useState(false);
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
     const userLocationRef = useRef<{ lat: number, lng: number } | null>(null);
+    const onScanSuccessRef = useRef<((text: string) => Promise<void>) | null>(null);
     const user = getStoredUser();
 
     useEffect(() => {
@@ -105,12 +106,14 @@ export default function StudentAttendancePage() {
                     aspectRatio: 1.0
                 };
 
-                // Explicitly request back camera (environment)
+                // Use a stable wrapper so the library always gets the latest handler
                 await html5QrCode.start(
                     { facingMode: "environment" },
                     config,
-                    onScanSuccess,
-                    undefined // Ignore manual errors
+                    (text: string) => {
+                        if (onScanSuccessRef.current) onScanSuccessRef.current(text);
+                    },
+                    undefined
                 );
 
                 setScanMsg((prev) => prev.includes('Starting camera') ? '' : prev);
@@ -194,6 +197,8 @@ export default function StudentAttendancePage() {
             });
         }
     };
+    // Always keep the ref pointing to the latest version of the handler
+    onScanSuccessRef.current = onScanSuccess;
 
     const onScanFailure = () => {
         // Handle scan failure if needed
