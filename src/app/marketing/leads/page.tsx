@@ -14,6 +14,7 @@ export default function LeadsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ALL');
     const [showModal, setShowModal] = useState(false);
+    const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
     const [form, setForm] = useState({ name: '', email: '', phone: '', source: '', notes: '' });
 
     useEffect(() => { loadLeads(); }, []);
@@ -22,10 +23,39 @@ export default function LeadsPage() {
         try { setLeads(await apiGet('/api/marketing/leads')); } catch { } finally { setLoading(false); }
     };
 
-    const handleCreate = async (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        const res = await apiPost('/api/marketing/leads', form);
-        if (res.ok) { setShowModal(false); setForm({ name: '', email: '', phone: '', source: '', notes: '' }); loadLeads(); }
+        if (editingLeadId) {
+            const res = await apiPatch(`/api/marketing/leads/${editingLeadId}`, form);
+            if (res.ok || res.status === 'updated') { 
+                closeModal(); 
+                loadLeads(); 
+            }
+        } else {
+            const res = await apiPost('/api/marketing/leads', form);
+            if (res.ok) { 
+                closeModal(); 
+                loadLeads(); 
+            }
+        }
+    };
+
+    const handleEditClick = (lead: Lead) => {
+        setForm({
+            name: lead.name || '',
+            email: lead.email || '',
+            phone: lead.phone || '',
+            source: lead.source || '',
+            notes: lead.notes || ''
+        });
+        setEditingLeadId(lead.id);
+        setShowModal(true);
+    };
+
+    const closeModal = () => {
+        setShowModal(false);
+        setEditingLeadId(null);
+        setForm({ name: '', email: '', phone: '', source: '', notes: '' });
     };
 
     const handleStatusChange = async (id: string, status: string) => {
@@ -80,7 +110,12 @@ export default function LeadsPage() {
                                     </select>
                                 </td>
                                 <td className="text-sm text-muted">{l.notes || '-'}</td>
-                                <td><span className="text-sm text-muted">{l.activity_count} activities</span></td>
+                                <td>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <span className="text-sm text-muted">{l.activity_count} activities</span>
+                                        <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid currentColor' }} onClick={() => handleEditClick(l)}>Edit</button>
+                                    </div>
+                                </td>
                             </tr>
                         ))}</tbody>
                     </table></div>
@@ -88,18 +123,18 @@ export default function LeadsPage() {
             </div>
 
             {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                <div className="modal-overlay" onClick={closeModal}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">Add New Lead</h2>
-                        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <h2 className="modal-title">{editingLeadId ? 'Edit Lead' : 'Add New Lead'}</h2>
+                        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div className="form-group"><label>Name</label><input className="form-input" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
                             <div className="form-group"><label>Email</label><input className="form-input" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
                             <div className="form-group"><label>Phone</label><input className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
                             <div className="form-group"><label>Source</label><select className="form-input" value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}><option value="">Select source</option><option value="Website">Website</option><option value="Social Media">Social Media</option><option value="WhatsApp">WhatsApp</option><option value="Reference">Reference</option><option value="Walk-in">Walk-in</option></select></div>
                             <div className="form-group"><label>Notes</label><textarea className="form-input" rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Add Lead</button>
+                                <button type="button" className="btn btn-ghost" onClick={closeModal}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">{editingLeadId ? 'Save Changes' : 'Add Lead'}</button>
                             </div>
                         </form>
                     </div>

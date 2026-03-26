@@ -156,6 +156,10 @@ class LeadCreate(BaseModel):
     assigned_to_id: str | None = None
 
 class LeadUpdate(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    source: str | None = None
     status: str | None = None
     notes: str | None = None
 

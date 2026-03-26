@@ -64,6 +64,14 @@ async def update_lead(
         lead.status = body.status
     if body.notes is not None:
         lead.notes = body.notes
+    if body.name is not None:
+        lead.name = body.name
+    if body.email is not None:
+        lead.email = body.email
+    if body.phone is not None:
+        lead.phone = body.phone
+    if body.source is not None:
+        lead.source = body.source
     await db.flush()
     return {"status": "updated"}
 
