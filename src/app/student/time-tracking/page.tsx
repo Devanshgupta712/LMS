@@ -98,10 +98,9 @@ export default function StudentTimeTrackingPage() {
     } | null>(null);
 
     const onScanSuccess = async (decodedText: string) => {
-        if (qrCodeRef.current) {
-            await stopScanner();
-        }
-
+        // IMPORTANT: Make the API call FIRST before stopping the scanner.
+        // On iOS Safari, stopping the camera stream before fetch completes
+        // causes Safari to abort the in-flight request with "Load failed" TypeError.
         try {
             setScanMsg('Processing pulse...');
             const scanBody: any = { qr_token: decodedText };
@@ -110,6 +109,11 @@ export default function StudentTimeTrackingPage() {
                 scanBody.longitude = userLocation.lng;
             }
             const res = await apiPost('/api/auth/attendance/scan', scanBody);
+
+            // Stop the scanner only after the API call completes
+            if (qrCodeRef.current) {
+                await stopScanner();
+            }
             let data;
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {

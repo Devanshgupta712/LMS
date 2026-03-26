@@ -145,11 +145,9 @@ export default function StudentAttendancePage() {
     } | null>(null);
 
     const onScanSuccess = async (decodedText: string) => {
-        // Stop scanning immediately on success
-        if (qrCodeRef.current) {
-            await stopScanner();
-        }
-
+        // IMPORTANT: Make the API call FIRST before stopping the scanner.
+        // On iOS Safari, stopping the camera stream (stopScanner) before fetch completes
+        // causes Safari to abort the in-flight request with "Load failed" TypeError.
         try {
             setScanMsg('Processing QR code...');
             const scanBody: any = { qr_token: decodedText };
@@ -158,6 +156,11 @@ export default function StudentAttendancePage() {
                 scanBody.longitude = userLocation.lng;
             }
             const res = await apiPost('/api/auth/attendance/scan', scanBody);
+
+            // Stop the scanner only after the API call completes
+            if (qrCodeRef.current) {
+                await stopScanner();
+            }
             let data;
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {
