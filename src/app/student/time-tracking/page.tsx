@@ -18,7 +18,7 @@ export default function StudentTimeTrackingPage() {
     const [showScanner, setShowScanner] = useState(false);
     const [scanMsg, setScanMsg] = useState('');
     const qrCodeRef = useRef<any>(null);
-    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const userLocationRef = useRef<{ lat: number, lng: number } | null>(null);
     const user = getStoredUser();
 
     useEffect(() => {
@@ -48,8 +48,8 @@ export default function StudentTimeTrackingPage() {
         // Request geolocation for radius check
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => setUserLocation(null),
+                (pos) => { userLocationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+                () => { userLocationRef.current = null; },
                 { enableHighAccuracy: true, timeout: 5000 }
             );
         }
@@ -104,9 +104,11 @@ export default function StudentTimeTrackingPage() {
         try {
             setScanMsg('Processing pulse...');
             const scanBody: any = { qr_token: decodedText };
-            if (userLocation) {
-                scanBody.latitude = userLocation.lat;
-                scanBody.longitude = userLocation.lng;
+            // Use ref (not state) to get latest location — state closures are stale in callbacks
+            const loc = userLocationRef.current;
+            if (loc) {
+                scanBody.latitude = loc.lat;
+                scanBody.longitude = loc.lng;
             }
             const res = await apiPost('/api/auth/attendance/scan', scanBody);
 

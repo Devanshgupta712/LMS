@@ -27,7 +27,7 @@ export default function StudentAttendancePage() {
     const [scanMsg, setScanMsg] = useState('');
     const [isScanning, setIsScanning] = useState(false);
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const userLocationRef = useRef<{ lat: number, lng: number } | null>(null);
     const user = getStoredUser();
 
     useEffect(() => {
@@ -68,13 +68,13 @@ export default function StudentAttendancePage() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
-                        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                        userLocationRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                         setScanMsg('Location acquired. Starting camera...');
                         resolve();
                     },
                     (err) => {
                         console.error("Geolocation error:", err);
-                        setUserLocation(null);
+                        userLocationRef.current = null;
                         setScanMsg("Warning: Location access denied. You may not be able to punch in.");
                         resolve();
                     },
@@ -151,9 +151,11 @@ export default function StudentAttendancePage() {
         try {
             setScanMsg('Processing QR code...');
             const scanBody: any = { qr_token: decodedText };
-            if (userLocation) {
-                scanBody.latitude = userLocation.lat;
-                scanBody.longitude = userLocation.lng;
+            // Use ref (not state) to get the latest location — state closures are stale in callbacks
+            const loc = userLocationRef.current;
+            if (loc) {
+                scanBody.latitude = loc.lat;
+                scanBody.longitude = loc.lng;
             }
             const res = await apiPost('/api/auth/attendance/scan', scanBody);
 
