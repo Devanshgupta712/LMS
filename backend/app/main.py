@@ -97,35 +97,6 @@ app.include_router(placement.router)
 
 
 
-from fastapi import Request
-from fastapi.responses import JSONResponse
-import traceback
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal Server Error", "traceback": traceback.format_exc(), "error": str(exc)}
-    )
-
-@app.get("/api/debug-db")
-async def debug_db():
-    try:
-        from sqlalchemy import text
-        async with engine.begin() as conn:
-            # PostgreSQL check
-            pg_res = await conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"))
-            pg_cols = [row[0] for row in pg_res.fetchall()]
-            if pg_cols:
-                return {"type": "postgresql", "columns": pg_cols}
-            
-            # SQLite check
-            sq_res = await conn.execute(text("PRAGMA table_info(users)"))
-            sq_cols = [row[1] for row in sq_res.fetchall()]
-            return {"type": "sqlite", "columns": sq_cols}
-    except Exception as e:
-        return {"error": str(e), "traceback": traceback.format_exc()}
-
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "app": "Apptech Careers LMS"}

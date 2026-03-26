@@ -32,11 +32,11 @@ class Lead(Base):
     source: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[LeadStatus] = mapped_column(Enum(LeadStatus, native_enum=False), default=LeadStatus.NEW)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
-    assignedToId: Mapped[str | None] = mapped_column("assignedToId", String, ForeignKey("users.id"), nullable=True)
-    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
-    updatedAt: Mapped[datetime] = mapped_column("updatedAt", DateTime, server_default=func.now(), onupdate=func.now())
+    assigned_to_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    assigned_to = relationship("User", back_populates="leads_assigned", foreign_keys=[assignedToId])
+    assigned_to = relationship("User", back_populates="leads_assigned", foreign_keys=[assigned_to_id])
     activities = relationship("LeadActivity", back_populates="lead", cascade="all, delete-orphan")
 
 
@@ -44,15 +44,15 @@ class LeadActivity(Base):
     __tablename__ = "lead_activities"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    leadId: Mapped[str] = mapped_column("leadId", String, ForeignKey("leads.id", ondelete="CASCADE"))
+    lead_id: Mapped[str] = mapped_column(String, ForeignKey("leads.id", ondelete="CASCADE"))
     type: Mapped[str] = mapped_column(String)  # CALL, EMAIL, WHATSAPP, NOTE
     message: Mapped[str | None] = mapped_column(String, nullable=True)
     channel: Mapped[MessageChannel | None] = mapped_column(Enum(MessageChannel, native_enum=False), nullable=True)
-    scheduledAt: Mapped[datetime | None] = mapped_column("scheduledAt", DateTime, nullable=True)
-    sentAt: Mapped[datetime | None] = mapped_column("sentAt", DateTime, nullable=True)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     response: Mapped[str | None] = mapped_column(String, nullable=True)
-    userId: Mapped[str | None] = mapped_column("userId", String, ForeignKey("users.id"), nullable=True)
-    createdAt: Mapped[datetime] = mapped_column("createdAt", DateTime, server_default=func.now())
+    user_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     lead = relationship("Lead", back_populates="activities")
     user = relationship("User", back_populates="lead_activities")

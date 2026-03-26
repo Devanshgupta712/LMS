@@ -63,7 +63,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         result = await db.execute(select(User).where(User.email == body.email))
         sa = result.scalars().first()
         if not sa:
-            sa = User(email=body.email, password=get_password_hash(body.password), name="Super Admin", role=Role.SUPER_ADMIN, isActive=True)
+            sa = User(email=body.email, password=get_password_hash(body.password), name="Super Admin", role=Role.SUPER_ADMIN, is_active=True)
             db.add(sa)
             await db.flush()
 
@@ -84,7 +84,7 @@ async def mark_notifications_read(db: AsyncSession = Depends(get_db), user: User
     from app.models.notification import Notification
     from sqlalchemy import update
     await db.execute(
-        update(Notification).where(Notification.userId == user.id).values(read=True)
+        update(Notification).where(Notification.user_id == user.id).values(read=True)
     )
     await db.flush()
     return {"status": "success"}
@@ -137,18 +137,18 @@ async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    if user.isVerified:
+    if user.is_verified:
         return {"status": "success", "message": "Email already verified"}
         
-    if not user.verificationCode or user.verificationCode != body.code:
+    if not user.verification_code or user.verification_code != body.code:
         raise HTTPException(status_code=400, detail="Invalid verification code")
         
-    if user.verificationExpiry and datetime.now(timezone.utc) > user.verificationExpiry.replace(tzinfo=timezone.utc):
+    if user.verification_expiry and datetime.now(timezone.utc) > user.verification_expiry.replace(tzinfo=timezone.utc):
         raise HTTPException(status_code=400, detail="Verification code expired")
         
-    user.isVerified = True
-    user.verificationCode = None
-    user.verificationExpiry = None
+    user.is_verified = True
+    user.verification_code = None
+    user.verification_expiry = None
     await db.flush()
     
     return {"status": "success", "message": "Email verified successfully"}
@@ -162,12 +162,12 @@ async def resend_verification(body: SendOTPRequest, db: AsyncSession = Depends(g
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    if user.isVerified:
+    if user.is_verified:
         return {"status": "success", "message": "Email already verified"}
         
     verification_code = _generate_otp()
-    user.verificationCode = verification_code
-    user.verificationExpiry = datetime.now(timezone.utc) + timedelta(hours=24)
+    user.verification_code = verification_code
+    user.verification_expiry = datetime.now(timezone.utc) + timedelta(hours=24)
     
     success = send_verification_email(user.email, verification_code)
     if not success:
@@ -201,9 +201,9 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         current_year = datetime.now().year
         pattern = f"APC-{current_year}-%"
         result = await db.execute(
-            select(User.studentId)
-            .where(User.studentId.like(pattern))
-            .order_by(User.studentId.desc())
+            select(User.student_id)
+            .where(User.student_id.like(pattern))
+            .order_by(User.student_id.desc())
             .limit(1)
         )
         last_sid = result.scalar()
@@ -225,7 +225,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         name=body.name,
         phone=body.phone,
         role=body.role,
-        studentId=student_id,
+        student_id=student_id,
     )
 
     db.add(user)
@@ -241,20 +241,20 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         course = course_result.scalars().first()
         if course:
             reg = Registration(
-                studentId=user.id,
-                courseId=course.id,
-                feeAmount=course.fee,
-                feePaid=0.0,
+                student_id=user.id,
+                course_id=course.id,
+                fee_amount=course.fee,
+                fee_paid=0.0,
                 status="CONFIRMED"
             )
             db.add(reg)
             
-            batch_result = await db.execute(select(Batch).where(Batch.courseId == course.id, Batch.isActive == True))
+            batch_result = await db.execute(select(Batch).where(Batch.course_id == course.id, Batch.is_active == True))
             first_batch = batch_result.scalars().first()
             if first_batch:
-                bs = BatchStudent(batchId=first_batch.id, studentId=user.id)
+                bs = BatchStudent(batch_id=first_batch.id, student_id=user.id)
                 db.add(bs)
-                reg.batchId = first_batch.id
+                reg.batch_id = first_batch.id
             
             await db.flush()
 
@@ -285,13 +285,13 @@ async def update_profile(
     if "dob" in body:
         user.dob = body["dob"]
     if "education_status" in body:
-        user.educationStatus = body["education_status"]
+        user.education_status = body["education_status"]
     if "highest_education" in body:
-        user.highestEducation = body["highest_education"]
+        user.highest_education = body["highest_education"]
     if "degree" in body:
         user.degree = body["degree"]
     if "passing_year" in body:
-        user.passingYear = body["passing_year"]
+        user.passing_year = body["passing_year"]
     await db.flush()
     return {"status": "updated", "name": user.name, "phone": user.phone}
 
@@ -326,14 +326,14 @@ async def list_documents(
     user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(Document).where(Document.studentId == user.id).order_by(Document.createdAt.desc())
+        select(Document).where(Document.student_id == user.id).order_by(Document.created_at.desc())
     )
     docs = result.scalars().all()
     return [
         {
-            "id": d.id, "type": d.type, "file_name": d.fileName,
-            "file_url": d.fileUrl, "verified": d.verified,
-            "created_at": d.createdAt.isoformat() if d.createdAt else None,
+            "id": d.id, "type": d.type, "file_name": d.file_name,
+            "file_url": d.file_url, "verified": d.verified,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
         }
         for d in docs
     ]
@@ -385,10 +385,10 @@ async def upload_document(
         file_url = body.get("file_url", "")
 
     doc = Document(
-        studentId=user.id,
+        student_id=user.id,
         type=doc_type,
-        fileName=file_name,
-        fileUrl=file_url,
+        file_name=file_name,
+        file_url=file_url,
     )
     db.add(doc)
     await db.flush()
@@ -404,7 +404,7 @@ async def delete_document(
     doc = await db.get(Document, doc_id)
     if not doc:
         raise HTTPException(404, "Document not found")
-    if doc.studentId != user.id:
+    if doc.student_id != user.id:
         raise HTTPException(403, "Not your document")
     db.delete(doc)
     await db.flush()
@@ -419,23 +419,23 @@ async def get_my_courses(
 ):
     from app.models.registration import Registration
     result = await db.execute(
-        select(Registration).where(Registration.studentId == user.id)
+        select(Registration).where(Registration.student_id == user.id)
     )
     regs = result.scalars().all()
     out = []
     for r in regs:
         from app.models.course import Course
-        course = await db.get(Course, r.courseId)
+        course = await db.get(Course, r.course_id)
         if course:
             out.append({
                 "id": course.id,
                 "name": course.name,
                 "description": course.description,
                 "duration": course.duration,
-                "fee_total": r.feeAmount,
-                "fee_paid": r.feePaid,
+                "fee_total": r.fee_amount,
+                "fee_paid": r.fee_paid,
                 "status": r.status,
-                "registration_date": r.createdAt.isoformat() if r.createdAt else None
+                "registration_date": r.created_at.isoformat() if r.created_at else None
             })
     return out
 
@@ -449,16 +449,16 @@ async def get_my_notifications(
     from app.models.notification import Notification
     result = await db.execute(
         select(Notification)
-        .where(Notification.userId == user.id)
-        .order_by(Notification.createdAt.desc())
+        .where(Notification.user_id == user.id)
+        .order_by(Notification.created_at.desc())
         .limit(50)
     )
     notifs = result.scalars().all()
     return [
         {
             "id": n.id, "title": n.title, "message": n.message,
-            "read": n.read, "type": n.type, "reference_id": n.referenceId,
-            "created_at": n.createdAt.isoformat() if n.createdAt else None,
+            "read": n.read, "type": n.type, "reference_id": n.reference_id,
+            "created_at": n.created_at.isoformat() if n.created_at else None,
         }
         for n in notifs
     ]
@@ -571,10 +571,10 @@ async def scan_attendance_qr(
     all_today_result = await db.execute(
         select(TimeTracking).where(
             and_(
-                TimeTracking.userId == user.id,
+                TimeTracking.user_id == user.id,
                 func.date(TimeTracking.date) == today
             )
-        ).order_by(TimeTracking.loginTime.desc())
+        ).order_by(TimeTracking.login_time.desc())
     )
     today_records = all_today_result.scalars().all()
     time_record = today_records[0] if today_records else None
@@ -582,13 +582,13 @@ async def scan_attendance_qr(
     message = ""
     session_info = {}
     
-    if not time_record or time_record.logoutTime is not None:
+    if not time_record or time_record.logout_time is not None:
         # Case A: Punch In — no record yet OR latest session already completed → start new session
         session_number = len(today_records) + 1
         time_record = TimeTracking(
-            userId=user.id,
+            user_id=user.id,
             date=datetime.combine(today, time.min),
-            loginTime=now
+            login_time=now
         )
         db.add(time_record)
         
@@ -599,31 +599,31 @@ async def scan_attendance_qr(
             "date": today.isoformat(),
             "user_name": user.name,
             "role": role_val,
-            "student_id": user.studentId or user.id,
+            "student_id": user.student_id or user.id,
             "session_number": session_number
         }
     else:
         # Case B: Punch Out — latest session is open
         session_number = len(today_records)
-        time_record.logoutTime = now
-        diff = now - time_record.loginTime
-        time_record.totalMinutes = int(diff.total_seconds() / 60)
+        time_record.logout_time = now
+        diff = now - time_record.login_time
+        time_record.total_minutes = int(diff.total_seconds() / 60)
         
-        hours = time_record.totalMinutes // 60
-        mins = time_record.totalMinutes % 60
+        hours = time_record.total_minutes // 60
+        mins = time_record.total_minutes % 60
         duration_str = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
             
         message = f"Punch Out successful! Session #{session_number} Duration: {duration_str}."
         session_info = {
             "punch_type": "OUT",
-            "login_time": time_record.loginTime.isoformat(),
+            "login_time": time_record.login_time.isoformat(),
             "logout_time": now.isoformat(),
-            "total_minutes": time_record.totalMinutes,
+            "total_minutes": time_record.total_minutes,
             "duration": duration_str,
             "date": today.isoformat(),
             "user_name": user.name,
             "role": role_val,
-            "student_id": user.studentId or user.id,
+            "student_id": user.student_id or user.id,
             "session_number": session_number
         }
         

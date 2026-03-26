@@ -14,17 +14,17 @@ router = APIRouter(prefix="/api/placement", tags=["Placement"])
 # ─── Jobs ─────────────────────────────────────────────
 @router.get("/jobs")
 async def list_jobs(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Job).order_by(Job.createdAt.desc()))
+    result = await db.execute(select(Job).order_by(Job.created_at.desc()))
     jobs = result.scalars().all()
     out = []
     for j in jobs:
-        app_q = await db.execute(select(func.count(JobApplication.id)).where(JobApplication.jobId == j.id))
+        app_q = await db.execute(select(func.count(JobApplication.id)).where(JobApplication.job_id == j.id))
         out.append(JobOut(
             id=j.id, title=j.title, company=j.company,
             description=j.description, location=j.location, salary=j.salary,
-            isActive=j.isActive,
-            applicationCount=app_q.scalar() or 0,
-            createdAt=j.createdAt,
+            is_active=j.is_active,
+            application_count=app_q.scalar() or 0,
+            created_at=j.created_at,
         ))
     return out
 
@@ -45,7 +45,7 @@ async def create_job(
     return JobOut(
         id=job.id, title=job.title, company=job.company,
         description=job.description, location=job.location, salary=job.salary,
-        isActive=job.isActive, createdAt=job.createdAt,
+        is_active=job.is_active, created_at=job.created_at,
     )
 
 
@@ -53,17 +53,17 @@ async def create_job(
 @router.get("/jobs/{job_id}/applications")
 async def list_applications(job_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(JobApplication).where(JobApplication.jobId == job_id).order_by(JobApplication.createdAt.desc())
+        select(JobApplication).where(JobApplication.job_id == job_id).order_by(JobApplication.created_at.desc())
     )
     apps = result.scalars().all()
     out = []
     for a in apps:
-        student = await db.get(User, a.studentId)
+        student = await db.get(User, a.student_id)
         out.append({
-            "id": a.id, "studentName": student.name if student else "",
-            "studentId": student.studentId if student else None,
-            "status": a.status.value, "resumeUrl": a.resumeUrl,
-            "createdAt": a.createdAt,
+            "id": a.id, "student_name": student.name if student else "",
+            "student_id": student.student_id if student else None,
+            "status": a.status.value, "resume_url": a.resume_url,
+            "created_at": a.created_at,
         })
     return out
 
@@ -78,17 +78,17 @@ async def apply_job(
     # Check if already applied
     existing = await db.execute(
         select(JobApplication).where(
-            JobApplication.jobId == job_id,
-            JobApplication.studentId == user.id,
+            JobApplication.job_id == job_id,
+            JobApplication.student_id == user.id,
         )
     )
     if existing.scalars().first():
         raise HTTPException(status_code=400, detail="Already applied")
 
     app = JobApplication(
-        jobId=job_id, studentId=user.id,
-        resumeUrl=body.get("resumeUrl"),
-        videoResumeUrl=body.get("videoResumeUrl"),
+        job_id=job_id, student_id=user.id,
+        resume_url=body.get("resume_url"),
+        video_resume_url=body.get("video_resume_url"),
     )
     db.add(app)
     await db.flush()
@@ -98,11 +98,11 @@ async def apply_job(
 # ─── Assessments ──────────────────────────────────────
 @router.get("/assessments")
 async def list_assessments(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Assessment).where(Assessment.isActive == True).order_by(Assessment.createdAt.desc()))
+    result = await db.execute(select(Assessment).where(Assessment.is_active == True).order_by(Assessment.created_at.desc()))
     return [
         {
             "id": a.id, "title": a.title, "type": a.type.value,
-            "duration": a.duration, "createdAt": a.createdAt,
+            "duration": a.duration, "created_at": a.created_at,
         }
         for a in result.scalars().all()
     ]
@@ -116,7 +116,7 @@ async def create_assessment(
 ):
     assessment = Assessment(
         title=body["title"], type=body["type"],
-        courseId=body.get("courseId"),
+        course_id=body.get("course_id"),
         questions=body.get("questions", "[]"),
         duration=body.get("duration"),
     )
@@ -133,8 +133,8 @@ async def submit_assessment(
     user: User = Depends(get_current_user),
 ):
     submission = AssessmentSubmission(
-        assessmentId=assessment_id,
-        studentId=user.id,
+        assessment_id=assessment_id,
+        student_id=user.id,
         answers=body.get("answers", "[]"),
         score=body.get("score"),
     )
@@ -146,14 +146,14 @@ async def submit_assessment(
 # ─── Mock Interviews ──────────────────────────────────
 @router.get("/mock-interviews")
 async def list_mock_interviews(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(MockInterview).order_by(MockInterview.scheduledAt.desc()))
+    result = await db.execute(select(MockInterview).order_by(MockInterview.scheduled_at.desc()))
     interviews = result.scalars().all()
     out = []
     for m in interviews:
-        student = await db.get(User, m.studentId)
+        student = await db.get(User, m.student_id)
         out.append({
-            "id": m.id, "studentName": student.name if student else "",
-            "scheduledAt": m.scheduledAt, "score": m.score,
+            "id": m.id, "student_name": student.name if student else "",
+            "scheduled_at": m.scheduled_at, "score": m.score,
             "feedback": m.feedback, "completed": m.completed,
         })
     return out
