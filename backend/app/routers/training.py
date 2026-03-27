@@ -415,8 +415,12 @@ async def submit_leave(
             raise HTTPException(status_code=400, detail="You already have a pending or approved leave request for these dates.")
 
         if leave_type_enum in (LeaveType.OTHER, LeaveType.WORK_FROM_HOME):
+            # We already changed earlier to allow WORK_FROM_HOME and OTHER reason to be mandatory. Wait, actually reason validation is fine here.
             if not reason.strip():
                 raise HTTPException(status_code=400, detail="Reason is mandatory for this leave type.")
+
+        if leave_type_enum == LeaveType.MEDICAL and not proof:
+            raise HTTPException(status_code=400, detail="Proof of attachment (medical document or certificate) is required for Medical Leave.")
 
         # 4. Upload proof to Cloudinary
         proof_url = None

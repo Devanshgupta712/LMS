@@ -212,10 +212,10 @@ export default function StudentLeavesPage() {
                         )}
 
                         <div className="form-group">
-                            <label>Proof Attachment (Image or PDF) — Optional</label>
+                            <label>Proof Attachment (Image or PDF) {form.leave_type === 'MEDICAL' ? '— Mandatory' : '— Optional'}</label>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                                 <div style={{ flex: 1 }}>
-                                    <input type="file" accept="image/png,image/jpeg,application/pdf" className="form-input" onChange={handleFile} />
+                                    <input type="file" accept="image/png,image/jpeg,application/pdf" className="form-input" onChange={handleFile} required={form.leave_type === 'MEDICAL'} />
                                     {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
                                 </div>
                                 {form.proof_base64 && (

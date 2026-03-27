@@ -102,8 +102,8 @@ export default function TrainerLeavesPage() {
                         </div>
 
                         <div className="form-group">
-                            <label>Attachment (Optional)</label>
-                            <input type="file" accept="image/*,application/pdf" className="form-input" onChange={handleFile} />
+                            <label>Attachment {form.leave_type === 'MEDICAL' ? '— Mandatory' : '(Optional)'}</label>
+                            <input type="file" accept="image/*,application/pdf" className="form-input" onChange={handleFile} required={form.leave_type === 'MEDICAL'} />
                             {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
                         </div>
 
