@@ -56,9 +56,15 @@ async def lifespan(app: FastAPI):
                     await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN proofUrl TEXT"))
             print("SQLite startup complete.")
         else:
-            # For PostgreSQL production: skip the startup check to prevent hangs.
-            # Connections are established lazily on request.
-            print("PostgreSQL detected - app ready.")
+            # For PostgreSQL production: Run critical startup queries
+            print("PostgreSQL detected - running migrations.")
+            async with engine.begin() as conn:
+                try:
+                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN rejection_reason VARCHAR"))
+                    print("Added rejection_reason column.")
+                except Exception as e:
+                    print(f"Column rejection_reason might already exist or error: {e}")
+            print("PostgreSQL app ready.")
 
     except Exception as e:
         # Log the error but do NOT crash the app. The API can still serve requests
