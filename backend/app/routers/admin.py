@@ -1007,7 +1007,10 @@ async def action_leave(
 
     old_status = leave.status
     leave.status = new_status
-    leave.approved_by_id = current_user.id
+    try:
+        leave.approved_by_id = current_user.id
+    except Exception:
+        pass  # Column may not exist in older DB schema; not critical
     
     if new_status == LeaveStatus.REJECTED:
         leave.rejection_reason = body.rejection_reason

@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
             async with engine.begin() as conn:
                 pg_migrations = [
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS rejection_reason VARCHAR",
-                    "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approved_by_id VARCHAR REFERENCES users(id)",
+                    "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approved_by_id VARCHAR",
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS proof_url VARCHAR",
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS leave_type VARCHAR DEFAULT 'OTHER'",
                 ]
