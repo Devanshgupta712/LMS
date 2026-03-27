@@ -991,10 +991,12 @@ async def action_leave(
     if not leave:
         raise HTTPException(status_code=404, detail="Leave request not found")
     
+    # Fetch the leave requester
     requester = await db.get(User, leave.user_id)
     if not requester:
-        raise HTTPException(status_code=404, detail="User who requested leave not found")
+         raise HTTPException(status_code=404, detail="User who requested leave not found")
 
+    # Only SUPER_ADMIN can approve/reject trainer leaves
     if requester.role == Role.TRAINER and current_user.role != Role.SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Only Super Admin can approve or reject trainer leave requests.")
 
@@ -1003,40 +1005,44 @@ async def action_leave(
     except ValueError:
         raise HTTPException(status_code=422, detail=f"Invalid status: {body.status}. Must be PENDING, APPROVED, or REJECTED.")
 
-    # Use raw SQL to avoid ANY ORM column mapping issues
-    rejection_val = body.rejection_reason if new_status == LeaveStatus.REJECTED else None
-    try:
-        await db.execute(
-            text("""
-                UPDATE leave_requests 
-                SET status = :status, rejection_reason = :rejection_reason
-                WHERE id = :id
-            """),
-            {"status": new_status.value, "rejection_reason": rejection_val, "id": body.id}
-        )
-        await db.commit()
-    except Exception as e:
-        print(f"ERROR updating leave {body.id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update leave: {str(e)}")
+    # Update the leave status and optional fields
+    leave.status = new_status
 
-    # Email notification (non-critical)
+    # Safely try to set approved_by_id (column may not exist in older DB schemas)
     try:
-        leave_details = {
-            "start_date": leave.start_date.strftime("%Y-%m-%d"),
-            "end_date": leave.end_date.strftime("%Y-%m-%d")
-        }
-        background_tasks.add_task(
-            send_leave_status_email,
-            requester.email,
-            new_status.value,
-            leave_details,
-            body.rejection_reason
-        )
+        leave.approved_by_id = current_user.id
     except Exception:
         pass
 
-    return {"status": "updated"}
+    if new_status == LeaveStatus.REJECTED:
+        try:
+            leave.rejection_reason = body.rejection_reason
+        except Exception:
+            pass
+    else:
+        try:
+            leave.rejection_reason = None
+        except Exception:
+            pass
 
+    # Commit the status update - this is the most critical operation
+    # NOTE: Do NOT manually rollback here; let the get_db dependency handle it
+    await db.commit()
+
+    # Send Email Notification in background (non-critical, won't affect response)
+    leave_details = {
+        "start_date": leave.start_date.strftime("%Y-%m-%d"),
+        "end_date": leave.end_date.strftime("%Y-%m-%d")
+    }
+    background_tasks.add_task(
+        send_leave_status_email,
+        requester.email,
+        new_status.value,
+        leave_details,
+        body.rejection_reason
+    )
+
+    return {"status": "updated"}
 
 
 # ─── Notifications ────────────────────────────────────
