@@ -1005,58 +1005,40 @@ async def action_leave(
     except ValueError:
         raise HTTPException(status_code=422, detail=f"Invalid status: {body.status}. Must be PENDING, APPROVED, or REJECTED.")
 
-    old_status = leave.status
+    # Update the leave status and optional fields
     leave.status = new_status
+
+    # Safely try to set approved_by_id (column may not exist in older DB schemas)
     try:
         leave.approved_by_id = current_user.id
     except Exception:
-        pass  # Column may not exist in older DB schema; not critical
-    
+        pass
+
     if new_status == LeaveStatus.REJECTED:
-        leave.rejection_reason = body.rejection_reason
+        try:
+            leave.rejection_reason = body.rejection_reason
+        except Exception:
+            pass
     else:
-        leave.rejection_reason = None
+        try:
+            leave.rejection_reason = None
+        except Exception:
+            pass
 
-    try:
-        # Handle Auto-marking attendance if approved and we have a valid batch
-        if new_status == LeaveStatus.APPROVED and leave.batch_id:
-            current_date = leave.start_date
-            while current_date <= leave.end_date:
-                att_result = await db.execute(
-                    select(Attendance).where(
-                        Attendance.student_id == leave.user_id,
-                        Attendance.date == current_date
-                    )
-                )
-                att = att_result.scalars().first()
-                if att:
-                    att.status = AttendanceStatus.ON_LEAVE
-                else:
-                    new_att = Attendance(
-                        student_id=leave.user_id,
-                        batch_id=leave.batch_id,
-                        date=current_date,
-                        status=AttendanceStatus.ON_LEAVE,
-                        remarks=f"Auto-marked: Leave Approved ({leave.leave_type})"
-                    )
-                    db.add(new_att)
-                current_date += timedelta(days=1)
+    # Commit the status update - this is the most critical operation
+    # NOTE: Do NOT manually rollback here; let the get_db dependency handle it
+    await db.commit()
 
-        await db.flush()
-    except Exception as db_err:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error while updating leave: {str(db_err)}")
-
-    # Send Email Notification in background
+    # Send Email Notification in background (non-critical, won't affect response)
     leave_details = {
         "start_date": leave.start_date.strftime("%Y-%m-%d"),
         "end_date": leave.end_date.strftime("%Y-%m-%d")
     }
     background_tasks.add_task(
-        send_leave_status_email, 
-        requester.email, 
+        send_leave_status_email,
+        requester.email,
         new_status.value,
-        leave_details, 
+        leave_details,
         body.rejection_reason
     )
 
