@@ -970,7 +970,9 @@ async def list_leaves(
             leave_type=l.leave_type.value if hasattr(l, 'leave_type') and hasattr(l.leave_type, 'value') else str(getattr(l, 'leave_type', 'OTHER')),
             proof_url=l.proof_url,
             start_date=l.start_date, end_date=l.end_date,
-            reason=l.reason, status=l.status.value,
+            reason=l.reason,
+            rejection_reason=getattr(l, 'rejection_reason', None),
+            status=l.status.value,
             approved_by_name=approver.name if approver else None,
             created_at=l.created_at,
         ))
@@ -998,17 +1000,22 @@ async def action_leave(
     if requester.role == Role.TRAINER and current_user.role != Role.SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Only Super Admin can approve or reject trainer leave requests.")
 
+    try:
+        new_status = LeaveStatus(body.status)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid status: {body.status}. Must be PENDING, APPROVED, or REJECTED.")
+
     old_status = leave.status
-    leave.status = body.status
+    leave.status = new_status
     leave.approved_by_id = current_user.id
     
-    if body.status == LeaveStatus.REJECTED:
+    if new_status == LeaveStatus.REJECTED:
         leave.rejection_reason = body.rejection_reason
     else:
         leave.rejection_reason = None
 
     # Handle Auto-marking attendance if approved
-    if body.status == LeaveStatus.APPROVED:
+    if new_status == LeaveStatus.APPROVED:
         # Loop through each day of the leave
         current_date = leave.start_date
         while current_date <= leave.end_date:

@@ -219,7 +219,6 @@ class LeaveOut(BaseModel):
     user_student_id: str | None = None
     leave_type: str = "OTHER"
     proof_url: str | None = None
-    is_cloudinary: bool = False
     start_date: datetime
     end_date: datetime
     reason: str | None

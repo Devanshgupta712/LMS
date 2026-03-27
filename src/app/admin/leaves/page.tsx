@@ -16,7 +16,6 @@ interface LeaveReq {
     user_name: string; 
     user_role: string; 
     user_student_id: string | null;
-    is_cloudinary: boolean;
 }
 
 export default function LeavesPage() {
