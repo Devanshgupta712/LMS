@@ -13,7 +13,7 @@ cloudinary.config(
     secure=True
 )
 
-def upload_to_cloudinary(file_data, folder: str = "lms/leaves"):
+def upload_to_cloudinary(file_data, folder: str = "lms/leaves", is_pdf: bool = False):
     """
     Uploads a file (base64 string or file-like object) to Cloudinary.
     """
@@ -24,6 +24,8 @@ def upload_to_cloudinary(file_data, folder: str = "lms/leaves"):
         resource_type = "auto"
         # If it's a string, it might be base64. Check for PDF to set resource_type='raw'
         if isinstance(file_data, str) and "application/pdf" in file_data:
+            resource_type = "raw"
+        elif is_pdf:
             resource_type = "raw"
             
         result = cloudinary.uploader.upload(

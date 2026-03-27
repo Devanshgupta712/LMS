@@ -421,7 +421,11 @@ async def submit_leave(
         # 4. Upload proof to Cloudinary
         proof_url = None
         if proof:
-            proof_url = upload_to_cloudinary(proof.file)
+            is_pdf = False
+            if proof.filename:
+                is_pdf = proof.filename.lower().endswith(".pdf")
+            proof_url = upload_to_cloudinary(proof.file, folder="lms/leaves", is_pdf=is_pdf)
+
 
         target_user_id = user.id
         if student_id and user.role in (Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER):
