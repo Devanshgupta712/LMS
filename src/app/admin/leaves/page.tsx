@@ -33,10 +33,19 @@ export default function LeavesPage() {
     const [rejectionReason, setRejectionReason] = useState('');
     const [showProofModal, setShowProofModal] = useState<string | null>(null);
 
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+
     const user = getStoredUser();
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
-    useEffect(() => { loadLeaves(); }, []);
+    // Keep Render server awake by pinging every 2 minutes while admin is on this page
+    useEffect(() => {
+        loadLeaves();
+        const keepAlive = setInterval(() => {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lms-api-bkuw.onrender.com'}/api/health`).catch(() => {});
+        }, 2 * 60 * 1000); // every 2 minutes
+        return () => clearInterval(keepAlive);
+    }, []);
 
     const loadLeaves = async () => {
         try { setLeaves(await apiGet('/api/admin/leaves')); } catch { } finally { setLoading(false); }
@@ -44,7 +53,8 @@ export default function LeavesPage() {
 
     const handleAction = async (id: string, status: string, reason: string | null = null) => {
         setActionError(null);
-        try {
+        setActionLoading(id + status);
+        const attemptAction = async (): Promise<void> => {
             const res = await apiFetch('/api/admin/leaves', {
                 method: 'PATCH',
                 body: JSON.stringify({ id, status, rejection_reason: reason }),
@@ -53,11 +63,26 @@ export default function LeavesPage() {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data?.detail || `Server error ${res.status}`);
             }
+        };
+        try {
+            try {
+                await attemptAction();
+            } catch (err: any) {
+                // If it's a network error (server sleeping), wait 5s and retry once
+                if (!err?.message?.includes('Server error')) {
+                    await new Promise(r => setTimeout(r, 5000));
+                    await attemptAction();
+                } else {
+                    throw err;
+                }
+            }
             setShowRejectionModal(null);
             setRejectionReason('');
             loadLeaves();
         } catch (err: any) {
-            setActionError(err?.message || 'Failed to update leave status. Check your network connection.');
+            setActionError(err?.message || 'Server is waking up — please try again in 10 seconds.');
+        } finally {
+            setActionLoading(null);
         }
     };
 
