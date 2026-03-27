@@ -193,7 +193,7 @@ export default function LeavesPage() {
                                                 onClick={() => setShowProofModal(l.proof_url!)}
                                                 style={{ marginTop: '8px', padding: '6px 12px', background: 'rgba(0,102,255,0.1)', border: '1px solid rgba(0,102,255,0.2)', borderRadius: '6px', color: '#0066ff', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                                             >
-                                                View Attachment {(l.proof_url.toLowerCase().endsWith('.pdf') || l.proof_url.startsWith('data:application/pdf')) ? '📄' : '🖼️'}
+                                                View Attachment {(l.proof_url.toLowerCase().endsWith('.pdf') || l.proof_url.startsWith('data:application/pdf') || l.proof_url.includes('/raw/upload/')) ? '📄' : '🖼️'}
                                             </button>
                                         )}
 
@@ -335,7 +335,7 @@ export default function LeavesPage() {
                 >
                     <div style={{ position: 'absolute', top: '24px', right: '24px', color: '#fff', fontSize: '24px', cursor: 'pointer', zIndex: 10 }}>✕</div>
                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
-                        {(showProofModal.toLowerCase().endsWith('.pdf') || showProofModal.startsWith('data:application/pdf')) ? (
+                        {(showProofModal.toLowerCase().endsWith('.pdf') || showProofModal.startsWith('data:application/pdf') || showProofModal.includes('/raw/upload/')) ? (
                             <iframe 
                                 src={showProofModal} 
                                 style={{ width: '100%', height: '100%', maxWidth: '1000px', border: 'none', borderRadius: '12px', background: '#fff' }} 

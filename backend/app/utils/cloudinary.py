@@ -27,11 +27,16 @@ def upload_to_cloudinary(file_data, folder: str = "lms/leaves", is_pdf: bool = F
             resource_type = "raw"
         elif is_pdf:
             resource_type = "raw"
+        upload_args = {
+            "folder": folder,
+            "resource_type": resource_type
+        }
+        if resource_type == "raw":
+            upload_args["format"] = "pdf"
             
         result = cloudinary.uploader.upload(
             file_data,
-            folder=folder,
-            resource_type=resource_type
+            **upload_args
         )
         return result.get("secure_url")
     except Exception as e:
