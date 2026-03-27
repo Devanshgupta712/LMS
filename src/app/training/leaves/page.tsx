@@ -1,16 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { apiPost, getStoredUser } from '@/lib/api';
+import { apiFetch, getStoredUser } from '@/lib/api';
 
 export default function TrainerLeavesPage() {
     const [form, setForm] = useState({ start_date: '', end_date: '', leave_type: 'OTHER', reason: '', proof_base64: '', proof_name: '' });
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file) {
+            setSelectedFile(null);
+            return;
+        }
+        setSelectedFile(file);
         const reader = new FileReader();
         reader.onload = () => {
             setForm(prev => ({ ...prev, proof_base64: reader.result as string, proof_name: file.name }));
@@ -24,10 +29,23 @@ export default function TrainerLeavesPage() {
         const user = getStoredUser();
         if (!user) return;
         try {
-            const res = await apiPost('/api/training/leave-request', { user_id: user.id, ...form });
+            const formData = new FormData();
+            formData.append('start_date', form.start_date);
+            formData.append('end_date', form.end_date);
+            formData.append('leave_type', form.leave_type);
+            formData.append('reason', form.reason || '');
+            if (selectedFile) {
+                formData.append('proof', selectedFile);
+            }
+
+            const res = await apiFetch('/api/training/submit-leave', {
+                method: 'POST',
+                body: formData,
+            });
             if (res.ok) {
                 setSubmitted(true);
                 setForm({ start_date: '', end_date: '', leave_type: 'OTHER', reason: '', proof_base64: '', proof_name: '' });
+                setSelectedFile(null);
             } else {
                 const data = await res.json().catch(() => ({}));
                 setError(data.detail || 'Failed to submit leave request.');

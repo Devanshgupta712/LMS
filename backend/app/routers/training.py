@@ -20,6 +20,7 @@ from app.models.notification import Video, Feedback
 
 from app.models.setting import SystemSetting
 import uuid
+from app.schemas.schemas import LeaveOut
 
 router = APIRouter(prefix="/api/training", tags=["Training"])
 
@@ -375,6 +376,7 @@ async def submit_leave(
     leave_type: str = Form(...),
     reason: str = Form(""),
     proof: UploadFile = File(None),
+    student_id: str = Form(None),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -424,16 +426,20 @@ async def submit_leave(
         if proof_url:
             is_cloudinary = True
 
+    target_user_id = user.id
+    if student_id and user.role in (Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER):
+        target_user_id = student_id
+
     # 5. Determine Batch
     batch_id = None
-    res = await db.execute(select(BatchStudent).where(BatchStudent.student_id == user.id))
+    res = await db.execute(select(BatchStudent).where(BatchStudent.student_id == target_user_id))
     bs = res.scalars().first()
     if bs:
         batch_id = bs.batch_id
 
     # 6. Create Record
     leave = LeaveRequest(
-        user_id=user.id,
+        user_id=target_user_id,
         batch_id=batch_id,
         leave_type=leave_type_enum,
         proof_url=proof_url,
@@ -484,8 +490,9 @@ async def get_my_leaves(db: AsyncSession = Depends(get_db), user: User = Depends
 async def get_leave_stats(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     from app.models.course import Batch, BatchStudent
     
+    result = await db.execute(select(Batch).join(BatchStudent, Batch.id == BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
     batches = result.scalars().all()
-    
+
     stats = []
     for b in batches:
         # Count used leaves

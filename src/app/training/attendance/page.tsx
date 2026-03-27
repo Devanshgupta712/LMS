@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGet, apiPost, apiFetch } from '@/lib/api';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface Batch { id: string; name: string; course_name: string; }
@@ -121,17 +121,27 @@ export default function AttendancePage() {
     const submitLeave = async () => {
         if (!leaveModal) return;
         try {
-            await apiPost('/api/training/leave-request', {
-                user_id: leaveModal.studentId,
-                start_date: leaveForm.start_date,
-                end_date: leaveForm.end_date,
-                reason: leaveForm.reason,
+            const formData = new FormData();
+            formData.append('student_id', leaveModal.studentId);
+            formData.append('start_date', leaveForm.start_date);
+            formData.append('end_date', leaveForm.end_date);
+            formData.append('reason', leaveForm.reason || 'Leave requested by trainer');
+            formData.append('leave_type', 'OTHER');
+
+            const res = await apiFetch('/api/training/submit-leave', {
+                method: 'POST',
+                body: formData
             });
+
+            if (!res.ok) {
+                throw new Error('Failed');
+            }
+
             setLeaveMsg('Leave request created successfully!');
             setLocalStatus(prev => ({ ...prev, [leaveModal.studentId]: 'ON_LEAVE' }));
             setTimeout(() => setLeaveModal(null), 1200);
         } catch {
-            setLeaveMsg('Failed to create leave request.');
+            setLeaveMsg('Failed to create leave request. Network error or invalid data.');
         }
     };
 
