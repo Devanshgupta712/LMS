@@ -434,22 +434,26 @@ async def submit_leave(
     if bs:
         batch_id = bs.batch_id
 
-    # 6. Create Record
-    leave = LeaveRequest(
-        user_id=target_user_id,
-        batch_id=batch_id,
-        leave_type=leave_type_enum,
-        proof_url=proof_url,
-        start_date=s_date,
-        end_date=e_date,
-        reason=reason if leave_type_enum != LeaveType.MEDICAL else (reason or "Medical Leave"),
-        status=LeaveStatus.PENDING
-    )
-    db.add(leave)
-    await db.commit()
-    await db.refresh(leave)
-    
-    return {"id": leave.id, "status": "submitted", "proof_url": proof_url}
+    try:
+        # 6. Create Record
+        leave = LeaveRequest(
+            user_id=target_user_id,
+            batch_id=batch_id,
+            leave_type=leave_type_enum,
+            proof_url=proof_url,
+            start_date=s_date,
+            end_date=e_date,
+            reason=reason if leave_type_enum != LeaveType.MEDICAL else (reason or "Medical Leave"),
+            status=LeaveStatus.PENDING
+        )
+        db.add(leave)
+        await db.commit()
+        await db.refresh(leave)
+        
+        return {"id": leave.id, "status": "submitted", "proof_url": proof_url}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
 
 @router.post("/leave-cancel/{leave_id}")
 async def cancel_leave(
