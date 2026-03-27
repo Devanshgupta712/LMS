@@ -27,12 +27,15 @@ def upload_to_cloudinary(file_data, folder: str = "lms/leaves", is_pdf: bool = F
             resource_type = "raw"
         elif is_pdf:
             resource_type = "raw"
+        import uuid
         upload_args = {
             "folder": folder,
             "resource_type": resource_type
         }
         if resource_type == "raw":
-            upload_args["format"] = "pdf"
+            # Cloudinary ignores the 'format' param for raw files. 
+            # We must explicitly provide a public_id ending in .pdf
+            upload_args["public_id"] = f"{uuid.uuid4().hex}.pdf"
             
         result = cloudinary.uploader.upload(
             file_data,
