@@ -59,11 +59,17 @@ async def lifespan(app: FastAPI):
             # For PostgreSQL production: Run critical startup queries
             print("PostgreSQL detected - running migrations.")
             async with engine.begin() as conn:
-                try:
-                    await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN rejection_reason VARCHAR"))
-                    print("Added rejection_reason column.")
-                except Exception as e:
-                    print(f"Column rejection_reason might already exist or error: {e}")
+                pg_migrations = [
+                    "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS rejection_reason VARCHAR",
+                    "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approved_by_id VARCHAR REFERENCES users(id)",
+                    "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS proof_url VARCHAR",
+                    "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS leave_type VARCHAR DEFAULT 'OTHER'",
+                ]
+                for sql in pg_migrations:
+                    try:
+                        await conn.execute(text(sql))
+                    except Exception as col_e:
+                        print(f"Migration skipped: {col_e}")
             print("PostgreSQL app ready.")
 
     except Exception as e:

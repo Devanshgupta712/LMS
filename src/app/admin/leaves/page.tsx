@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiGet, apiPatch, getStoredUser } from '@/lib/api';
+import { apiFetch, apiGet, apiPatch, getStoredUser } from '@/lib/api';
 
 interface LeaveReq {
     id: string; 
@@ -45,12 +45,19 @@ export default function LeavesPage() {
     const handleAction = async (id: string, status: string, reason: string | null = null) => {
         setActionError(null);
         try {
-            await apiPatch('/api/admin/leaves', { id, status, rejection_reason: reason });
+            const res = await apiFetch('/api/admin/leaves', {
+                method: 'PATCH',
+                body: JSON.stringify({ id, status, rejection_reason: reason }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data?.detail || `Server error ${res.status}`);
+            }
             setShowRejectionModal(null);
             setRejectionReason('');
             loadLeaves();
         } catch (err: any) {
-            setActionError(err?.message || 'Failed to update leave status');
+            setActionError(err?.message || 'Failed to update leave status. Check your network connection.');
         }
     };
 
