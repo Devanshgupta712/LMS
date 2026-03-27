@@ -398,43 +398,42 @@ async def submit_leave(
     if s_date < today:
         raise HTTPException(status_code=400, detail="Cannot apply for leave on a past date.")
 
-    # 3. Overlap Check
-    overlap_result = await db.execute(
-        select(LeaveRequest).where(
-            LeaveRequest.user_id == user.id,
-            LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED]),
-            (
-                ((LeaveRequest.start_date <= s_date) & (LeaveRequest.end_date >= s_date)) |
-                ((LeaveRequest.start_date <= e_date) & (LeaveRequest.end_date >= e_date)) |
-                ((LeaveRequest.start_date >= s_date) & (LeaveRequest.end_date <= e_date))
+    try:
+        # 3. Overlap Check
+        overlap_result = await db.execute(
+            select(LeaveRequest).where(
+                LeaveRequest.user_id == user.id,
+                LeaveRequest.status.in_([LeaveStatus.PENDING, LeaveStatus.APPROVED]),
+                (
+                    ((LeaveRequest.start_date <= s_date) & (LeaveRequest.end_date >= s_date)) |
+                    ((LeaveRequest.start_date <= e_date) & (LeaveRequest.end_date >= e_date)) |
+                    ((LeaveRequest.start_date >= s_date) & (LeaveRequest.end_date <= e_date))
+                )
             )
         )
-    )
-    if overlap_result.scalars().first():
-        raise HTTPException(status_code=400, detail="You already have a pending or approved leave request for these dates.")
+        if overlap_result.scalars().first():
+            raise HTTPException(status_code=400, detail="You already have a pending or approved leave request for these dates.")
 
-    if leave_type_enum in (LeaveType.OTHER, LeaveType.WORK_FROM_HOME):
-        if not reason.strip():
-            raise HTTPException(status_code=400, detail="Reason is mandatory for this leave type.")
+        if leave_type_enum in (LeaveType.OTHER, LeaveType.WORK_FROM_HOME):
+            if not reason.strip():
+                raise HTTPException(status_code=400, detail="Reason is mandatory for this leave type.")
 
-    # 4. Upload proof to Cloudinary
-    proof_url = None
-    if proof:
-        # Pass the file object directly to Cloudinary
-        proof_url = upload_to_cloudinary(proof.file)
+        # 4. Upload proof to Cloudinary
+        proof_url = None
+        if proof:
+            proof_url = upload_to_cloudinary(proof.file)
 
-    target_user_id = user.id
-    if student_id and user.role in (Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER):
-        target_user_id = student_id
+        target_user_id = user.id
+        if student_id and user.role in (Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER):
+            target_user_id = student_id
 
-    # 5. Determine Batch
-    batch_id = None
-    res = await db.execute(select(BatchStudent).where(BatchStudent.student_id == target_user_id))
-    bs = res.scalars().first()
-    if bs:
-        batch_id = bs.batch_id
+        # 5. Determine Batch
+        batch_id = None
+        res = await db.execute(select(BatchStudent).where(BatchStudent.student_id == target_user_id))
+        bs = res.scalars().first()
+        if bs:
+            batch_id = bs.batch_id
 
-    try:
         # 6. Create Record
         leave = LeaveRequest(
             user_id=target_user_id,
@@ -451,6 +450,8 @@ async def submit_leave(
         await db.refresh(leave)
         
         return {"id": leave.id, "status": "submitted", "proof_url": proof_url}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
