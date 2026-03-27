@@ -1014,37 +1014,36 @@ async def action_leave(
     else:
         leave.rejection_reason = None
 
-    # Handle Auto-marking attendance if approved
-    if new_status == LeaveStatus.APPROVED:
-        # Loop through each day of the leave
-        current_date = leave.start_date
-        while current_date <= leave.end_date:
-            # Check if attendance record exists
-            att_result = await db.execute(
-                select(Attendance).where(
-                    Attendance.student_id == leave.user_id,
-                    Attendance.date == current_date
+    try:
+        # Handle Auto-marking attendance if approved and we have a valid batch
+        if new_status == LeaveStatus.APPROVED and leave.batch_id:
+            current_date = leave.start_date
+            while current_date <= leave.end_date:
+                att_result = await db.execute(
+                    select(Attendance).where(
+                        Attendance.student_id == leave.user_id,
+                        Attendance.date == current_date
+                    )
                 )
-            )
-            att = att_result.scalars().first()
-            
-            if att:
-                att.status = AttendanceStatus.ON_LEAVE
-            else:
-                # Create new record
-                new_att = Attendance(
-                    student_id=leave.user_id,
-                    batch_id=leave.batch_id or "UNKNOWN", # Fallback if batch not linked
-                    date=current_date,
-                    status=AttendanceStatus.ON_LEAVE,
-                    remarks=f"Auto-marked: Leave Approved ({leave.leave_type})"
-                )
-                db.add(new_att)
-            
-            current_date += timedelta(days=1)
+                att = att_result.scalars().first()
+                if att:
+                    att.status = AttendanceStatus.ON_LEAVE
+                else:
+                    new_att = Attendance(
+                        student_id=leave.user_id,
+                        batch_id=leave.batch_id,
+                        date=current_date,
+                        status=AttendanceStatus.ON_LEAVE,
+                        remarks=f"Auto-marked: Leave Approved ({leave.leave_type})"
+                    )
+                    db.add(new_att)
+                current_date += timedelta(days=1)
 
-    await db.flush()
-    
+        await db.flush()
+    except Exception as db_err:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error while updating leave: {str(db_err)}")
+
     # Send Email Notification in background
     leave_details = {
         "start_date": leave.start_date.strftime("%Y-%m-%d"),
@@ -1053,7 +1052,7 @@ async def action_leave(
     background_tasks.add_task(
         send_leave_status_email, 
         requester.email, 
-        body.status, 
+        new_status.value,
         leave_details, 
         body.rejection_reason
     )
