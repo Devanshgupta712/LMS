@@ -419,12 +419,9 @@ async def submit_leave(
 
     # 4. Upload proof to Cloudinary
     proof_url = None
-    is_cloudinary = False
     if proof:
         # Pass the file object directly to Cloudinary
         proof_url = upload_to_cloudinary(proof.file)
-        if proof_url:
-            is_cloudinary = True
 
     target_user_id = user.id
     if student_id and user.role in (Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER):
@@ -443,7 +440,6 @@ async def submit_leave(
         batch_id=batch_id,
         leave_type=leave_type_enum,
         proof_url=proof_url,
-        is_cloudinary=is_cloudinary,
         start_date=s_date,
         end_date=e_date,
         reason=reason if leave_type_enum != LeaveType.MEDICAL else (reason or "Medical Leave"),

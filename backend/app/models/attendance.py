@@ -58,7 +58,6 @@ class LeaveRequest(Base):
     end_date: Mapped[datetime] = mapped_column(DateTime)
     reason: Mapped[str | None] = mapped_column(String, nullable=True)
     rejection_reason: Mapped[str | None] = mapped_column(String, nullable=True)
-    is_cloudinary: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[LeaveStatus] = mapped_column(Enum(LeaveStatus, native_enum=False), default=LeaveStatus.PENDING)
     approved_by_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
