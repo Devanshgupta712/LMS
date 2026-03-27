@@ -68,7 +68,7 @@ export default function LeavesPage() {
             try {
                 await attemptAction();
             } catch (err: any) {
-                // If it's a network error (server sleeping), wait 5s and retry once
+                // If it's a network error (server sleeping/slow), wait 5s and retry once
                 if (!err?.message?.includes('Server error')) {
                     await new Promise(r => setTimeout(r, 5000));
                     await attemptAction();
@@ -80,7 +80,17 @@ export default function LeavesPage() {
             setRejectionReason('');
             loadLeaves();
         } catch (err: any) {
-            setActionError(err?.message || 'Server is waking up — please try again in 10 seconds.');
+            const isNetworkError = !err?.message?.includes('Server error');
+            if (isNetworkError) {
+                // Render free tier is slow — action likely succeeded, just refresh to confirm
+                setActionError('⏳ Server is waking up... Refreshing to confirm your action.');
+                setTimeout(() => {
+                    setActionError(null);
+                    loadLeaves();
+                }, 3000);
+            } else {
+                setActionError(err?.message || 'Failed to update leave status.');
+            }
         } finally {
             setActionLoading(null);
         }
