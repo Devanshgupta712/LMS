@@ -282,7 +282,7 @@ export default function StudentLeavesPage() {
                                                 )}
                                                 {req.proof_url && (
                                                     <a href={req.proof_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#0066ff', borderBottom: '1px solid #0066ff', marginTop: '4px', display: 'inline-block' }}>
-                                                        View Proof {req.proof_url.toLowerCase().endsWith('.pdf') ? '📄' : '🖼️'}
+                                                        View Proof {(req.proof_url.toLowerCase().endsWith('.pdf') || req.proof_url.startsWith('data:application/pdf')) ? '📄' : '🖼️'}
                                                     </a>
                                                 )}
                                             </td>
