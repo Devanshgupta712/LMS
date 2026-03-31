@@ -693,17 +693,44 @@ async def update_task(
     return {"status": "updated"}
 
 
-# ─── Assignments ──────────────────────────────────────
 @router.get("/assignments")
-async def list_assignments(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Assignment).order_by(Assignment.created_at.desc()))
+async def list_assignments(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    query = select(Assignment)
+    
+    # If Student, only show their batch assignments
+    if user.role == Role.STUDENT:
+        batch_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
+        student_batch = batch_result.scalar()
+        if student_batch:
+            query = query.where(Assignment.batch_id == student_batch)
+    
+    result = await db.execute(query.order_by(Assignment.created_at.desc()))
     assignments = result.scalars().all()
     out = []
+    
     for a in assignments:
         trainer = await db.get(User, a.assigned_by) if a.assigned_by else None
         sub_count = await db.execute(
             select(func.count(AssignmentSubmission.id)).where(AssignmentSubmission.assignment_id == a.id)
         )
+        
+        # If student, attach their personal AI grade / submission
+        student_sub = None
+        if user.role == Role.STUDENT:
+            sub_res = await db.execute(select(AssignmentSubmission).where(AssignmentSubmission.assignment_id == a.id, AssignmentSubmission.student_id == user.id))
+            sub = sub_res.scalars().first()
+            if sub:
+                student_sub = {
+                    "id": sub.id,
+                    "marks": sub.marks,
+                    "feedback": sub.feedback,
+                    "file_url": sub.file_url,
+                    "content": sub.content
+                }
+
         out.append({
             "id": a.id, "title": a.title, "description": a.description,
             "type": a.type.value, "batch_id": a.batch_id,
@@ -712,6 +739,8 @@ async def list_assignments(db: AsyncSession = Depends(get_db)):
             "due_date": a.due_date.isoformat() if a.due_date else None,
             "submission_count": sub_count.scalar() or 0,
             "created_at": a.created_at.isoformat() if a.created_at else None,
+            "my_submission": student_sub,
+            "status": "COMPLETED" if student_sub else "PENDING"
         })
     return out
 
@@ -757,10 +786,53 @@ async def create_assignment(
     return {"id": assignment.id, "status": "created"}
 
 
+from fastapi import Form, UploadFile, File
+from app.utils.cloudinary import upload_to_cloudinary
+from app.utils.ai_grader import evaluate_submission, extract_text_from_pdf, generate_assignment_instructions
+
+@router.post("/assignments/ai-generate")
+async def ai_generate_assignment(
+    topic: str = Form(...),
+    user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+):
+    """Generates an assignment description automatically based on a topic string."""
+    description = generate_assignment_instructions(topic)
+    return {"description": description}
+
+
+@router.get("/assignments/{assignment_id}/submissions")
+async def list_assignment_submissions(
+    assignment_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+):
+    assignment = await db.get(Assignment, assignment_id)
+    if not assignment:
+        raise HTTPException(404, "Assignment not found")
+        
+    result = await db.execute(
+        select(AssignmentSubmission).where(AssignmentSubmission.assignment_id == assignment_id)
+    )
+    submissions = result.scalars().all()
+    out = []
+    for sub in submissions:
+        student = await db.get(User, sub.student_id)
+        out.append({
+            "id": sub.id,
+            "student_name": student.name if student else "Unknown",
+            "content": sub.content,
+            "file_url": sub.file_url,
+            "marks": sub.marks,
+            "feedback": sub.feedback,
+            "submitted_at": sub.submitted_at.isoformat() if sub.submitted_at else None
+        })
+    return out
+
 @router.post("/assignments/{assignment_id}/submit", status_code=201)
 async def submit_assignment(
     assignment_id: str,
-    body: dict,
+    content: str = Form(None),
+    file: UploadFile = File(None),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -773,9 +845,12 @@ async def submit_assignment(
     if existing.scalars().first():
         raise HTTPException(400, "Already submitted")
 
-    # Check if late submission → auto-create violation
     assignment = await db.get(Assignment, assignment_id)
-    if assignment and assignment.due_date and assignment.due_date < datetime.utcnow():
+    if not assignment:
+        raise HTTPException(404, "Assignment not found")
+
+    # Check deadlines for violations
+    if assignment.due_date and assignment.due_date < datetime.utcnow():
         violation = Violation(
             student_id=user.id,
             type=ViolationType.POOR_ACADEMIC_PERFORMANCE,
@@ -788,13 +863,47 @@ async def submit_assignment(
         )
         db.add(violation)
 
+    # 1. Cloudinary Upload if a Physical PDF is submitted
+    pdf_url = None
+    extracted_pdf_text = None
+    
+    if file:
+        is_pdf = file.filename.lower().endswith(".pdf")
+        # Save securely to Cloudinary CDN
+        pdf_url = upload_to_cloudinary(file.file, folder="lms/assignments", is_pdf=is_pdf)
+        
+        # If it's a PDF, we need to extract the text for the AI Grader
+        if is_pdf:
+            file.file.seek(0) # Reset pointer
+            pdf_bytes = file.file.read()
+            extracted_pdf_text = extract_text_from_pdf(pdf_bytes)
+
+    # 2. Determine what the AI evaluates (Prioritize raw code if they pasted it, else fallback to extracted PDF text)
+    ai_eval_content = content or extracted_pdf_text or ""
+    ai_score = None
+    ai_feedback = None
+
+    if ai_eval_content:
+        # 3. Trigger the Gemini Auto-Grader!
+        eval_result = evaluate_submission(
+            assignment_instructions=assignment.description or assignment.title,
+            student_content=ai_eval_content,
+            max_marks=assignment.total_marks
+        )
+        ai_score = eval_result.get("score")
+        ai_feedback = eval_result.get("feedback")
+
     submission = AssignmentSubmission(
-        assignment_id=assignment_id, student_id=user.id,
-        content=body.get("content"), file_url=body.get("file_url"),
+        assignment_id=assignment_id, 
+        student_id=user.id,
+        content=content, 
+        file_url=pdf_url,
+        marks=ai_score,
+        feedback=ai_feedback
     )
     db.add(submission)
     await db.flush()
-    return {"status": "submitted"}
+    return {"status": "submitted", "marks": ai_score, "feedback": ai_feedback}
 
 
 # ─── Violations ───────────────────────────────────────
