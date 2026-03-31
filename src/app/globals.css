@@ -20,11 +20,11 @@
   --accent-l: 72%;
   --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
 
-  /* Light Slate Backgrounds */
-  --bg-primary: #ffffff; 
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --bg-card: rgba(255, 255, 255, 0.95);
+  /* Light Slate Backgrounds - Professional, non-inverted Off-White */
+  --bg-primary: #f8fafc; 
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --bg-card: #ffffff;
   --bg-input: #ffffff;
   --bg-hover: rgba(15, 23, 42, 0.04);
   
@@ -46,7 +46,7 @@
   --danger-light: #f87171;
   --warning: #f59e0b;
 
-  /* Shadows */
+  /* Shadows - Elevation & Depth */
   --shadow-premium: inset 0 1px 0 0 rgba(255, 255, 255, 0.8), 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 12px 16px -4px rgba(0, 0, 0, 0.05);
 
   --sidebar-width: 280px;
@@ -71,26 +71,26 @@
 }
 
 [data-theme='dark'] {
-  /* Dark Navy Backgrounds - Softer Contrast */
-  --bg-primary: #0D111A; 
-  --bg-secondary: #111622;
-  --bg-tertiary: #161D2C;
-  --bg-card: rgba(255, 255, 255, 0.025);
-  --bg-input: rgba(255, 255, 255, 0.04);
-  --bg-hover: rgba(255, 255, 255, 0.05); /* Unified Hover Color */
+  /* High-end Dark Navy Backgrounds */
+  --bg-primary: #0b0f19; 
+  --bg-secondary: #111827;
+  --bg-tertiary: #1f2937;
+  --bg-card: #111827;
+  --bg-input: rgba(255, 255, 255, 0.05);
+  --bg-hover: rgba(255, 255, 255, 0.05); 
   
   /* Text readability improvements */
-  --text-primary: #f1f5f9;  /* Slate-100 instead of #fff for less eye strain */
+  --text-primary: #f1f5f9; 
   --text-secondary: #cbd5e1;
   --text-muted: #64748b;
   --text-inverse: #020617;
 
-  /* Subtle Borders */
-  --border: rgba(255, 255, 255, 0.05); /* Softened from 0.08 */
+  /* Glass Translucent Borders */
+  --border: rgba(255, 255, 255, 0.06); 
   --border-light: rgba(255, 255, 255, 0.02);
   --border-glow: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.2);
 
-  /* Subtle Shadows */
+  /* Inner Glow Shadows */
   --shadow-premium: inset 0 1px 0 0 rgba(255, 255, 255, 0.02), 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 12px 16px -4px rgba(0, 0, 0, 0.15);
 }
 
@@ -112,6 +112,26 @@ html {
 :root {
   --font-heading: var(--font-inter), system-ui, sans-serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
+}
+
+/* ─── Global Transition Engine ─── */
+body, 
+.card, 
+.glass-premium, 
+.sidebar, 
+.top-nav,
+nav,
+footer,
+.stat-card,
+table,
+th,
+td,
+.modal,
+.form-input {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.15s ease,
+              box-shadow 0.3s ease;
 }
 
 body {
