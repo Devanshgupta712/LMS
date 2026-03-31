@@ -142,7 +142,7 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
     return (
         <>
             {/* Desktop Frosted Island Sidebar */}
-            <aside className={`glass-premium ${isOpen ? 'open' : ''}`} style={{
+            <aside className={`desktop-sidebar glass-premium ${isOpen ? 'open' : ''}`} style={{
                 position: 'fixed',
                 top: '20px',
                 left: '20px',
