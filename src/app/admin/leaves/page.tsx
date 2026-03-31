@@ -68,7 +68,7 @@ export default function LeavesPage() {
             try {
                 await attemptAction();
             } catch (err: any) {
-                // If it's a network error (server sleeping/slow), wait 5s and retry once
+                // If it's a network error (server sleeping), wait 5s and retry once
                 if (!err?.message?.includes('Server error')) {
                     await new Promise(r => setTimeout(r, 5000));
                     await attemptAction();
@@ -80,17 +80,7 @@ export default function LeavesPage() {
             setRejectionReason('');
             loadLeaves();
         } catch (err: any) {
-            const isNetworkError = !err?.message?.includes('Server error');
-            if (isNetworkError) {
-                // Render free tier is slow — action likely succeeded, just refresh to confirm
-                setActionError('⏳ Server is waking up... Refreshing to confirm your action.');
-                setTimeout(() => {
-                    setActionError(null);
-                    loadLeaves();
-                }, 3000);
-            } else {
-                setActionError(err?.message || 'Failed to update leave status.');
-            }
+            setActionError(err?.message || 'Server is waking up — please try again in 10 seconds.');
         } finally {
             setActionLoading(null);
         }
@@ -379,7 +369,7 @@ export default function LeavesPage() {
                         {(showProofModal.toLowerCase().endsWith('.pdf') || showProofModal.startsWith('data:application/pdf') || showProofModal.includes('/raw/upload/')) ? (
                             <iframe 
                                 src={showProofModal} 
-                                style={{ width: '100%', height: '100%', maxWidth: '1000px', border: 'none', borderRadius: '12px', background: '#fff' }} 
+                                style={{ width: '100%', height: '100%', maxWidth: '1000px', border: 'none', borderRadius: '12px', background: 'var(--bg-primary)' }} 
                             />
                         ) : (
                             <img 

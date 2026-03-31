@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { apiGet } from '@/lib/api';
 import { getStoredUser } from '@/lib/api';
+import Link from 'next/link';
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
@@ -26,186 +27,154 @@ export default function DashboardPage() {
     const name = user?.name || 'User';
 
     return (
-        <div className="animate-in">
-            <div style={{
-                background: 'var(--gradient-primary)',
-                borderRadius: 'var(--border-radius-lg)',
-                padding: '40px 32px',
-                marginBottom: '32px',
+        <div className="reveal-on-scroll active">
+            {/* Unified Welcome Banner */}
+            <div className="animate-stripe" style={{
+                borderRadius: '24px',
+                padding: '56px 40px',
+                marginBottom: '40px',
                 color: 'white',
                 position: 'relative',
                 overflow: 'hidden',
-                boxShadow: 'var(--shadow-md)'
+                boxShadow: 'var(--shadow-premium)'
             }}>
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.02em' }}>
-                        Welcome back, {name.split(' ')[0]} 👋
+                    <div style={{ 
+                        display: 'inline-flex', 
+                        padding: '6px 12px', 
+                        background: 'rgba(255,255,255,0.15)', 
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '100px', 
+                        fontSize: '12px', 
+                        fontWeight: 600, 
+                        marginBottom: '20px',
+                        letterSpacing: '0.05em'
+                    }}>
+                        ✨ Welcome back, {role === 'ADMIN' ? 'Administrator' : 'Trainer'}
+                    </div>
+                    <h1 style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 600, marginBottom: '12px', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                        Hello, {name.split(' ')[0]}
                     </h1>
-                    <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>Here&apos;s what&apos;s happening today at AppTechno Software</p>
+                    <p style={{ fontSize: '18px', opacity: 0.9, fontWeight: 500, maxWidth: '600px' }}>
+                        Everything looks good today. You have {unreadCount > 0 ? unreadCount : 'no'} unread notifications.
+                    </p>
                 </div>
-                {/* Decorative background circles */}
-                <div style={{ position: 'absolute', right: '-10%', top: '-50%', width: '300px', height: '300px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(40px)' }} />
-                <div style={{ position: 'absolute', right: '10%', bottom: '-50%', width: '200px', height: '200px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(30px)' }} />
+                
+                {/* Visual Glass Element */}
+                <div className="glass-premium" style={{ 
+                    position: 'absolute', 
+                    right: '40px', 
+                    top: '50%', 
+                    transform: 'translateY(-50%)', 
+                    width: '180px', 
+                    height: '180px', 
+                    borderRadius: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '64px',
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)'
+                }}>
+                    ⚡
+                </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid-4 mb-24">
-                {role === 'SUPER_ADMIN' || role === 'ADMIN' ? (
+            {/* Metrics Dashboard */}
+            <div className="grid-4" style={{ marginBottom: '40px' }}>
+                {(role === 'SUPER_ADMIN' || role === 'ADMIN') && (
                     <>
-                        <a href="/admin/students" className="stat-card primary" style={{ textDecoration: 'none' }}>
-                            <div className="stat-icon primary">🎓</div>
-                            <div className="stat-info">
-                                <h3>Total Students</h3>
-                                <div className="stat-value">{stats?.total_students || 0}</div>
+                        <Link href="/admin/students" className="glass-premium shadow-premium hover-lift" style={{ padding: '24px', borderRadius: '20px', color: 'inherit' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                                <div style={{ width: '48px', height: '48px', background: 'var(--primary-glow)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>🎓</div>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)' }}>Students</span>
                             </div>
-                        </a>
-                        <div className="stat-card accent">
-                            <div className="stat-icon accent">📚</div>
-                            <div className="stat-info">
-                                <h3>Active Courses</h3>
-                                <div className="stat-value">{stats?.total_courses || 0}</div>
+                            <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats?.total_students || 0}</div>
+                        </Link>
+                        <Link href="/admin/courses" className="glass-premium shadow-premium hover-lift" style={{ padding: '24px', borderRadius: '20px', color: 'inherit' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                                <div style={{ width: '48px', height: '48px', background: 'hsla(280, 80%, 60%, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>📚</div>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)' }}>Courses</span>
                             </div>
-                        </div>
-                        <div className="stat-card success">
-                            <div className="stat-icon success">👥</div>
-                            <div className="stat-info">
-                                <h3>Batches</h3>
-                                <div className="stat-value">{stats?.total_batches || 0}</div>
+                            <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats?.total_courses || 0}</div>
+                        </Link>
+                        <Link href="/admin/batches" className="glass-premium shadow-premium hover-lift" style={{ padding: '24px', borderRadius: '20px', color: 'inherit' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                                <div style={{ width: '48px', height: '48px', background: 'hsla(160, 80%, 60%, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👥</div>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)' }}>Batches</span>
                             </div>
-                        </div>
-                        <div className="stat-card danger">
-                            <div className="stat-icon danger">🎯</div>
-                            <div className="stat-info">
-                                <h3>Active Leads</h3>
-                                <div className="stat-value">{stats?.total_leads || 0}</div>
+                            <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats?.total_batches || 0}</div>
+                        </Link>
+                        <Link href="/marketing/leads" className="glass-premium shadow-premium hover-lift" style={{ padding: '24px', borderRadius: '20px', color: 'inherit' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                                <div style={{ width: '48px', height: '48px', background: 'hsla(0, 80%, 60%, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>🎯</div>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)' }}>Leads</span>
                             </div>
-                        </div>
-                    </>
-                ) : role === 'TRAINER' ? (
-                    <>
-                        <div className="stat-card primary">
-                            <div className="stat-icon primary">👥</div>
-                            <div className="stat-info">
-                                <h3>My Batches</h3>
-                                <div className="stat-value">0</div>
-                            </div>
-                        </div>
-                        <div className="stat-card accent">
-                            <div className="stat-icon accent">✅</div>
-                            <div className="stat-info">
-                                <h3>Today&apos;s Attendance</h3>
-                                <div className="stat-value">0%</div>
-                            </div>
-                        </div>
-                        <div className="stat-card success">
-                            <div className="stat-icon success">🏗️</div>
-                            <div className="stat-info">
-                                <h3>Active Projects</h3>
-                                <div className="stat-value">0</div>
-                            </div>
-                        </div>
-                        <div className="stat-card danger">
-                            <div className="stat-icon danger">⚠️</div>
-                            <div className="stat-info">
-                                <h3>Pending Tasks</h3>
-                                <div className="stat-value">0</div>
-                            </div>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="stat-card primary">
-                            <div className="stat-icon primary">📚</div>
-                            <div className="stat-info">
-                                <h3>My Courses</h3>
-                                <div className="stat-value">0</div>
-                            </div>
-                        </div>
-                        <div className="stat-card accent">
-                            <div className="stat-icon accent">✅</div>
-                            <div className="stat-info">
-                                <h3>Attendance</h3>
-                                <div className="stat-value">0%</div>
-                            </div>
-                        </div>
-                        <div className="stat-card success">
-                            <div className="stat-icon success">📝</div>
-                            <div className="stat-info">
-                                <h3>Tasks Done</h3>
-                                <div className="stat-value">0</div>
-                            </div>
-                        </div>
-                        <div className="stat-card danger">
-                            <div className="stat-icon danger">⏰</div>
-                            <div className="stat-info">
-                                <h3>Pending</h3>
-                                <div className="stat-value">0</div>
-                            </div>
-                        </div>
+                            <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats?.total_leads || 0}</div>
+                        </Link>
                     </>
                 )}
             </div>
 
-            {/* Quick Actions + Recent */}
-            <div className="grid-2 mt-8">
-                <div className="card-glass">
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '20px', color: 'var(--text-primary)' }}>Quick Actions</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="grid-2">
+                {/* Actions Hub */}
+                <div className="glass-premium" style={{ padding: '32px', borderRadius: '24px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '24px', letterSpacing: '-0.02em' }}>Quick Actions Hub</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
                         {(role === 'SUPER_ADMIN' || role === 'ADMIN') && (
                             <>
-                                <a href="/admin/courses" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">📚</span>
-                                    <span style={{ fontWeight: 600 }}>Manage Courses</span>
-                                </a>
-                                <a href="/admin/batches" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">👥</span>
-                                    <span style={{ fontWeight: 600 }}>Manage Batches</span>
-                                </a>
-                                <a href="/admin/students" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">🎓</span>
-                                    <span style={{ fontWeight: 600 }}>Manage Students</span>
-                                </a>
-                                <a href="/admin/users" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">👤</span>
-                                    <span style={{ fontWeight: 600 }}>Manage Users</span>
-                                </a>
-                                <a href="/marketing/leads" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">🎯</span>
-                                    <span style={{ fontWeight: 600 }}>Manage Leads</span>
-                                </a>
-                            </>
-                        )}
-                        {role === 'TRAINER' && (
-                            <>
-                                <a href="/training/attendance" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">✅</span>
-                                    <span style={{ fontWeight: 600 }}>Mark Attendance</span>
-                                </a>
-                                <a href="/training/projects" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">🏗️</span>
-                                    <span style={{ fontWeight: 600 }}>Manage Projects</span>
-                                </a>
-                            </>
-                        )}
-                        {role === 'STUDENT' && (
-                            <>
-                                <a href="/placement/jobs" className="sidebar-link" style={{ borderRadius: '12px', background: 'var(--bg-secondary)', padding: '14px 16px', border: '1px solid var(--border)' }}>
-                                    <span className="link-icon">💼</span>
-                                    <span style={{ fontWeight: 600 }}>Browse Jobs</span>
-                                </a>
+                                {[
+                                    { label: 'Platform Settings', href: '/admin/settings', icon: '⚙️' },
+                                    { label: 'Security Reports', href: '/reports', icon: '🛡️' },
+                                    { label: 'Broadcast Message', href: '/notifications', icon: '📢' }
+                                ].map((action, i) => (
+                                    <Link key={i} href={action.href} className="hover-lift" style={{
+                                        padding: '16px',
+                                        borderRadius: '16px',
+                                        background: 'var(--bg-tertiary)',
+                                        border: '1px solid var(--border)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '16px',
+                                        color: 'inherit',
+                                        fontWeight: 700
+                                    }}>
+                                        <span style={{ fontSize: '20px' }}>{action.icon}</span>
+                                        <span>{action.label}</span>
+                                    </Link>
+                                ))}
                             </>
                         )}
                     </div>
                 </div>
 
-                <div className="card-glass">
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '20px', color: 'var(--text-primary)' }}>Recent Activity</h3>
-                    <div className="empty-state" style={{ padding: '60px 16px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px dashed var(--border-light)' }}>
-                        <div className="empty-icon" style={{ fontSize: '2.5rem', marginBottom: '16px', opacity: 0.5 }}>�</div>
-                        <p className="text-sm text-muted">No recent activity yet. Your feed will appear here.</p>
+                {/* Activity Feed */}
+                <div className="glass-premium" style={{ padding: '32px', borderRadius: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em' }}>Live Activity Feed</h3>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--primary)' }}>Real-time</span>
+                    </div>
+                    
+                    <div style={{ 
+                        padding: '60px 24px', 
+                        background: 'var(--bg-tertiary)', 
+                        borderRadius: '20px', 
+                        textAlign: 'center',
+                        border: '1px dashed var(--border)'
+                    }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>📊</div>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', margin: 0 }}>
+                            No activity recorded in the last 24 hours.
+                        </p>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', opacity: 0.7, marginTop: '8px' }}>
+                            New logs will appear here as users interact with the system.
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
     );
 }
+
+// Helper for local mock unread count
+const unreadCount = 0;

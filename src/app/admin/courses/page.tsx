@@ -75,82 +75,151 @@ export default function CoursesPage() {
     const totalStudents = courses.reduce((a, c) => a + c.student_count, 0);
 
     return (
-        <div className="animate-in">
-            <div className="page-header">
+        <div className="reveal-on-scroll active">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px' }}>
                 <div>
-                    <h1 className="page-title">Courses</h1>
-                    <p className="page-subtitle">Manage all courses offered at AppTechno Software</p>
+                    <h1 style={{ fontSize: '32px', fontWeight: 600, letterSpacing: '-0.04em', marginBottom: '8px' }}>Course Management</h1>
+                    <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Design and deploy academy programs across the platform.</p>
                 </div>
-                {canEdit && <button className="btn btn-primary" onClick={openCreate}>+ New Course</button>}
+                {canEdit && (
+                    <button 
+                        onClick={openCreate}
+                        className="hover-lift"
+                        style={{
+                            padding: '12px 24px',
+                            background: 'var(--primary)',
+                            color: 'white',
+                            borderRadius: '12px',
+                            border: 'none',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                            boxShadow: 'var(--shadow-premium)',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        + Create New Program
+                    </button>
+                )}
             </div>
 
-            <div className="grid-4 mb-24">
-                <div className="stat-card primary"><div className="stat-icon primary">📚</div><div className="stat-info"><h3>Total Courses</h3><div className="stat-value">{courses.length}</div></div></div>
-                <div className="stat-card accent"><div className="stat-icon accent">👥</div><div className="stat-info"><h3>Total Batches</h3><div className="stat-value">{totalBatches}</div></div></div>
-                <div className="stat-card success"><div className="stat-icon success">🎓</div><div className="stat-info"><h3>Total Students</h3><div className="stat-value">{totalStudents}</div></div></div>
-                <div className="stat-card danger"><div className="stat-icon danger">✅</div><div className="stat-info"><h3>Active</h3><div className="stat-value">{courses.filter(c => c.is_active).length}</div></div></div>
+            <div className="grid-4" style={{ marginBottom: '40px' }}>
+                <div className="glass-premium" style={{ padding: '24px', borderRadius: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Active Programs</div>
+                    <div style={{ fontSize: '32px', fontWeight: 700 }}>{courses.filter(c => c.is_active).length}</div>
+                </div>
+                <div className="glass-premium" style={{ padding: '24px', borderRadius: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Total Enrollment</div>
+                    <div style={{ fontSize: '32px', fontWeight: 700 }}>{totalStudents}</div>
+                </div>
+                <div className="glass-premium" style={{ padding: '24px', borderRadius: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Current Batches</div>
+                    <div style={{ fontSize: '32px', fontWeight: 700 }}>{totalBatches}</div>
+                </div>
+                <div className="glass-premium" style={{ padding: '24px', borderRadius: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Academy Reach</div>
+                    <div style={{ fontSize: '32px', fontWeight: 700 }}>{courses.length}</div>
+                </div>
             </div>
 
-            <div className="card">
-                {loading ? <p>Loading...</p> : courses.length === 0 ? (
-                    <div className="empty-state"><div className="empty-icon">📚</div><h3>No courses yet</h3><p>Create your first course to get started.</p></div>
+            <div className="glass-premium" style={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {loading ? (
+                    <div style={{ padding: '80px', textAlign: 'center' }}>
+                        <div className="animate-spin" style={{ fontSize: '32px' }}>🔄</div>
+                    </div>
+                ) : courses.length === 0 ? (
+                    <div style={{ padding: '80px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '64px', marginBottom: '24px' }}>📚</div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 700 }}>Initialize Your Academy</h3>
+                        <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '12px auto' }}>Start by creating your first course program to begin student enrollment.</p>
+                    </div>
                 ) : (
-                    <div className="table-responsive"><table className="table">
-                        <thead><tr>
-                            <th>Course Name</th><th>Duration</th><th>Fee</th><th>Batches</th><th>Students</th><th>Status</th>
-                            {canEdit && <th>Actions</th>}
-                        </tr></thead>
-                        <tbody>{courses.map(c => (
-                            <tr key={c.id}>
-                                <td><strong>{c.name}</strong><br /><span className="text-sm text-muted">{c.description}</span></td>
-                                <td>{c.duration || '-'}</td>
-                                <td>₹{c.fee.toLocaleString()}</td>
-                                <td>{c.batch_count}</td>
-                                <td>{c.student_count}</td>
-                                <td>
-                                    <span
-                                        className={`badge ${c.is_active ? 'badge-success' : 'badge-danger'}`}
-                                        style={{ cursor: canEdit ? 'pointer' : 'default' }}
-                                        title={canEdit ? 'Click to toggle' : ''}
-                                        onClick={() => canEdit && handleToggleActive(c)}
-                                    >
-                                        {c.is_active ? 'Active' : 'Inactive'}
-                                    </span>
-                                </td>
-                                {canEdit && (
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            <button className="btn btn-sm btn-secondary" onClick={() => openEdit(c)}>✏️ Edit</button>
-                                            <button className="btn btn-sm btn-danger" onClick={() => handleDelete(c)} disabled={c.batch_count > 0} title={c.batch_count > 0 ? 'Delete batches first' : 'Delete course'}>🗑</button>
-                                        </div>
-                                    </td>
-                                )}
-                            </tr>
-                        ))}</tbody>
-                    </table></div>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border)' }}>
+                                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Program Identity</th>
+                                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Duration</th>
+                                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tuition Fee</th>
+                                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
+                                    {canEdit && <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Control</th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {courses.map(c => (
+                                    <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }} className="hover-lift">
+                                        <td style={{ padding: '20px 24px' }}>
+                                            <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)' }}>{c.name}</div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>{c.description?.slice(0, 80)}...</div>
+                                        </td>
+                                        <td style={{ padding: '20px 24px', fontWeight: 700, fontSize: '14px' }}>{c.duration || 'Flexible'}</td>
+                                        <td style={{ padding: '20px 24px', fontWeight: 700, fontSize: '14px', color: 'var(--primary)' }}>₹{c.fee.toLocaleString()}</td>
+                                        <td style={{ padding: '20px 24px' }}>
+                                            <span 
+                                                onClick={() => canEdit && handleToggleActive(c)}
+                                                style={{ 
+                                                    padding: '6px 12px', 
+                                                    borderRadius: '8px', 
+                                                    fontSize: '11px', 
+                                                    fontWeight: 600,
+                                                    background: c.is_active ? 'var(--primary-glow)' : 'var(--bg-tertiary)',
+                                                    color: c.is_active ? 'var(--primary)' : 'var(--text-muted)',
+                                                    cursor: canEdit ? 'pointer' : 'default',
+                                                    border: '1px solid currentColor'
+                                                }}
+                                            >
+                                                {c.is_active ? 'PROGRAM ACTIVE' : 'PROGRAM PAUSED'}
+                                            </span>
+                                        </td>
+                                        {canEdit && (
+                                            <td style={{ padding: '20px 24px' }}>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button onClick={() => openEdit(c)} className="hover-lift" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', cursor: 'pointer' }}>✏️</button>
+                                                    <button onClick={() => handleDelete(c)} disabled={c.batch_count > 0} className="hover-lift" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', cursor: c.batch_count > 0 ? 'not-allowed' : 'pointer', opacity: c.batch_count > 0 ? 0.3 : 1 }}>🗑️</button>
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 
             {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">{editCourse ? `Edit — ${editCourse.name}` : 'Create New Course'}</h2>
+                <div className="glass-premium" style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setShowModal(false)}>
+                    <div className="glass-premium" style={{ width: '100%', maxWidth: '500px', padding: '32px', borderRadius: '24px', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.04em' }}>{editCourse ? 'Modify Program' : 'New Program Identity'}</h2>
+                        
                         {error && (
-                            <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: '8px', padding: '10px', color: '#f87171', fontSize: '13px', marginBottom: '12px' }}>
+                            <div style={{ background: 'hsla(0, 80%, 60%, 0.1)', border: '1px solid hsla(0, 80%, 60%, 0.2)', padding: '12px', borderRadius: '12px', color: '#ef4444', fontSize: '13px', fontWeight: 600, marginBottom: '20px' }}>
                                 ⚠️ {error}
                             </div>
                         )}
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div className="form-group"><label>Course Name</label><input className="form-input" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                            <div className="form-group"><label>Description</label><textarea className="form-input" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div className="form-group"><label>Duration</label><input className="form-input" placeholder="e.g. 6 months" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} /></div>
-                                <div className="form-group"><label>Fee (₹)</label><input className="form-input" type="number" min="0" value={form.fee} onChange={e => setForm({ ...form, fee: e.target.value })} /></div>
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Program Name</label>
+                                <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 600 }} />
                             </div>
-                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                                    {submitting ? 'Saving...' : editCourse ? 'Save Changes' : 'Create Course'}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Executive Description</label>
+                                <textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 600 }} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Duration</label>
+                                    <input placeholder="e.g. 24 Weeks" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 600 }} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tuition (₹)</label>
+                                    <input type="number" value={form.fee} onChange={e => setForm({ ...form, fee: e.target.value })} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 600 }} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'transparent', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                                <button type="submit" disabled={submitting} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-premium)' }}>
+                                    {submitting ? 'Syncing...' : editCourse ? 'Confirm Update' : 'Initialize Program'}
                                 </button>
                             </div>
                         </form>

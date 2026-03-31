@@ -27,7 +27,7 @@ export default function AdminReportsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((m, i) => (
                             <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ width: '40px', fontSize: '13px', color: '#94a3b8' }}>{m}</span>
+                                <span style={{ width: '40px', fontSize: '13px', color: 'var(--text-secondary)' }}>{m}</span>
                                 <div style={{ flex: 1, height: '24px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden' }}>
                                     <div style={{ width: `${20 + i * 12}%`, height: '100%', background: 'linear-gradient(90deg, #0066ff, #0066ff)', borderRadius: '6px', transition: 'width 0.5s' }} />
                                 </div>

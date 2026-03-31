@@ -583,7 +583,7 @@ export default function TimeTrackingPage() {
                         </div>
 
                         <div style={{
-                            background: '#fff',
+                            background: 'var(--bg-primary)',
                             padding: '24px',
                             borderRadius: '16px',
                             display: 'inline-flex',

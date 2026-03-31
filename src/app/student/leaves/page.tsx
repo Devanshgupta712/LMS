@@ -146,26 +146,26 @@ export default function StudentLeavesPage() {
 
             {/* Stats Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div className="glass-premium hover-lift reveal-on-scroll active" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span className="text-xs text-muted fw-600">Total Quota</span>
                     <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>{stats.quota} <span className="text-xs text-muted">Days</span></span>
                 </div>
-                <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div className="glass-premium hover-lift reveal-on-scroll active" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span className="text-xs text-muted fw-600" style={{ color: '#10b981' }}>Leaves Taken</span>
                     <span style={{ fontSize: '24px', fontWeight: 700, color: '#10b981' }}>{stats.taken}</span>
                 </div>
-                <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div className="glass-premium hover-lift reveal-on-scroll active" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span className="text-xs text-muted fw-600" style={{ color: '#0066ff' }}>Remaining Balance</span>
                     <span style={{ fontSize: '24px', fontWeight: 700, color: '#0066ff' }}>{stats.remaining}</span>
                 </div>
-                <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div className="glass-premium hover-lift reveal-on-scroll active" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span className="text-xs text-muted fw-600" style={{ color: '#f59e0b' }}>Pending Requests</span>
                     <span style={{ fontSize: '24px', fontWeight: 700, color: '#f59e0b' }}>{stats.pending}</span>
                 </div>
             </div>
 
             <div style={{ maxWidth: '800px' }}>
-                <div className="card">
+                <div className="glass-premium reveal-on-scroll active">
                     <h3 className="font-semibold mb-16">New Leave Request</h3>
                     {submitted && (
                         <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: '12px', padding: '12px', color: '#4ade80', marginBottom: '16px', fontSize: '14px' }}>
@@ -237,7 +237,7 @@ export default function StudentLeavesPage() {
 
             <div style={{ marginTop: '40px' }}>
                 <h3 className="font-semibold mb-16">My Leave History</h3>
-                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div className="glass-premium reveal-on-scroll active" style={{ padding: 0, overflow: 'hidden' }}>
                     {loading ? (
                         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading records...</div>
                     ) : history.length === 0 ? (

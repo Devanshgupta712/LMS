@@ -22,7 +22,7 @@ const typeConfig: Record<string, { icon: string; color: string; label: string }>
     DISRUPTIVE_BEHAVIOR: { icon: '🚨', color: '#b91c1c', label: 'Disruptive Behavior' },
     PLAGIARISM: { icon: '📋', color: '#dc2626', label: 'Plagiarism' },
     CODE_VIOLATION: { icon: '💻', color: '#0066ff', label: 'Code Violation' },
-    OTHER: { icon: '❓', color: '#64748b', label: 'Other' },
+    OTHER: { icon: '❓', color: 'var(--text-secondary)', label: 'Other' },
 };
 
 const severityConfig: Record<string, { color: string; bg: string }> = {
@@ -36,7 +36,7 @@ const statusConfig: Record<string, { color: string; bg: string }> = {
     OPEN: { color: '#ef4444', bg: '#ef444418' },
     ACKNOWLEDGED: { color: '#f59e0b', bg: '#f59e0b18' },
     RESOLVED: { color: '#10b981', bg: '#10b98118' },
-    DISMISSED: { color: '#64748b', bg: '#64748b18' },
+    DISMISSED: { color: 'var(--text-secondary)', bg: '#64748b18' },
 };
 
 export default function StudentViolationsPage() {
@@ -67,7 +67,7 @@ export default function StudentViolationsPage() {
                 </div>
             </div>
 
-            <div className="grid-3 mb-24">
+            <div className="grid-3 mb-24 reveal-on-scroll active">
                 <div className="stat-card primary">
                     <div className="stat-icon primary">📋</div>
                     <div className="stat-info">
@@ -94,7 +94,7 @@ export default function StudentViolationsPage() {
             {loading ? (
                 <p>Loading records...</p>
             ) : violations.length === 0 ? (
-                <div className="card">
+                <div className="glass-premium reveal-on-scroll active">
                     <div className="empty-state">
                         <div className="empty-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🏆</div>
                         <h3>Excellent Standing</h3>
@@ -109,7 +109,7 @@ export default function StudentViolationsPage() {
                         const stCfg = statusConfig[v.status] || statusConfig.OPEN;
 
                         return (
-                            <div key={v.id} className="card" style={{ borderLeft: `4px solid ${tCfg.color}` }}>
+                            <div key={v.id} className="glass-premium hover-lift reveal-on-scroll active" style={{ borderLeft: `4px solid ${tCfg.color}` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '24px' }}>{tCfg.icon}</span>
                                     <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>{v.title}</h3>
@@ -125,12 +125,12 @@ export default function StudentViolationsPage() {
                                 </div>
 
                                 {v.description && (
-                                    <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '16px', lineHeight: 1.6 }}>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px', lineHeight: 1.6 }}>
                                         {v.description}
                                     </p>
                                 )}
 
-                                <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: '#64748b', borderTop: '1px solid #334155', paddingTop: '12px' }}>
+                                <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: 'var(--text-secondary)', borderTop: '1px solid #334155', paddingTop: '12px' }}>
                                     <span>📅 Issued: {new Date(v.created_at).toLocaleDateString()}</span>
                                     {v.penalty_points > 0 && (
                                         <span style={{ color: '#ef4444', fontWeight: 500 }}>

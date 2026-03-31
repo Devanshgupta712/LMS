@@ -44,7 +44,7 @@ export default function SettingsPage() {
                         <div key={pref.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                             <div><strong style={{ fontSize: '14px' }}>{pref.label}</strong><p className="text-sm text-muted" style={{ margin: '2px 0 0' }}>{pref.desc}</p></div>
                             <div style={{ width: '44px', height: '24px', background: pref.on ? '#4ade80' : '#374151', borderRadius: '12px', cursor: 'pointer', position: 'relative' }}>
-                                <div style={{ width: '18px', height: '18px', background: '#fff', borderRadius: '50%', position: 'absolute', top: '3px', left: pref.on ? '22px' : '4px', transition: 'left 0.2s' }} />
+                                <div style={{ width: '18px', height: '18px', background: 'var(--bg-primary)', borderRadius: '50%', position: 'absolute', top: '3px', left: pref.on ? '22px' : '4px', transition: 'left 0.2s' }} />
                             </div>
                         </div>
                     ))}

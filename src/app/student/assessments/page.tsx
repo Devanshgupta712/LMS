@@ -11,14 +11,14 @@ export default function StudentAssessmentsPage() {
         <div className="animate-in">
             <div className="page-header"><div><h1 className="page-title">My Assessments</h1><p className="page-subtitle">View and take assigned assessments</p></div></div>
 
-            <div className="grid-4 mb-24">
+            <div className="grid-4 mb-24 reveal-on-scroll active">
                 <div className="stat-card primary"><div className="stat-icon primary">📝</div><div className="stat-info"><h3>Total</h3><div className="stat-value">{assessments.length}</div></div></div>
                 <div className="stat-card success"><div className="stat-icon success">✅</div><div className="stat-info"><h3>Completed</h3><div className="stat-value">{assessments.filter(a => a.status === 'COMPLETED').length}</div></div></div>
                 <div className="stat-card accent"><div className="stat-icon accent">📊</div><div className="stat-info"><h3>Avg Score</h3><div className="stat-value">{Math.round(assessments.filter(a => a.score).reduce((a, b) => a + (b.score || 0), 0) / assessments.filter(a => a.score).length)}%</div></div></div>
                 <div className="stat-card danger"><div className="stat-icon danger">⏰</div><div className="stat-info"><h3>Pending</h3><div className="stat-value">{assessments.filter(a => a.status === 'PENDING').length}</div></div></div>
             </div>
 
-            <div className="card">
+            <div className="glass-premium reveal-on-scroll active">
                 <div className="table-responsive"><table className="table">
                     <thead><tr><th>Assessment</th><th>Date</th><th>Score</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>{assessments.map((a, i) => (

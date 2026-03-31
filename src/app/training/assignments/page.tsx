@@ -76,7 +76,7 @@ export default function AssignmentsPage() {
                                 <tr key={a.id}>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{a.title}</div>
-                                        {a.description && <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{a.description.slice(0, 60)}...</div>}
+                                        {a.description && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{a.description.slice(0, 60)}...</div>}
                                     </td>
                                     <td>
                                         <span className="badge" style={{ background: `${typeColors[a.type]}20`, color: typeColors[a.type] }}>

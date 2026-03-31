@@ -196,7 +196,7 @@ export default function AttendancePage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
                 <div className="form-group mb-0">
-                    <label style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '10px', display: 'block', fontWeight: 600 }}>1. Select Training Batch</label>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px', display: 'block', fontWeight: 600 }}>1. Select Training Batch</label>
                     <select className="form-input" style={{ width: '100%', height: '52px', fontSize: '15px' }} value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
                         <option value="">Select a batch to start marking attendance...</option>
                         {batches.map(b => <option key={b.id} value={b.id}>{b.name} ({b.course_name})</option>)}
@@ -204,7 +204,7 @@ export default function AttendancePage() {
                 </div>
 
                 <div className="form-group mb-0">
-                    <label style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '10px', display: 'block', fontWeight: 600 }}>2. Select Session Date</label>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px', display: 'block', fontWeight: 600 }}>2. Select Session Date</label>
                     <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.04)', padding: '6px 16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <input className="form-input" style={{ border: 'none', background: 'transparent', width: '100%', minHeight: 'unset', fontSize: '15px' }} type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
                     </div>
@@ -223,11 +223,11 @@ export default function AttendancePage() {
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end' }}>
                     <div className="form-group mb-0" style={{ flex: '1 1 200px' }}>
-                        <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: '10px', display: 'block' }}>Report Start Date</label>
+                        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: '10px', display: 'block' }}>Report Start Date</label>
                         <input className="form-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', background: 'rgba(0,0,0,0.2)' }} />
                     </div>
                     <div className="form-group mb-0" style={{ flex: '1 1 200px' }}>
-                        <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, marginBottom: '10px', display: 'block' }}>Report End Date</label>
+                        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: '10px', display: 'block' }}>Report End Date</label>
                         <input className="form-input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', background: 'rgba(0,0,0,0.2)' }} />
                     </div>
                     <button className="btn btn-primary" onClick={downloadCSV} disabled={!selectedBatch} style={{ height: '52px', padding: '0 32px', flex: '1 0 auto' }}>
@@ -331,7 +331,7 @@ export default function AttendancePage() {
                     <div style={{ background: '#1a1a2e', borderRadius: '20px', padding: '32px', maxWidth: '440px', width: '100%', border: '1px solid rgba(255,255,255,0.1)' }}
                         onClick={e => e.stopPropagation()}>
                         <h3 style={{ margin: '0 0 4px', fontSize: '18px', color: '#e2e8f0' }}>Apply Leave — {leaveModal.studentName}</h3>
-                        <p style={{ margin: '0 0 20px', color: '#64748b', fontSize: '13px' }}>Create a leave request for this student</p>
+                        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '13px' }}>Create a leave request for this student</p>
 
                         {leaveMsg && (
                             <div style={{
@@ -346,17 +346,17 @@ export default function AttendancePage() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '6px' }}>Start Date</label>
+                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Start Date</label>
                                 <input className="form-input" type="date" value={leaveForm.start_date}
                                     onChange={e => setLeaveForm(prev => ({ ...prev, start_date: e.target.value }))} />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '6px' }}>End Date</label>
+                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>End Date</label>
                                 <input className="form-input" type="date" value={leaveForm.end_date}
                                     onChange={e => setLeaveForm(prev => ({ ...prev, end_date: e.target.value }))} />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '6px' }}>Reason</label>
+                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Reason</label>
                                 <textarea className="form-input" rows={3} placeholder="Reason for leave..."
                                     value={leaveForm.reason} onChange={e => setLeaveForm(prev => ({ ...prev, reason: e.target.value }))} />
                             </div>
@@ -379,11 +379,11 @@ export default function AttendancePage() {
                         <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 700, color: '#f8fafc' }}>
                             Global Trainee Login
                         </h2>
-                        <p style={{ color: '#94a3b8', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
                             Have trainees scan this code to Punch In / Punch Out. It is persistent and works for <strong>all</strong> current students and trainers.
                         </p>
 
-                        <div style={{ background: '#ffffff', padding: '24px', borderRadius: '24px', display: 'inline-block', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', marginBottom: '32px' }}>
+                        <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '24px', display: 'inline-block', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', marginBottom: '32px' }}>
                             <QRCodeSVG
                                 value={globalQrModal.token}
                                 size={220}
@@ -417,12 +417,12 @@ export default function AttendancePage() {
                         <h2 style={{ fontSize: '28px', margin: '0 0 8px', background: 'linear-gradient(to right, #fff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                             Scan to Mark Attendance
                         </h2>
-                        <p style={{ color: '#94a3b8', fontSize: '15px', margin: '0 0 32px' }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', margin: '0 0 32px' }}>
                             Session Date: <strong>{qrModal.date}</strong><br />
                             Have your students scan this QR code using their LMS portal.
                         </p>
 
-                        <div style={{ background: '#fff', padding: '24px', borderRadius: '24px', display: 'inline-block', boxShadow: '0 0 40px rgba(139, 92, 246, 0.3)' }}>
+                        <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '24px', display: 'inline-block', boxShadow: '0 0 40px rgba(139, 92, 246, 0.3)' }}>
                             {/* We use a simple external API or library for the actual rendering. Since we don't have next/image or qrcode.react explicitly built in easily via simple string imports, we can use an external free QR generator API for rapid prototype */}
                             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent((qrModal as any).qr_token || qrModal.token)}`} alt="Attendance QR Code" style={{ display: 'block', borderRadius: '8px' }} />
                         </div>

@@ -91,12 +91,12 @@ function VerifyEmailContent() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', color: '#1a1a2e', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
             <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-                        <span style={{ fontSize: '24px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span>
+                        <span style={{ fontSize: '24px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 700 }}>AppTechno Software</span>
                     </div>
                 </div>
             </header>
@@ -105,22 +105,22 @@ function VerifyEmailContent() {
 
             <div style={{ width: '100%', maxWidth: '480px', padding: '24px', position: 'relative', zIndex: 10 }}>
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                    <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#1a1a2e', marginBottom: '12px', letterSpacing: '-0.03em' }}>Verify Your Email</h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', letterSpacing: '-0.03em' }}>Verify Your Email</h1>
                     <p style={{ color: '#555770', fontSize: '15px' }}>
                         We've sent a 6-digit verification code to<br />
-                        <strong style={{ color: '#1a1a2e' }}>{email}</strong>
+                        <strong style={{ color: 'var(--text-primary)' }}>{email}</strong>
                     </p>
                 </div>
 
-                <div style={{ background: '#ffffff', borderRadius: '32px', padding: '40px', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)' }}>
+                <div style={{ background: 'var(--bg-primary)', borderRadius: '32px', padding: '40px', border: '1px solid var(--border)', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)' }}>
                     {error && (
-                        <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '16px', padding: '14px', color: '#e11d48', fontSize: '14px', textAlign: 'center', marginBottom: '24px' }}>
+                        <div style={{ background: '#fff1f2', border: '1px solid var(--border)', borderRadius: '16px', padding: '14px', color: '#e11d48', fontSize: '14px', textAlign: 'center', marginBottom: '24px' }}>
                             {error}
                         </div>
                     )}
 
                     {success && (
-                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '16px', padding: '14px', color: '#15803d', fontSize: '14px', textAlign: 'center', marginBottom: '24px' }}>
+                        <div style={{ background: '#f0fdf4', border: '1px solid var(--border)', borderRadius: '16px', padding: '14px', color: '#15803d', fontSize: '14px', textAlign: 'center', marginBottom: '24px' }}>
                             {success}
                         </div>
                     )}
@@ -136,8 +136,8 @@ function VerifyEmailContent() {
                                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                                 placeholder="0 0 0 0 0 0"
                                 style={{
-                                    width: '100%', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0',
-                                    background: '#f8fafc', color: '#1a1a2e', fontSize: '32px', fontWeight: 700,
+                                    width: '100%', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)',
+                                    background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '32px', fontWeight: 700,
                                     textAlign: 'center', letterSpacing: '12px', outline: 'none', transition: 'all 0.2s',
                                     boxSizing: 'border-box'
                                 }}

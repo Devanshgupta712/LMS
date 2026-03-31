@@ -161,12 +161,12 @@ export default function StudentTimeTrackingPage() {
                 </div>
             </div>
 
-            <div className="card-glass mb-24" style={{
-                border: '2px solid var(--border)',
+            <div className="glass-premium mb-24 reveal-on-scroll active" style={{
+                border: '1px solid var(--border)',
                 padding: '32px',
                 textAlign: 'center',
-                background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6))',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                background: 'var(--bg-card)',
+                boxShadow: 'var(--shadow-premium)'
             }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Punch Machine</h2>
@@ -192,7 +192,7 @@ export default function StudentTimeTrackingPage() {
                 </div>
             </div>
 
-            <div className="grid-3 mb-24">
+            <div className="grid-3 mb-24 reveal-on-scroll active">
                 <div className="stat-card primary">
                     <div className="stat-icon primary">⏳</div>
                     <div className="stat-info">
@@ -211,7 +211,7 @@ export default function StudentTimeTrackingPage() {
                     <div className="stat-icon accent">✨</div>
                     <div className="stat-info">
                         <h3>Today's Total</h3>
-                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : (todayTotalMinutes ? 'var(--accent)' : 'var(--text-muted)'), fontSize: '1.2rem', fontWeight: 800 }}>
+                        <div className="stat-value" style={{ color: isActive ? 'var(--success)' : (todayTotalMinutes ? 'var(--accent)' : 'var(--text-muted)'), fontSize: '1.2rem', fontWeight: 600 }}>
                             {isActive ? (
                                 <span className="animate-pulse">Active...</span>
                             ) : (
@@ -224,7 +224,7 @@ export default function StudentTimeTrackingPage() {
                 </div>
             </div>
 
-            <div className="card">
+            <div className="glass-premium reveal-on-scroll active">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 className="font-semibold">Punch History</h3>
                     <div className="badge badge-outline">Latest first</div>
@@ -271,7 +271,7 @@ export default function StudentTimeTrackingPage() {
                         onClick={e => e.stopPropagation()}>
                         <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏱️</div>
                         <h2 style={{ fontSize: '20px', margin: '0 0 8px', color: '#fff', fontWeight: 700 }}>Work Hours Scanner</h2>
-                        <p style={{ color: '#94a3b8', fontSize: '14px', margin: '0 0 24px' }}>Scan the general attendance QR code to log your time</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 24px' }}>Scan the general attendance QR code to log your time</p>
 
                         <div id="reader" style={{ overflow: 'hidden', borderRadius: '16px', border: '2px solid #0ea5e9', background: '#000', minHeight: '300px' }}></div>
 
@@ -301,7 +301,7 @@ export default function StudentTimeTrackingPage() {
                             {scanResult.success ? '✓' : '✕'}
                         </div>
 
-                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>
                             {scanResult.success ? (
                                 scanResult.status === 'DONE' ? 'Day Completed!' :
                                     (scanResult.session?.punch_type === 'IN' ? 'Punched In!' : 'Punched Out!')
@@ -311,30 +311,30 @@ export default function StudentTimeTrackingPage() {
                         {scanResult.success && scanResult.session && (
                             <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{scanResult.session.user_name}</div>
-                                <div style={{ fontSize: '13px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{scanResult.session.role} • {scanResult.session.student_id}</div>
+                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{scanResult.session.role} • {scanResult.session.student_id}</div>
                             </div>
                         )}
 
-                        <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
                             {scanResult.message}
                         </p>
 
                         {scanResult.success && scanResult.session && (
                             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '20px', marginBottom: '32px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                    <span style={{ color: '#64748b', fontSize: '13px' }}>Arrival</span>
+                                    <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Arrival</span>
                                     <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.login_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                 </div>
                                 {scanResult.session.logout_time && (
                                     <>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                            <span style={{ color: '#64748b', fontSize: '13px' }}>Departure</span>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Departure</span>
                                             <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: 600 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                         </div>
                                         <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '12px 0' }} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>Total Duration</span>
-                                            <span style={{ color: 'var(--accent)', fontSize: '15px', fontWeight: 800 }}>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600 }}>Total Duration</span>
+                                            <span style={{ color: 'var(--accent)', fontSize: '15px', fontWeight: 600 }}>
                                                 {scanResult.session.duration || (scanResult.session.total_minutes ? `${Math.floor(scanResult.session.total_minutes / 60)}h ${scanResult.session.total_minutes % 60}m` : '0m')}
                                             </span>
                                         </div>

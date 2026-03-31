@@ -147,7 +147,7 @@ export default function StudentProfilePage() {
             </div>
 
             {/* Profile Card */}
-            <div className="card mb-24" style={{ padding: '32px', position: 'relative', overflow: 'hidden' }}>
+            <div className="glass-premium mb-24 reveal-on-scroll active" style={{ padding: '32px', position: 'relative', overflow: 'hidden' }}>
                 {/* Accent bar */}
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: `linear-gradient(90deg, ${roleColor}, ${roleColor}80)` }} />
 
@@ -258,7 +258,7 @@ export default function StudentProfilePage() {
             </div>
 
             {/* Change Password Section */}
-            <div className="card mb-24" style={{ padding: '24px' }}>
+            <div className="glass-premium mb-24 reveal-on-scroll active" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '20px' }}>🔒</span>
@@ -356,7 +356,7 @@ export default function StudentProfilePage() {
             </div>
 
             {documents.length === 0 ? (
-                <div className="card">
+                <div className="glass-premium reveal-on-scroll active">
                     <div className="empty-state">
                         <div className="empty-icon">📂</div>
                         <h3>No Documents Uploaded</h3>
@@ -369,7 +369,7 @@ export default function StudentProfilePage() {
                     {documents.map(doc => {
                         const docType = docTypes.find(d => d.value === doc.type) || { icon: '📎', label: doc.type };
                         return (
-                            <div key={doc.id} className="card" style={{ padding: '20px', position: 'relative' }}>
+                            <div key={doc.id} className="glass-premium hover-lift reveal-on-scroll active" style={{ padding: '20px', position: 'relative' }}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                                     <div style={{
                                         width: '48px', height: '48px', borderRadius: '12px',
@@ -388,11 +388,11 @@ export default function StudentProfilePage() {
                                                 <span className="badge" style={{ background: '#f59e0b18', color: '#f59e0b', fontSize: '10px' }}>⏳ Pending</span>
                                             )}
                                         </div>
-                                        <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {doc.file_name}
                                         </p>
                                         <div style={{ display: 'flex', gap: '8px', marginTop: '10px', fontSize: '12px' }}>
-                                            <span style={{ color: '#64748b' }}>📅 {new Date(doc.created_at).toLocaleDateString()}</span>
+                                            <span style={{ color: 'var(--text-secondary)' }}>📅 {new Date(doc.created_at).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                     <button onClick={() => handleDelete(doc.id)} title="Delete"
@@ -444,10 +444,10 @@ export default function StudentProfilePage() {
                                     }}
                                 >
                                     <div style={{ fontSize: '40px', marginBottom: '12px' }}>📤</div>
-                                    <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
                                         {uploading ? 'Uploading...' : 'Click or drag & drop your file here'}
                                     </p>
-                                    <p style={{ color: '#64748b', fontSize: '12px', marginTop: '6px' }}>PDF, JPG, PNG up to 10MB</p>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '6px' }}>PDF, JPG, PNG up to 10MB</p>
                                 </div>
                                 <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleUpload} style={{ display: 'none' }} />
                             </div>
@@ -468,8 +468,8 @@ function InfoItem({ icon, label, value }: { icon: string; label: string; value: 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '18px' }}>{icon}</span>
             <div>
-                <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>{label}</div>
-                <div style={{ fontSize: '14px', color: '#1a1a2e', fontWeight: 500 }}>{value}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>{label}</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500 }}>{value}</div>
             </div>
         </div>
     );

@@ -80,15 +80,15 @@ export default function PortalSelector() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', color: '#1a1a2e', position: 'relative', overflow: 'hidden', fontFamily: 'var(--font-family)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)', position: 'relative', overflow: 'hidden', fontFamily: 'var(--font-family)' }}>
 
       <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '20px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '20px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 700 }}>AppTechno Software</span></div>
         </div>
         <a href="/" style={{
           display: 'flex', alignItems: 'center', gap: '8px', color: '#555770', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
-          padding: '8px 16px', borderRadius: '12px', background: '#f5f7fa', border: '1px solid #e2e8f0',
+          padding: '8px 16px', borderRadius: '12px', background: '#f5f7fa', border: '1px solid var(--border)',
           transition: 'all 0.2s'
         }}
           onMouseOver={(e) => { e.currentTarget.style.color = '#1a1a2e'; e.currentTarget.style.background = '#eef1f6'; }}
@@ -107,10 +107,10 @@ export default function PortalSelector() {
 
         {/* Main Login Card */}
         <div style={{
-          background: '#ffffff',
+          background: 'var(--bg-primary)',
           backdropFilter: 'blur(30px)',
           WebkitBackdropFilter: 'blur(30px)',
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--border)',
           borderRadius: '32px',
           padding: '48px',
           boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
@@ -123,15 +123,15 @@ export default function PortalSelector() {
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <div style={{
               width: '80px', height: '80px', borderRadius: '24px',
-              background: '#ffffff',
+              background: 'var(--bg-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 24px',
               boxShadow: '0 4px 16px rgba(0, 102, 255, 0.12)',
-              position: 'relative', padding: '8px', border: '1px solid #e2e8f0'
+              position: 'relative', padding: '8px', border: '1px solid var(--border)'
             }}>
               <img src="/logo.png" alt="AppTechno Software" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '16px' }} />
             </div>
-            <h1 style={{ color: '#1a1a2e', fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.04em' }}>
+            <h1 style={{ color: 'var(--text-primary)', fontSize: '32px', fontWeight: 600, margin: '0 0 12px', letterSpacing: '-0.04em' }}>
               Welcome back
             </h1>
             <p style={{ color: '#555770', fontSize: '15px', margin: 0, fontWeight: 500 }}>
@@ -165,8 +165,8 @@ export default function PortalSelector() {
               }}>Email Address</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
                 style={{
-                  width: '100%', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0',
-                  background: '#f5f7fa', color: '#1a1a2e', fontSize: '15px', outline: 'none',
+                  width: '100%', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)',
+                  background: '#f5f7fa', color: 'var(--text-primary)', fontSize: '15px', outline: 'none',
                   boxSizing: 'border-box', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
                 }}
@@ -191,8 +191,8 @@ export default function PortalSelector() {
               <div style={{ position: 'relative' }}>
                 <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required
                   style={{
-                    width: '100%', padding: '16px 48px 16px 16px', borderRadius: '16px', border: '1px solid #e2e8f0',
-                    background: '#f5f7fa', color: '#1a1a2e', fontSize: '15px', outline: 'none',
+                    width: '100%', padding: '16px 48px 16px 16px', borderRadius: '16px', border: '1px solid var(--border)',
+                    background: '#f5f7fa', color: 'var(--text-primary)', fontSize: '15px', outline: 'none',
                     boxSizing: 'border-box', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
                   }}

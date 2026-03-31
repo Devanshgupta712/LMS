@@ -52,16 +52,16 @@ export default function AdminQrDisplayPage() {
                 animation: 'fadeIn 0.8s ease-out'
             }}>
                 <div style={{ marginBottom: '40px' }}>
-                    <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '12px', background: 'linear-gradient(to right, #3399ff, #ffb800)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <h1 style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '12px', background: 'linear-gradient(to right, #3399ff, #ffb800)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         Punch Machine
                     </h1>
-                    <p style={{ fontSize: '1.25rem', color: '#94a3b8', fontWeight: 500 }}>
+                    <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
                         Scan to Record Your Work Hours
                     </p>
                 </div>
 
                 <div style={{
-                    background: '#fff',
+                    background: 'var(--bg-primary)',
                     padding: '40px',
                     borderRadius: '40px',
                     boxShadow: '0 25px 50px -12px rgba(96, 165, 250, 0.3)',
@@ -70,7 +70,7 @@ export default function AdminQrDisplayPage() {
                     position: 'relative'
                 }}>
                     {loading ? (
-                        <div style={{ width: '400px', height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
+                        <div style={{ width: '400px', height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
                             <div className="animate-pulse">Loading Pulse...</div>
                         </div>
                     ) : qrUrl ? (
@@ -89,17 +89,17 @@ export default function AdminQrDisplayPage() {
                     <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ fontSize: '24px', marginBottom: '8px' }}>👋</div>
                         <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>Punch In</div>
-                        <div style={{ color: '#64748b', fontSize: '12px' }}>Scan when you arrive at the institute</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Scan when you arrive at the institute</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ fontSize: '24px', marginBottom: '8px' }}>🚶</div>
                         <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>Punch Out</div>
-                        <div style={{ color: '#64748b', fontSize: '12px' }}>Scan before you leave for the day</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Scan before you leave for the day</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
                         <div style={{ fontSize: '24px', marginBottom: '8px' }}>📍</div>
                         <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>Location Restricted</div>
-                        <div style={{ color: '#64748b', fontSize: '12px' }}>Must scan within institute radius</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Must scan within institute radius</div>
                     </div>
                 </div>
 
@@ -118,7 +118,7 @@ export default function AdminQrDisplayPage() {
                 `}</style>
             </div>
 
-            <div style={{ position: 'fixed', bottom: '24px', color: '#475569', fontSize: '12px' }}>
+            <div style={{ position: 'fixed', bottom: '24px', color: 'var(--text-secondary)', fontSize: '12px' }}>
                 LMS Global Punch Station • v2.1.0
             </div>
         </div>

@@ -240,12 +240,12 @@ export default function StudentAttendancePage() {
                 </div>
             </div>
 
-            <div className="card-glass mb-24" style={{
-                border: '2px solid var(--border)',
+            <div className="glass-premium mb-24 reveal-on-scroll active" style={{
+                border: '1px solid var(--border)',
                 padding: '32px',
                 textAlign: 'center',
-                background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6))',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                background: 'var(--bg-card)',
+                boxShadow: 'var(--shadow-premium)'
             }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>Punch Machine</h2>
@@ -270,14 +270,14 @@ export default function StudentAttendancePage() {
                 </div>
             </div>
 
-            <div className="grid-4 mb-24">
+            <div className="grid-4 mb-24 reveal-on-scroll active">
                 <div className="stat-card primary"><div className="stat-icon primary">✅</div><div className="stat-info"><h3>Present</h3><div className="stat-value">{presentDays}</div></div></div>
                 <div className="stat-card danger"><div className="stat-icon danger">❌</div><div className="stat-info"><h3>Absent</h3><div className="stat-value">{records.filter(r => r.status === 'ABSENT').length}</div></div></div>
                 <div className="stat-card success"><div className="stat-icon success">📊</div><div className="stat-info"><h3>Percentage</h3><div className="stat-value">{statsPercentage}%</div></div></div>
                 <div className="stat-card accent"><div className="stat-icon accent">📅</div><div className="stat-info"><h3>Total Sessions</h3><div className="stat-value">{records.length}</div></div></div>
             </div>
 
-            <div className="card">
+            <div className="glass-premium reveal-on-scroll active">
                 <h3 className="font-semibold mb-16">Attendance History</h3>
                 {loading ? <p>Loading attendance...</p> : records.length === 0 ? (
                     <div className="empty-state">
@@ -317,11 +317,11 @@ export default function StudentAttendancePage() {
             {showScanner && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.98)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, padding: '16px' }}
                     onClick={stopScanner}>
-                    <div style={{ background: '#ffffff', borderRadius: '24px', padding: '24px', maxWidth: '420px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 0 50px rgba(0,0,0,0.08)' }}
+                    <div style={{ background: 'var(--bg-primary)', borderRadius: '24px', padding: '24px', maxWidth: '420px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 0 50px rgba(0,0,0,0.08)' }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ fontSize: '32px', marginBottom: '16px' }}>📱</div>
                         <h2 style={{ fontSize: '22px', margin: '0 0 8px', color: '#fff', fontWeight: 700 }}>Scan Attendance</h2>
-                        <p style={{ color: '#94a3b8', fontSize: '14px', margin: '0 0 24px' }}>Center the QR code in the box below</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '0 0 24px' }}>Center the QR code in the box below</p>
 
                         <div id="reader" style={{ overflow: 'hidden', borderRadius: '16px', border: '2px solid var(--primary)', background: '#000', minHeight: '300px' }}></div>
 
@@ -344,7 +344,7 @@ export default function StudentAttendancePage() {
             {scanResult && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002, padding: '16px', backdropFilter: 'blur(12px)' }}
                     onClick={() => setScanResult(null)}>
-                    <div className="animate-in" style={{ background: '#ffffff', borderRadius: '32px', padding: '48px 32px', maxWidth: '400px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                    <div className="animate-in" style={{ background: 'var(--bg-primary)', borderRadius: '32px', padding: '48px 32px', maxWidth: '400px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
                         onClick={e => e.stopPropagation()}>
 
                         <div style={{
@@ -358,7 +358,7 @@ export default function StudentAttendancePage() {
                             {scanResult.success ? '✓' : '✕'}
                         </div>
 
-                        <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
+                        <h2 style={{ fontSize: '26px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>
                             {scanResult.success ? (
                                 scanResult.status === 'DONE' ? 'Day Completed!' :
                                     (scanResult.session?.punch_type === 'IN' ? 'Punched In!' : 'Punched Out!')
@@ -368,11 +368,11 @@ export default function StudentAttendancePage() {
                         {scanResult.success && scanResult.session && (
                             <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{scanResult.session.user_name}</div>
-                                <div style={{ fontSize: '13px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{scanResult.session.role} • {scanResult.session.student_id}</div>
+                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{scanResult.session.role} • {scanResult.session.student_id}</div>
                             </div>
                         )}
 
-                        <p style={{ color: '#94a3b8', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>
                             {scanResult.message}
                         </p>
 
@@ -384,13 +384,13 @@ export default function StudentAttendancePage() {
                                 {scanResult.session.logout_time && (
                                     <>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                            <span style={{ color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Departure</span>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Departure</span>
                                             <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>{new Date(scanResult.session.logout_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                         </div>
                                         <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '16px 0' }} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>Duration Logged</span>
-                                            <span style={{ color: '#0ea5e9', fontSize: '16px', fontWeight: 900 }}>
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 600 }}>Duration Logged</span>
+                                            <span style={{ color: '#0ea5e9', fontSize: '16px', fontWeight: 700 }}>
                                                 {scanResult.session.duration || (scanResult.session.total_minutes ? `${Math.floor(scanResult.session.total_minutes / 60)}h ${scanResult.session.total_minutes % 60}m` : '0m')}
                                             </span>
                                         </div>

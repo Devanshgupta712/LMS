@@ -148,14 +148,14 @@ export default function RegisterPage() {
 
     if (success) {
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', color: '#1a1a2e', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
                 <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '24px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '24px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 700 }}>AppTechno Software</span></div>
                     </div>
                     <a href="/" style={{
                         display: 'flex', alignItems: 'center', gap: '8px', color: '#555770', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
-                        padding: '8px 16px', borderRadius: '12px', background: '#f5f7fa', border: '1px solid #e2e8f0',
+                        padding: '8px 16px', borderRadius: '12px', background: '#f5f7fa', border: '1px solid var(--border)',
                         transition: 'all 0.2s'
                     }}
                         onMouseOver={(e) => { e.currentTarget.style.color = '#1a1a2e'; e.currentTarget.style.background = '#eef1f6'; }}
@@ -169,12 +169,12 @@ export default function RegisterPage() {
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '80vw', height: '80vh', background: 'radial-gradient(ellipse, rgba(0, 102, 255, 0.05) 0%, rgba(255,255,255,0) 50%)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
 
                 <div style={{
-                    textAlign: 'center', maxWidth: '460px', padding: '56px 40px', background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    textAlign: 'center', maxWidth: '460px', padding: '56px 40px', background: 'var(--bg-primary)',
+                    border: '1px solid var(--border)',
                     borderRadius: '32px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', position: 'relative', zIndex: 10
                 }}>
                     <div style={{ fontSize: '72px', marginBottom: '32px', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.08))' }}>🎉</div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '16px', color: '#1a1a2e', letterSpacing: '-0.03em' }}>Welcome aboard!</h1>
+                    <h1 style={{ fontSize: '32px', fontWeight: 600, marginBottom: '16px', color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>Welcome aboard!</h1>
                     <p style={{ color: '#555770', lineHeight: '1.6', marginBottom: '40px', fontSize: '15px' }}>
                         Your application has been received successfully. You can now log in to the dashboard to complete your onboarding process.
                     </p>
@@ -200,14 +200,14 @@ export default function RegisterPage() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', color: '#1a1a2e', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'var(--font-family)', position: 'relative', overflow: 'hidden' }}>
             <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '24px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>AppTechno Software</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '24px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 700 }}>AppTechno Software</span></div>
                 </div>
                 <a href="/" style={{
                     display: 'flex', alignItems: 'center', gap: '8px', color: '#555770', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
-                    padding: '8px 16px', borderRadius: '12px', background: '#f5f7fa', border: '1px solid #e2e8f0',
+                    padding: '8px 16px', borderRadius: '12px', background: '#f5f7fa', border: '1px solid var(--border)',
                     transition: 'all 0.2s'
                 }}
                     onMouseOver={(e) => { e.currentTarget.style.color = '#1a1a2e'; e.currentTarget.style.background = '#eef1f6'; }}
@@ -227,7 +227,7 @@ export default function RegisterPage() {
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <div style={{
                         width: '64px', height: '64px', borderRadius: '20px',
-                        background: '#ffffff', border: '1px solid #e2e8f0',
+                        background: 'var(--bg-primary)', border: '1px solid var(--border)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         margin: '0 auto 20px',
                         boxShadow: '0 4px 16px rgba(0, 102, 255, 0.1)',
@@ -235,7 +235,7 @@ export default function RegisterPage() {
                     }}>
                         <img src="/logo.png" alt="AppTechno" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </div>
-                    <h1 style={{ fontSize: '30px', fontWeight: 800, color: '#1a1a2e', margin: '0 0 10px', letterSpacing: '-0.03em' }}>
+                    <h1 style={{ fontSize: '30px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 10px', letterSpacing: '-0.03em' }}>
                         Start Your Journey
                     </h1>
                     <p style={{ color: '#555770', fontSize: '15px', margin: 0, fontWeight: 500 }}>Join the premier tech learning ecosystem</p>
@@ -243,8 +243,8 @@ export default function RegisterPage() {
 
                 {/* Form Card */}
                 <div style={{
-                    background: '#ffffff', borderRadius: '32px', padding: '48px',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-primary)', borderRadius: '32px', padding: '48px',
+                    border: '1px solid var(--border)',
                     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
                 }}>
                     {/* Error Alert placed above the form */}
@@ -306,7 +306,7 @@ export default function RegisterPage() {
                                     </button>
                                 )}
                                 {phoneVerified && (
-                                    <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', color: '#00c853', background: '#e8f5e9', borderRadius: '16px', border: '1px solid #b9f6ca', fontWeight: 600, fontSize: '12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', color: '#00c853', background: '#e8f5e9', borderRadius: '16px', border: '1px solid var(--border)', fontWeight: 600, fontSize: '12px' }}>
                                         ✓ Verified
                                     </div>
                                 )}
@@ -316,7 +316,7 @@ export default function RegisterPage() {
 
                             {/*
                             {phoneSent && !phoneVerified && (
-                                <div style={{ marginTop: '12px', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                                <div style={{ marginTop: '12px', background: 'var(--bg-primary)', padding: '16px', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
                                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555770', marginBottom: '8px' }}>Enter Email OTP Code</label>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <input
@@ -357,7 +357,7 @@ export default function RegisterPage() {
                             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: form.course ? '#0066ff' : '#555770', marginBottom: '8px', transition: 'color 0.2s' }}>Interested Curriculum</label>
                             <select value={form.course} onChange={e => set('course', e.target.value)} className="input-floating" style={{ appearance: 'none' }}>
                                 <option value="" disabled style={{ color: '#8e8ea0' }}>Select a track (optional)</option>
-                                {courses.map(c => <option key={c} value={c} style={{ color: '#1a1a2e', background: '#fff' }}>{c}</option>)}
+                                {courses.map(c => <option key={c} value={c} style={{ color: 'var(--text-primary)', background: 'var(--bg-primary)' }}>{c}</option>)}
                             </select>
                         </div>
 

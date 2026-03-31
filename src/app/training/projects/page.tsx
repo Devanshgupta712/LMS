@@ -18,7 +18,7 @@ interface ProjectItem {
 }
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-    NOT_STARTED: { color: '#94a3b8', bg: '#94a3b820', label: 'Not Started' },
+    NOT_STARTED: { color: 'var(--text-secondary)', bg: '#94a3b820', label: 'Not Started' },
     IN_PROGRESS: { color: '#3b82f6', bg: '#3b82f620', label: 'In Progress' },
     UNDER_REVIEW: { color: '#f59e0b', bg: '#f59e0b20', label: 'Under Review' },
     COMPLETED: { color: '#10b981', bg: '#10b98120', label: 'Completed' },
@@ -90,13 +90,13 @@ export default function ProjectsPage() {
                                             <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{project.title}</h3>
                                             <span className="badge" style={{ background: config.bg, color: config.color }}>{config.label}</span>
                                         </div>
-                                        {project.description && <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0, lineHeight: 1.5 }}>{project.description}</p>}
+                                        {project.description && <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0, lineHeight: 1.5 }}>{project.description}</p>}
                                     </div>
-                                    <span style={{ color: '#64748b', fontSize: '20px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}>▼</span>
+                                    <span style={{ color: 'var(--text-secondary)', fontSize: '20px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}>▼</span>
                                 </div>
 
                                 {/* Meta Row */}
-                                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                                     {project.tech_stack && (
                                         <span>🛠️ {project.tech_stack.split(',').map(t => (
                                             <span key={t} style={{ background: '#0066ff15', color: '#3399ff', padding: '2px 8px', borderRadius: '12px', marginLeft: '4px', fontSize: '11px' }}>{t.trim()}</span>
@@ -110,7 +110,7 @@ export default function ProjectsPage() {
                                 {/* Progress Bar */}
                                 <div style={{ marginBottom: isExpanded ? '20px' : '0' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px' }}>
-                                        <span style={{ color: '#64748b' }}>Progress</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>Progress</span>
                                         <span style={{ color: config.color, fontWeight: 600 }}>{project.progress}%</span>
                                     </div>
                                     <div style={{ width: '100%', height: '6px', background: '#1e2130', borderRadius: '3px', overflow: 'hidden' }}>
@@ -122,8 +122,8 @@ export default function ProjectsPage() {
                                 {isExpanded && (
                                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px', animation: 'fadeIn 0.3s ease' }}>
                                         <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', fontSize: '13px' }}>
-                                            {project.start_date && <span style={{ color: '#94a3b8' }}>📅 Start: {new Date(project.start_date).toLocaleDateString()}</span>}
-                                            {project.end_date && <span style={{ color: '#94a3b8' }}>🏁 End: {new Date(project.end_date).toLocaleDateString()}</span>}
+                                            {project.start_date && <span style={{ color: 'var(--text-secondary)' }}>📅 Start: {new Date(project.start_date).toLocaleDateString()}</span>}
+                                            {project.end_date && <span style={{ color: 'var(--text-secondary)' }}>🏁 End: {new Date(project.end_date).toLocaleDateString()}</span>}
                                         </div>
 
                                         {project.milestones.length > 0 ? (
@@ -146,15 +146,15 @@ export default function ProjectsPage() {
                                                             </div>
                                                             <div style={{ flex: 1 }}>
                                                                 <span style={{ fontWeight: 500, color: ms.is_completed ? '#6ee7b7' : '#e2e8f0', fontSize: '14px' }}>{ms.title}</span>
-                                                                {ms.description && <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>{ms.description}</p>}
+                                                                {ms.description && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0' }}>{ms.description}</p>}
                                                             </div>
-                                                            {ms.due_date && <span style={{ fontSize: '12px', color: '#64748b' }}>{new Date(ms.due_date).toLocaleDateString()}</span>}
+                                                            {ms.due_date && <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{new Date(ms.due_date).toLocaleDateString()}</span>}
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
                                         ) : (
-                                            <p style={{ color: '#64748b', fontSize: '13px' }}>No milestones defined</p>
+                                            <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No milestones defined</p>
                                         )}
                                     </div>
                                 )}

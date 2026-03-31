@@ -80,8 +80,8 @@ export default function TasksPage() {
                                     {task.status.replace(/_/g, ' ')}
                                 </span>
                             </div>
-                            {task.description && <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: 1.5, margin: '0 0 12px' }}>{task.description}</p>}
-                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: '#64748b' }}>
+                            {task.description && <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5, margin: '0 0 12px' }}>{task.description}</p>}
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: priorityColors[task.priority], display: 'inline-block' }} />
                                     {task.priority}

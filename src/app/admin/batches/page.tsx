@@ -122,7 +122,7 @@ export default function BatchesPage() {
                         <div className="card" key={b.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             <h3 style={{ margin: '0 0 8px', fontSize: '16px' }}>{b.name}</h3>
                             <p className="text-sm text-muted" style={{ margin: '0 0 12px' }}>{b.course_name || 'Independent Batch'}</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '13px', color: '#94a3b8' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                                 <span>📅 {new Date(b.start_date).toLocaleDateString()}</span>
                                 <span>👥 {b.student_count} students</span>
                                 {b.schedule_time && <span>⏰ {b.schedule_time}</span>}

@@ -37,7 +37,7 @@ export default function NotificationsPage() {
                 )}
             </div>
 
-            <div className="card">
+            <div className="glass-premium reveal-on-scroll active">
                 {loading ? (
                     <p>Loading notifications...</p>
                 ) : notifications.length === 0 ? (
@@ -120,13 +120,13 @@ export default function NotificationsPage() {
                     >
                         <button
                             onClick={() => setSelectedNotification(null)}
-                            style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
+                            style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '20px', cursor: 'pointer' }}
                         >×</button>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(0, 102, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🔔</div>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{selectedNotification.title}</h3>
-                                <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                                <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
                                     {new Date(selectedNotification.created_at).toLocaleString()}
                                 </p>
                             </div>

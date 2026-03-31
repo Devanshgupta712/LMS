@@ -56,7 +56,7 @@ export default function JobsPage() {
                             <h3 style={{ margin: '0 0 4px', fontSize: '16px' }}>{j.title}</h3>
                             <p style={{ margin: '0 0 8px', color: '#3399ff', fontSize: '14px' }}>{j.company}</p>
                             {j.description && <p className="text-sm text-muted" style={{ margin: '0 0 12px', lineHeight: '1.5' }}>{j.description}</p>}
-                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#94a3b8' }}>
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)' }}>
                                 {j.location && <span>📍 {j.location}</span>}
                                 {j.salary && <span>💰 {j.salary}</span>}
                                 <span>📨 {j.application_count} applications</span>

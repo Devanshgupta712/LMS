@@ -60,11 +60,11 @@ export default function MarketingReportsPage() {
                     </h3>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</label>
+                            <label style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</label>
                             <input className="form-input" style={{ minHeight: 'unset', padding: '6px 10px', fontSize: '13px' }} type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <label style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</label>
+                            <label style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</label>
                             <input className="form-input" style={{ minHeight: 'unset', padding: '6px 10px', fontSize: '13px' }} type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
                         </div>
                         <button onClick={downloadCSV} style={{
@@ -100,7 +100,7 @@ export default function MarketingReportsPage() {
                             </ResponsiveContainer>
                         </div>
                     ) : (
-                        <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>No data available</div>
+                        <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>No data available</div>
                     )}
                 </div>
                 <div className="card">
@@ -124,7 +124,7 @@ export default function MarketingReportsPage() {
                             </ResponsiveContainer>
                         </div>
                     ) : (
-                        <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>No data available</div>
+                        <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>No data available</div>
                     )}
                 </div>
             </div>
@@ -135,7 +135,7 @@ export default function MarketingReportsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {byStatus.map(item => (
                             <div key={item.status} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ width: '90px', fontSize: '13px', color: '#94a3b8' }}>{item.status}</span>
+                                <span style={{ width: '90px', fontSize: '13px', color: 'var(--text-secondary)' }}>{item.status}</span>
                                 <div style={{ flex: 1, height: '28px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden' }}>
                                     <div style={{ width: `${leads.length > 0 ? (item.count / leads.length) * 100 : 0}%`, height: '100%', background: barColors[item.status], borderRadius: '6px', minWidth: item.count > 0 ? '20px' : '0', transition: 'width 0.5s' }} />
                                 </div>
@@ -149,7 +149,7 @@ export default function MarketingReportsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {bySource.filter(s => s.count > 0).map(item => (
                             <div key={item.source} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ width: '120px', fontSize: '13px', color: '#94a3b8' }}>{item.source}</span>
+                                <span style={{ width: '120px', fontSize: '13px', color: 'var(--text-secondary)' }}>{item.source}</span>
                                 <div style={{ flex: 1, height: '28px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden' }}>
                                     <div style={{ width: `${leads.length > 0 ? (item.count / leads.length) * 100 : 0}%`, height: '100%', background: 'linear-gradient(90deg, #0066ff, #3399ff)', borderRadius: '6px', minWidth: '20px' }} />
                                 </div>

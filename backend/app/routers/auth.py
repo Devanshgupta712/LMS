@@ -265,6 +265,28 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     return UserOut.model_validate(user)
 
 
+# ─── Public Endpoints ───────────────────────────────────
+@router.get("/public/courses")
+async def get_public_courses(db: AsyncSession = Depends(get_db)):
+    from app.models.course import Course
+    result = await db.execute(select(Course).order_by(Course.created_at.desc()))
+    courses = result.scalars().all()
+    out = []
+    icons = ["💻", "🔥", "📊", "🚀", "🤖", "☁️", "⚙️", "📱"]
+    for i, c in enumerate(courses):
+        out.append({
+            "id": c.id,
+            "title": c.name,
+            "category": "Bootcamp",
+            "#icon": "Will use static array mapped or generated",
+            "price": f"₹{c.fee:,.0f}" if c.fee else "Free",
+            "duration": c.duration or "6 Months",
+            "description": c.description or "",
+            "rating": "4.9/5.0",
+            "icon": icons[i % len(icons)]
+        })
+    return out
+
 @router.get("/me", response_model=UserOut)
 async def get_me(user: User = Depends(get_current_user)):
     return UserOut.model_validate(user)

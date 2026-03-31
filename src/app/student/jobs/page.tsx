@@ -13,12 +13,12 @@ export default function StudentJobsPage() {
         <div className="animate-in">
             <div className="page-header"><div><h1 className="page-title">Job Board</h1><p className="page-subtitle">Browse and apply for job opportunities</p></div></div>
 
-            <div className="card">
+            <div className="glass-premium reveal-on-scroll active">
                 {loading ? <p>Loading...</p> : jobs.length === 0 ? (
                     <div className="empty-state"><div className="empty-icon">💼</div><h3>No jobs available</h3></div>
                 ) : (
                     <div className="grid-2">{jobs.filter((j: any) => j.is_active).map((j: any) => (
-                        <div key={j.id} className="card" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div key={j.id} className="glass-premium hover-lift reveal-on-scroll active" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
                                     <h3 style={{ margin: '0 0 4px', fontSize: '17px' }}>{j.title}</h3>
@@ -27,7 +27,7 @@ export default function StudentJobsPage() {
                                 <span className="badge badge-success">Active</span>
                             </div>
                             {j.description && <p className="text-sm text-muted" style={{ margin: '12px 0', lineHeight: '1.5' }}>{j.description}</p>}
-                            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                                 {j.location && <span>📍 {j.location}</span>}
                                 {j.salary && <span>💰 {j.salary}</span>}
                             </div>

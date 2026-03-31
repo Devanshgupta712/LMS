@@ -29,7 +29,7 @@ const typeConfig: Record<string, { icon: string; color: string; label: string }>
     DISRUPTIVE_BEHAVIOR: { icon: '🚨', color: '#b91c1c', label: 'Disruptive Behavior' },
     PLAGIARISM: { icon: '📋', color: '#dc2626', label: 'Plagiarism' },
     CODE_VIOLATION: { icon: '💻', color: '#0066ff', label: 'Code Violation' },
-    OTHER: { icon: '❓', color: '#64748b', label: 'Other' },
+    OTHER: { icon: '❓', color: 'var(--text-secondary)', label: 'Other' },
 };
 const severityConfig: Record<string, { color: string; bg: string }> = {
     LOW: { color: '#10b981', bg: '#10b98118' },
@@ -41,7 +41,7 @@ const statusConfig: Record<string, { color: string; bg: string }> = {
     OPEN: { color: '#ef4444', bg: '#ef444418' },
     ACKNOWLEDGED: { color: '#f59e0b', bg: '#f59e0b18' },
     RESOLVED: { color: '#10b981', bg: '#10b98118' },
-    DISMISSED: { color: '#64748b', bg: '#64748b18' },
+    DISMISSED: { color: 'var(--text-secondary)', bg: '#64748b18' },
 };
 
 export default function ViolationsPage() {
@@ -154,7 +154,7 @@ export default function ViolationsPage() {
                     <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px' }}>Violation Types</h3>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {Object.entries(summary.by_type).map(([type, count]) => {
-                            const cfg = typeConfig[type] || { icon: '❓', color: '#94a3b8', label: type };
+                            const cfg = typeConfig[type] || { icon: '❓', color: 'var(--text-secondary)', label: type };
                             return (
                                 <div key={type} style={{
                                     display: 'flex', alignItems: 'center', gap: '8px',
@@ -192,7 +192,7 @@ export default function ViolationsPage() {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {filtered.map(v => {
-                        const tCfg = typeConfig[v.type] || { icon: '❓', color: '#94a3b8', label: v.type };
+                        const tCfg = typeConfig[v.type] || { icon: '❓', color: 'var(--text-secondary)', label: v.type };
                         const sCfg = severityConfig[v.severity] || severityConfig.MEDIUM;
                         const stCfg = statusConfig[v.status] || statusConfig.OPEN;
                         return (
@@ -205,8 +205,8 @@ export default function ViolationsPage() {
                                             <span className="badge" style={{ background: sCfg.bg, color: sCfg.color, fontSize: '11px' }}>{v.severity}</span>
                                             <span className="badge" style={{ background: stCfg.bg, color: stCfg.color, fontSize: '11px' }}>{v.status}</span>
                                         </div>
-                                        {v.description && <p style={{ color: '#94a3b8', fontSize: '13px', margin: '0 0 10px', lineHeight: 1.5 }}>{v.description}</p>}
-                                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', color: '#64748b' }}>
+                                        {v.description && <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 10px', lineHeight: 1.5 }}>{v.description}</p>}
+                                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)' }}>
                                             <span>👤 {v.student_name}</span>
                                             <span style={{ background: `${tCfg.color}18`, color: tCfg.color, padding: '2px 8px', borderRadius: '8px' }}>{tCfg.label}</span>
                                             {v.penalty_points > 0 && <span style={{ color: '#ef4444' }}>-{v.penalty_points} pts</span>}
