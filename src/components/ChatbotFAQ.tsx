@@ -19,6 +19,7 @@ const QUICK_QUESTIONS = [
 ];
 
 async function getGeminiResponse(userMessage: string, previousMessages: Message[]): Promise<string> {
+    // Read API key from Vercel environment variable (set in Vercel → Settings → Environment Variables)
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
         return "⚠️ Chatbot is not configured. Please contact support@apptechcareers.com.";
