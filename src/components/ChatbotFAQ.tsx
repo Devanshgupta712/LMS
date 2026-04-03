@@ -54,7 +54,7 @@ Guidelines:
 - Keep responses concise, supportive, and formatted beautifully in markdown.`;
 
     try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -63,11 +63,15 @@ Guidelines:
             })
         });
 
-        if (!res.ok) throw new Error('API Error');
+        if (!res.ok) {
+            const errText = await res.text().catch(() => 'unknown error');
+            console.error(`Gemini API Error ${res.status}:`, errText);
+            return `⚠️ AI Error (${res.status}): ${errText.slice(0, 120)}`;
+        }
         const data = await res.json();
-        return data.candidates[0].content.parts[0].text;
-    } catch (e) {
-        console.error("Gemini API Error:", e);
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || DEFAULT_RESPONSE;
+    } catch (e: any) {
+        console.error('Gemini fetch error:', e);
         return DEFAULT_RESPONSE;
     }
 }
