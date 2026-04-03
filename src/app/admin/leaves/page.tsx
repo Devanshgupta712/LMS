@@ -38,12 +38,14 @@ export default function LeavesPage() {
     const user = getStoredUser();
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
-    // Keep Render server awake by pinging every 2 minutes while admin is on this page
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://lms-api-bkuw.onrender.com';
+
+    // Keep Render server awake by pinging every 30 seconds while admin is on this page
     useEffect(() => {
         loadLeaves();
         const keepAlive = setInterval(() => {
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lms-api-bkuw.onrender.com'}/api/health`).catch(() => {});
-        }, 2 * 60 * 1000); // every 2 minutes
+            fetch(`${API_BASE}/api/health`).catch(() => {});
+        }, 30 * 1000); // every 30 seconds
         return () => clearInterval(keepAlive);
     }, []);
 
@@ -54,6 +56,11 @@ export default function LeavesPage() {
     const handleAction = async (id: string, status: string, reason: string | null = null) => {
         setActionError(null);
         setActionLoading(id + status);
+
+        const wakeUpServer = async () => {
+            try { await fetch(`${API_BASE}/api/health`); } catch { /* ignore */ }
+        };
+
         const attemptAction = async (): Promise<void> => {
             const res = await apiFetch('/api/admin/leaves', {
                 method: 'PATCH',
@@ -64,13 +71,17 @@ export default function LeavesPage() {
                 throw new Error(data?.detail || `Server error ${res.status}`);
             }
         };
+
         try {
+            // Pre-action ping to wake up Render before the real PATCH request
+            await wakeUpServer();
+
             try {
                 await attemptAction();
             } catch (err: any) {
-                // If it's a network error (server sleeping), wait 5s and retry once
+                // Network error = server still spinning up. Wait 8s and retry.
                 if (!err?.message?.includes('Server error')) {
-                    await new Promise(r => setTimeout(r, 5000));
+                    await new Promise(r => setTimeout(r, 8000));
                     await attemptAction();
                 } else {
                     throw err;
@@ -78,9 +89,9 @@ export default function LeavesPage() {
             }
             setShowRejectionModal(null);
             setRejectionReason('');
-            loadLeaves();
+            await loadLeaves();
         } catch (err: any) {
-            setActionError(err?.message || 'Server is waking up — please try again in 10 seconds.');
+            setActionError(err?.message || 'Server is warming up — please wait 15 seconds and try again.');
         } finally {
             setActionLoading(null);
         }
@@ -248,22 +259,31 @@ export default function LeavesPage() {
                                                     <button
                                                         className="btn btn-sm btn-success"
                                                         onClick={() => handleAction(l.id, 'APPROVED')}
-                                                        style={{ padding: '4px 10px' }}
-                                                    >Approve</button>
+                                                        disabled={actionLoading !== null}
+                                                        style={{ padding: '4px 10px', opacity: actionLoading !== null ? 0.6 : 1 }}
+                                                    >
+                                                        {actionLoading === l.id + 'APPROVED' ? '⏳ Wait...' : 'Approve'}
+                                                    </button>
                                                 )}
                                                 {l.status !== 'REJECTED' && (
                                                     <button
                                                         className="btn btn-sm btn-danger"
                                                         onClick={() => setShowRejectionModal(l.id)}
-                                                        style={{ padding: '4px 10px' }}
-                                                    >Reject</button>
+                                                        disabled={actionLoading !== null}
+                                                        style={{ padding: '4px 10px', opacity: actionLoading !== null ? 0.6 : 1 }}
+                                                    >
+                                                        Reject
+                                                    </button>
                                                 )}
                                                 {l.status !== 'PENDING' && (
                                                     <button
                                                         className="btn btn-sm btn-ghost"
                                                         onClick={() => handleAction(l.id, 'PENDING')}
-                                                        style={{ padding: '4px 10px' }}
-                                                    >Reset</button>
+                                                        disabled={actionLoading !== null}
+                                                        style={{ padding: '4px 10px', opacity: actionLoading !== null ? 0.6 : 1 }}
+                                                    >
+                                                        {actionLoading === l.id + 'PENDING' ? '⏳ Wait...' : 'Reset'}
+                                                    </button>
                                                 )}
                                             </div>
                                         )}
