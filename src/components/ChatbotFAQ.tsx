@@ -54,12 +54,18 @@ Guidelines:
 - Keep responses concise, supportive, and formatted beautifully in markdown.`;
 
     try {
+        // v1 doesn't support systemInstruction — inject as first user/model turn
+        const allContents = [
+            { role: 'user', parts: [{ text: `[SYSTEM CONTEXT]: ${systemInstruction}\n\nAcknowledge and greet the user.` }] },
+            { role: 'model', parts: [{ text: "Hi! I'm the AppTechno AI Assistant. How can I help you today?" }] },
+            ...contents
+        ];
+
         const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-                contents: contents,
+                contents: allContents,
                 generationConfig: {
                     temperature: 0.7,
                     maxOutputTokens: 512,
