@@ -61,36 +61,23 @@ Guidelines:
             ...contents
         ];
 
-        // Try models in order — newer AI Studio keys support 2.0+ models
-        const MODELS = [
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-exp',
-            'gemini-2.0-flash-lite',
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-pro',
-        ];
-        let res: Response | null = null;
+        // gemini-2.0-flash confirmed available with this API key
+        const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: allContents,
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+                })
+            }
+        );
 
-        for (const model of MODELS) {
-            res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: allContents,
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
-                    })
-                }
-            );
-            if (res.ok || res.status !== 404) break;
-        }
-
-        if (!res || !res.ok) {
-            const errText = await res?.text().catch(() => 'unknown error') ?? 'No response';
-            console.error(`Gemini API Error ${res?.status}:`, errText);
-            return `⚠️ AI Error (${res?.status}): ${errText.slice(0, 150)}`;
+        if (!res.ok) {
+            const errText = await res.text().catch(() => 'unknown error');
+            console.error(`Gemini API Error ${res.status}:`, errText);
+            return `⚠️ AI Error (${res.status}): ${errText.slice(0, 150)}`;
         }
         const data = await res.json();
         return data.candidates?.[0]?.content?.parts?.[0]?.text || DEFAULT_RESPONSE;
