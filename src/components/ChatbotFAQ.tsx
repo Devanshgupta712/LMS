@@ -54,29 +54,36 @@ Guidelines:
 - Keep responses concise, supportive, and formatted beautifully in markdown.`;
 
     try {
-        // v1 doesn't support systemInstruction — inject as first user/model turn
+        // Inject system prompt as first conversation turn (compatible with all API versions)
         const allContents = [
-            { role: 'user', parts: [{ text: `[SYSTEM CONTEXT]: ${systemInstruction}\n\nAcknowledge and greet the user.` }] },
-            { role: 'model', parts: [{ text: "Hi! I'm the AppTechno AI Assistant. How can I help you today?" }] },
+            { role: 'user', parts: [{ text: `Context: ${systemInstruction}\n\nStart the conversation.` }] },
+            { role: 'model', parts: [{ text: "Hi! I'm the AppTechno AI Assistant. I can help you with courses, placements, fees and more! How can I help you today?" }] },
             ...contents
         ];
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: allContents,
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 512,
-                }
-            })
-        });
+        // Use gemini-1.5-flash on v1beta — correct for Google AI Studio keys
+        const MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro'];
+        let res: Response | null = null;
 
-        if (!res.ok) {
-            const errText = await res.text().catch(() => 'unknown error');
-            console.error(`Gemini API Error ${res.status}:`, errText);
-            return `⚠️ AI Error (${res.status}): ${errText.slice(0, 120)}`;
+        for (const model of MODELS) {
+            res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: allContents,
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+                    })
+                }
+            );
+            if (res.ok || res.status !== 404) break; // stop trying if not a model-not-found error
+        }
+
+        if (!res || !res.ok) {
+            const errText = await res?.text().catch(() => 'unknown error') ?? 'No response';
+            console.error(`Gemini API Error ${res?.status}:`, errText);
+            return `⚠️ AI Error (${res?.status}): ${errText.slice(0, 150)}`;
         }
         const data = await res.json();
         return data.candidates?.[0]?.content?.parts?.[0]?.text || DEFAULT_RESPONSE;
