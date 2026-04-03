@@ -1064,6 +1064,41 @@ async def action_leave(
     except Exception as email_err:
         print(f"[Leave Action] Email notification skipped: {email_err}")
 
+    # Create in-app notification for the leave requester
+    try:
+        if new_status == LeaveStatus.APPROVED:
+            notif_title = "✅ Leave Approved"
+            notif_message = (
+                f"Your leave request ({leave.leave_type}) from "
+                f"{leave.start_date.strftime('%d %b')} to {leave.end_date.strftime('%d %b %Y')} "
+                f"has been approved."
+            )
+        elif new_status == LeaveStatus.REJECTED:
+            reason_text = f" Reason: {body.rejection_reason}" if body.rejection_reason else ""
+            notif_title = "❌ Leave Rejected"
+            notif_message = (
+                f"Your leave request ({leave.leave_type}) from "
+                f"{leave.start_date.strftime('%d %b')} to {leave.end_date.strftime('%d %b %Y')} "
+                f"has been rejected.{reason_text}"
+            )
+        else:
+            notif_title = "🔄 Leave Reset"
+            notif_message = f"Your leave request ({leave.leave_type}) has been reset to pending."
+
+        notif = Notification(
+            user_id=leave.user_id,
+            title=notif_title,
+            message=notif_message,
+            type="LEAVE",
+            reference_id=leave.id,
+            link="/training/leaves",
+            read=False,
+        )
+        db.add(notif)
+        await db.flush()
+    except Exception as notif_err:
+        print(f"[Leave Action] In-app notification skipped: {notif_err}")
+
     return {"status": "updated"}
 
 
