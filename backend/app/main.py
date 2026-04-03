@@ -64,10 +64,20 @@ async def lifespan(app: FastAPI):
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approved_by_id VARCHAR",
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS proof_url VARCHAR",
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS leave_type VARCHAR DEFAULT 'OTHER'",
+                    # FIX: Widen leave_type from VARCHAR(9) to VARCHAR(20) — WORK_FROM_HOME is 14 chars
+                    "ALTER TABLE leave_requests ALTER COLUMN leave_type TYPE VARCHAR(20)",
+                    # Also widen status columns that may have been created too narrow
+                    "ALTER TABLE leave_requests ALTER COLUMN status TYPE VARCHAR(20)",
+                    # assignment_submissions: AI grading columns
+                    "ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS marks INTEGER",
+                    "ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS feedback TEXT",
+                    "ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP DEFAULT NOW()",
+                    "ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS graded_at TIMESTAMP",
                 ]
                 for sql in pg_migrations:
                     try:
                         await conn.execute(text(sql))
+                        print(f"Migration OK: {sql[:60]}...")
                     except Exception as col_e:
                         print(f"Migration skipped: {col_e}")
             print("PostgreSQL app ready.")

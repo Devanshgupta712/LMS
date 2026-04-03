@@ -680,17 +680,38 @@ async def update_task(
     task_id: str,
     body: dict,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
     task = await db.get(Task, task_id)
     if not task:
         raise HTTPException(404, "Task not found")
+    if "title" in body:
+        task.title = body["title"]
+    if "description" in body:
+        task.description = body["description"]
     if "status" in body:
         task.status = body["status"]
     if "priority" in body:
         task.priority = body["priority"]
+    if "due_date" in body and body["due_date"]:
+        task.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
+    elif "due_date" in body and not body["due_date"]:
+        task.due_date = None
     await db.flush()
     return {"status": "updated"}
+
+
+@router.delete("/tasks/{task_id}", status_code=204)
+async def delete_task(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+):
+    task = await db.get(Task, task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    await db.delete(task)
+    await db.flush()
 
 
 @router.get("/assignments")
