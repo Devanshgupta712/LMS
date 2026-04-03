@@ -356,27 +356,47 @@ export default function LeavesPage() {
 
             {/* Rejection Reason Modal */}
             {showRejectionModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)', padding: '20px' }}>
-                    <div className="card" style={{ maxWidth: '500px', width: '100%', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h3 className="font-semibold mb-8">Reject Leave Request</h3>
-                        <p className="text-sm text-muted mb-16">Enter a reason for rejection (optional). The student will be notified.</p>
-                        
-                        <textarea 
-                            className="form-input" 
-                            rows={4} 
-                            placeholder="Reason for rejection..." 
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)', padding: '20px' }}
+                    onClick={() => setShowRejectionModal(null)}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            maxWidth: '500px', width: '100%',
+                            background: 'var(--bg-card, #1e1e2e)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: '16px',
+                            padding: '28px',
+                            boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+                        }}
+                    >
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>Reject Leave Request</h3>
+                        <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--text-muted)' }}>Enter a reason for rejection (optional). The student will be notified.</p>
+
+                        <textarea
+                            className="form-input"
+                            rows={4}
+                            placeholder="Reason for rejection..."
                             value={rejectionReason}
                             onChange={e => setRejectionReason(e.target.value)}
-                            style={{ width: '100%', marginBottom: '16px' }}
+                            style={{ width: '100%', marginBottom: '20px', boxSizing: 'border-box' }}
+                            autoFocus
                         />
-                        
+
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                             <button className="btn btn-ghost" onClick={() => setShowRejectionModal(null)}>Cancel</button>
-                            <button className="btn btn-danger" onClick={() => handleAction(showRejectionModal, 'REJECTED', rejectionReason)}>❌ Reject Leave</button>
+                            <button
+                                className="btn btn-danger"
+                                disabled={actionLoading !== null}
+                                onClick={() => handleAction(showRejectionModal!, 'REJECTED', rejectionReason)}
+                            >
+                                {actionLoading ? '⏳ Rejecting...' : '❌ Reject Leave'}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
+
 
             {/* Proof Lightbox Modal */}
             {showProofModal && (

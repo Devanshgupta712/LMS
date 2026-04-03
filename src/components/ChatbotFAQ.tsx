@@ -19,8 +19,11 @@ const QUICK_QUESTIONS = [
 ];
 
 async function getGeminiResponse(userMessage: string, previousMessages: Message[]): Promise<string> {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCPUNpoDBhzMYcn2OZc1GL-9ZzPfzQPWnw";
-    
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (!apiKey) {
+        return "⚠️ Chatbot is not configured. Please contact support@apptechcareers.com.";
+    }
+
     // Convert previous messages to Gemini format
     const contents = previousMessages
         .filter(m => m.id !== 'welcome' && !m.id.startsWith('bot-typing'))
@@ -51,7 +54,7 @@ Guidelines:
 - Keep responses concise, supportive, and formatted beautifully in markdown.`;
 
     try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

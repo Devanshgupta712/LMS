@@ -4,14 +4,15 @@ import json
 import PyPDF2
 import google.generativeai as genai
 
-# Setup Gemini API KEY
-# Prioritize env, fallback to provided key for testing.
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCPUNpoDBhzMYcn2OZc1GL-9ZzPfzQPWnw")
+# Gemini API Key — must be set via GEMINI_API_KEY environment variable in Render
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    print("[AI Grader] WARNING: GEMINI_API_KEY not set. AI features will be disabled.")
+else:
+    genai.configure(api_key=GEMINI_API_KEY)
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Use the flexible instruction-following model
-MODEL_NAME = 'gemini-1.5-flash'
+# gemini-2.0-flash: faster and smarter than 1.5-flash, still on free tier
+MODEL_NAME = 'gemini-2.0-flash'
 
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
