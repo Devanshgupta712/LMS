@@ -61,8 +61,15 @@ Guidelines:
             ...contents
         ];
 
-        // Use gemini-1.5-flash on v1beta — correct for Google AI Studio keys
-        const MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro'];
+        // Try models in order — newer AI Studio keys support 2.0+ models
+        const MODELS = [
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-exp',
+            'gemini-2.0-flash-lite',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro',
+        ];
         let res: Response | null = null;
 
         for (const model of MODELS) {
@@ -77,7 +84,7 @@ Guidelines:
                     })
                 }
             );
-            if (res.ok || res.status !== 404) break; // stop trying if not a model-not-found error
+            if (res.ok || res.status !== 404) break;
         }
 
         if (!res || !res.ok) {
