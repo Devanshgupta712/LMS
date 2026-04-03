@@ -28,6 +28,7 @@ from app.schemas.schemas import (
     AdminPermissionUpdate, AdminPermissionOut
 )
 from app.models.setting import SystemSetting
+from app.utils.email import send_leave_status_email
 
 class AssignBatchRequest(BaseModel):
     batch_id: str
@@ -1047,20 +1048,24 @@ async def action_leave(
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error while updating leave: {str(db_err)}")
 
-    # Send Email Notification in background
-    leave_details = {
-        "start_date": leave.start_date.strftime("%Y-%m-%d"),
-        "end_date": leave.end_date.strftime("%Y-%m-%d")
-    }
-    background_tasks.add_task(
-        send_leave_status_email, 
-        requester.email, 
-        new_status.value,
-        leave_details, 
-        body.rejection_reason
-    )
+    # Send Email Notification in background (safe — email failure must never block leave action)
+    try:
+        leave_details = {
+            "start_date": leave.start_date.strftime("%Y-%m-%d"),
+            "end_date": leave.end_date.strftime("%Y-%m-%d")
+        }
+        background_tasks.add_task(
+            send_leave_status_email,
+            requester.email,
+            new_status.value,
+            leave_details,
+            body.rejection_reason
+        )
+    except Exception as email_err:
+        print(f"[Leave Action] Email notification skipped: {email_err}")
 
     return {"status": "updated"}
+
 
 
 # ─── Notifications ────────────────────────────────────
