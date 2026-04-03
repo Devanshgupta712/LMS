@@ -19,74 +19,38 @@ const QUICK_QUESTIONS = [
 ];
 
 async function getGeminiResponse(userMessage: string, previousMessages: Message[]): Promise<string> {
-    // Read API key from Vercel environment variable (set in Vercel → Settings → Environment Variables)
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (!apiKey) {
-        return "⚠️ Chatbot is not configured. Please contact support@apptechcareers.com.";
-    }
-
-    // Convert previous messages to Gemini format
-    const contents = previousMessages
+    // Call our backend proxy — key is managed server-side in Render env vars
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+    
+    // Build history from previous messages (exclude welcome/typing messages)
+    const history = previousMessages
         .filter(m => m.id !== 'welcome' && !m.id.startsWith('bot-typing'))
-        .map(m => ({
-            role: m.role === 'bot' ? 'model' : 'user',
-            parts: [{ text: m.text }]
-        }));
-        
-    // Append the new user message
-    contents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-    const systemInstruction = `You are the AppTechno AI Assistant. Help users with information about courses, placements, fees, schedules, attendance, and technical training.
-
-AppTechno Software offers 6-month intensive training programs:
-- Full Stack Java: Java, Spring Boot, Angular, Microservices. Duration: 6 Months. Fee: ₹49,999.
-- Python Django React: Python, Django, React, REST API. Duration: 6 Months. Fee: ₹54,999.
-- MERN Stack: MongoDB, Express, React, Node.js. Duration: 6 Months. Fee: ₹52,999.
-- Software Testing: Manual, Selenium, API Testing. Duration: 6 Months.
-- Data Analytics: SQL, Power BI, Python. Duration: 6 Months. Fee: ₹59,999.
-- Data Science: Machine Learning, Data Modeling. Duration: 6 Months.
-
-Guidelines:
-- Provide course name, description, and duration when asked.
-- Suggest relevant courses based on the user's query (e.g. if they say "I want to build websites", suggest MERN).
-- Provide help instructions: If they have issues, tell them to use the dashboard or contact support@apptechcareers.com.
-- Emphasize that all courses include live project experience and a 6-month experience certificate.
-- Mention 70,000+ placed students with a 14LPA average package, and unlimited interviews.
-- Keep responses concise, supportive, and formatted beautifully in markdown.`;
+        .map(m => ({ role: m.role === 'bot' ? 'model' : 'user', text: m.text }));
 
     try {
-        // Inject system prompt as first conversation turn (compatible with all API versions)
-        const allContents = [
-            { role: 'user', parts: [{ text: `Context: ${systemInstruction}\n\nStart the conversation.` }] },
-            { role: 'model', parts: [{ text: "Hi! I'm the AppTechno AI Assistant. I can help you with courses, placements, fees and more! How can I help you today?" }] },
-            ...contents
-        ];
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const res = await fetch(`${API_BASE}/api/training/chatbot`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ message: userMessage, history })
+        });
 
-        // gemini-2.0-flash confirmed available with this API key
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: allContents,
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
-                })
-            }
-        );
-
+        if (res.status === 429) return "⏳ AI is a bit busy right now. Please try again in a moment!";
         if (!res.ok) {
-            const errText = await res.text().catch(() => 'unknown error');
-            console.error(`Gemini API Error ${res.status}:`, errText);
-            return `⚠️ AI Error (${res.status}): ${errText.slice(0, 150)}`;
+            const err = await res.json().catch(() => ({}));
+            return `⚠️ ${err.detail || 'Something went wrong. Please try again.'}`;
         }
         const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || DEFAULT_RESPONSE;
+        return data.reply || DEFAULT_RESPONSE;
     } catch (e: any) {
-        console.error('Gemini fetch error:', e);
+        console.error('Chatbot fetch error:', e);
         return DEFAULT_RESPONSE;
     }
 }
+
 
 function formatBotText(text: string): string {
     // Convert **bold** to <strong> and \n to <br>

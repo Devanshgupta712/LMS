@@ -1525,3 +1525,78 @@ async def delete_time_tracking(
         db.delete(log)
         await db.commit()
     return {"status": "success"}
+
+
+# ─── Chatbot Proxy ──────────────────────────────────────────────────────────
+import os
+import httpx
+from pydantic import BaseModel as PydanticBaseModel
+from typing import List as TypingList
+
+class ChatMessage(PydanticBaseModel):
+    role: str   # "user" or "model"
+    text: str
+
+class ChatRequest(PydanticBaseModel):
+    message: str
+    history: TypingList[ChatMessage] = []
+
+SYSTEM_CONTEXT = """You are the AppTechno AI Assistant. Help users with information about courses, placements, fees, schedules, attendance, and technical training.
+
+AppTechno Software offers 6-month intensive training programs:
+- Full Stack Java: Java, Spring Boot, Angular, Microservices. Duration: 6 Months. Fee: ₹49,999.
+- Python Django React: Python, Django, React, REST API. Duration: 6 Months. Fee: ₹54,999.
+- MERN Stack: MongoDB, Express, React, Node.js. Duration: 6 Months. Fee: ₹52,999.
+- Software Testing: Manual, Selenium, API Testing. Duration: 6 Months.
+- Data Analytics: SQL, Power BI, Python. Duration: 6 Months. Fee: ₹59,999.
+- Data Science: Machine Learning, Data Modeling. Duration: 6 Months.
+
+Guidelines:
+- Provide course name, description, and duration when asked.
+- Suggest relevant courses based on the user's query.
+- If they have issues, tell them to contact support@apptechcareers.com.
+- Emphasize live project experience and 6-month experience certificate.
+- Mention 70,000+ placed students with 14LPA average package and unlimited interviews.
+- Keep responses concise and supportive."""
+
+@router.post("/chatbot")
+async def chatbot_proxy(
+    body: ChatRequest,
+    _current_user: User = Depends(get_current_user)
+):
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Chatbot not configured")
+
+    # Build contents array with system context as first turn
+    contents = [
+        {"role": "user", "parts": [{"text": f"Context: {SYSTEM_CONTEXT}\n\nStart the conversation."}]},
+        {"role": "model", "parts": [{"text": "Hi! I'm the AppTechno AI Assistant. How can I help you today?"}]},
+    ]
+    # Add conversation history
+    for msg in body.history:
+        contents.append({"role": msg.role, "parts": [{"text": msg.text}]})
+    # Add current message
+    contents.append({"role": "user", "parts": [{"text": body.message}]})
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(url, json={
+                "contents": contents,
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 512}
+            })
+        if resp.status_code == 429:
+            raise HTTPException(status_code=429, detail="AI quota exceeded. Please try again later.")
+        if not resp.is_success:
+            raise HTTPException(status_code=502, detail=f"AI service error: {resp.status_code}")
+        data = resp.json()
+        reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        return {"reply": reply}
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="AI response timed out. Please try again.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chatbot error: {str(e)}")
