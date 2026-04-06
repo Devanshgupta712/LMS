@@ -2114,147 +2114,60 @@ async def run_code(
             "version": data.get("version"),
         }
     except Exception as e:
-        # Fallback to local execution if language is Python
+        # Piston is dead. Use Paiza.io as the universal public code runner Fallback!
         lang_str = body.get("language", language).lower()
-        
-        if "python" in lang_str:
-            try:
-                import subprocess
-                import sys
-                # Run locally in a secure timeout
-                proc = subprocess.run(
-                    [sys.executable, "-c", code],
-                    capture_output=True, text=True, timeout=5.0
-                )
-                return {
-                    "stdout": proc.stdout,
-                    "stderr": proc.stderr,
-                    "code": proc.returncode,
-                    "signal": None,
-                    "language": "python",
-                    "version": sys.version.split()[0],
-                }
-            except subprocess.TimeoutExpired:
-                return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
-            except Exception as ex:
-                raise HTTPException(status_code=500, detail=f"Local runner failed: {str(ex)}")
-        elif "javascript" in lang_str or "node" in lang_str:
-            try:
-                import subprocess
-                proc = subprocess.run(
-                    ["node", "-e", code],
-                    capture_output=True, text=True, timeout=5.0
-                )
-                return {
-                    "stdout": proc.stdout,
-                    "stderr": proc.stderr,
-                    "code": proc.returncode,
-                    "signal": None,
-                    "language": "javascript",
-                    "version": "node",
-                }
-            except Exception:
-                pass
-        
-        elif "java" in lang_str and "javascript" not in lang_str:
-            try:
-                import subprocess, tempfile, os
-                code = body.get("files", [{}])[0].get("content", "")
-                
-                # Create a temporary directory to host the .java file and compile it
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    # Find public class name or default to Main
-                    import re
-                    class_match = re.search(r'public\s+class\s+(\w+)', code)
-                    class_name = class_match.group(1) if class_match else "Main"
-                    file_path = os.path.join(temp_dir, f"{class_name}.java")
-                    
-                    with open(file_path, "w") as f:
-                        f.write(code)
-                        
-                    # Compile
-                    compile_proc = subprocess.run(
-                        ["javac", file_path],
-                        capture_output=True, text=True, timeout=5.0
-                    )
-                    
-                    if compile_proc.returncode != 0:
-                        return {
-                            "stdout": "",
-                            "stderr": compile_proc.stderr,
-                            "code": compile_proc.returncode,
-                            "signal": None,
-                            "language": "java",
-                            "version": "javac",
-                        }
-                        
-                    # Run
-                    run_proc = subprocess.run(
-                        ["java", "-cp", temp_dir, class_name],
-                        capture_output=True, text=True, timeout=5.0
-                    )
-                    
-                    return {
-                        "stdout": run_proc.stdout,
-                        "stderr": run_proc.stderr,
-                        "code": run_proc.returncode,
-                        "signal": None,
-                        "language": "java",
-                        "version": "java",
-                    }
-            except subprocess.TimeoutExpired:
-                return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
-            except Exception as ex:
-                raise HTTPException(status_code=500, detail=f"Local Java runner failed. Please ensure 'java' and 'javac' are installed on the server: {str(ex)}")
-
+        paiza_lang = "python3"
+        if "java" in lang_str and "javascript" not in lang_str:
+            paiza_lang = "java"
         elif "c++" in lang_str or "cpp" in lang_str:
-            try:
-                import subprocess, tempfile, os
-                code = body.get("files", [{}])[0].get("content", "")
-                
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    src_path = os.path.join(temp_dir, "main.cpp")
-                    out_path = os.path.join(temp_dir, "main.out")
-                    
-                    with open(src_path, "w") as f:
-                        f.write(code)
-                        
-                    # Compile
-                    compile_proc = subprocess.run(
-                        ["g++", src_path, "-o", out_path],
-                        capture_output=True, text=True, timeout=5.0
-                    )
-                    
-                    if compile_proc.returncode != 0:
-                        return {
-                            "stdout": "",
-                            "stderr": compile_proc.stderr,
-                            "code": compile_proc.returncode,
-                            "signal": None,
-                            "language": "c++",
-                            "version": "g++",
-                        }
-                        
-                    # Run
-                    run_proc = subprocess.run(
-                        [out_path],
-                        capture_output=True, text=True, timeout=5.0
-                    )
-                    
-                    return {
-                        "stdout": run_proc.stdout,
-                        "stderr": run_proc.stderr,
-                        "code": run_proc.returncode,
-                        "signal": None,
-                        "language": "c++",
-                        "version": "c++",
+            paiza_lang = "cpp"
+        elif "javascript" in lang_str or "node" in lang_str:
+            paiza_lang = "javascript"
+            
+        try:
+            import asyncio
+            code = body.get("files", [{}])[0].get("content", "")
+            
+            # Step 1: Create Runner Request
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                submit_res = await client.post(
+                    "http://api.paiza.io/runners/create",
+                    json={
+                        "source_code": code,
+                        "language": paiza_lang,
+                        "api_key": "guest"
                     }
-            except subprocess.TimeoutExpired:
-                return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
-            except Exception as ex:
-                raise HTTPException(status_code=500, detail=f"Local C++ runner failed. Please ensure 'g++' is installed on the server: {str(ex)}")
-
-        raise HTTPException(status_code=502, detail=f"Code runner unavailable: Public Piston API is whitelist only. Configure JDoodle API keys or host locally. Language requested: {lang_str}")
+                )
+                if not submit_res.is_success:
+                    raise Exception("Paiza submission failed")
+                    
+                runner_id = submit_res.json().get("id")
+                
+                # Step 2: Poll for completion (max 5 tries, 1 second apart)
+                for _ in range(5):
+                    await asyncio.sleep(1)
+                    poll_res = await client.get(
+                        f"http://api.paiza.io/runners/get_details?id={runner_id}&api_key=guest"
+                    )
+                    if poll_res.is_success:
+                        details = poll_res.json()
+                        if details.get("status") == "completed":
+                            stdout = details.get("stdout") or ""
+                            stderr = details.get("stderr") or details.get("build_stderr") or ""
+                            # Paiza sometimes returns null instead of empty strings
+                            return {
+                                "stdout": stdout if stdout else "",
+                                "stderr": stderr if stderr else "",
+                                "code": details.get("exit_code", 0) if not stderr else 1,
+                                "signal": None,
+                                "language": lang_str,
+                                "version": "paiza_latest",
+                            }
+                            
+                return {"stdout": "", "stderr": "Execution timed out (5s limit via Cloud Compiler).", "code": 1}
+                
+        except Exception as ex:
+            raise HTTPException(status_code=502, detail=f"Code runner unavailable: Both primary API and Cloud compilers failed. Please configure JDoodle API keys or contact support. Details: {str(ex)}")
 
 
 @router.get("/piston/runtimes")
