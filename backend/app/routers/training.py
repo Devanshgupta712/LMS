@@ -1564,35 +1564,42 @@ async def chatbot_proxy(
     body: ChatRequest,
     _current_user: User = Depends(get_current_user)
 ):
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=503, detail="Chatbot not configured")
+        raise HTTPException(status_code=503, detail="Chatbot not configured. Please contact support.")
 
-    # Build contents array with system context as first turn
-    contents = [
-        {"role": "user", "parts": [{"text": f"Context: {SYSTEM_CONTEXT}\n\nStart the conversation."}]},
-        {"role": "model", "parts": [{"text": "Hi! I'm the AppTechno AI Assistant. How can I help you today?"}]},
-    ]
+    # Build OpenAI-compatible messages array (Groq uses OpenAI format)
+    messages = [{"role": "system", "content": SYSTEM_CONTEXT}]
+
     # Add conversation history
     for msg in body.history:
-        contents.append({"role": msg.role, "parts": [{"text": msg.text}]})
-    # Add current message
-    contents.append({"role": "user", "parts": [{"text": body.message}]})
+        role = "assistant" if msg.role == "model" else "user"
+        messages.append({"role": role, "content": msg.text})
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+    # Add current user message
+    messages.append({"role": "user", "content": body.message})
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(url, json={
-                "contents": contents,
-                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 512}
-            })
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": 512
+                }
+            )
         if resp.status_code == 429:
-            raise HTTPException(status_code=429, detail="AI quota exceeded. Please try again later.")
+            raise HTTPException(status_code=429, detail="AI is a bit busy. Please try again in a moment.")
         if not resp.is_success:
             raise HTTPException(status_code=502, detail=f"AI service error: {resp.status_code}")
         data = resp.json()
-        reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        reply = data["choices"][0]["message"]["content"]
         return {"reply": reply}
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="AI response timed out. Please try again.")
