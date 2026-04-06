@@ -51,6 +51,7 @@ export default function AssessmentSessionPage() {
     // Final Results State
     const [finalScore, setFinalScore] = useState<number | null>(null);
     const [results, setResults] = useState<any[]>([]);
+    const [submitError, setSubmitError] = useState('');
 
     const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
     const isCompletedRef = useRef(false);
@@ -178,9 +179,10 @@ export default function AssessmentSessionPage() {
         setAnswers(prev => ({ ...prev, [qIndex]: optIndex }));
     };
 
-    const submitAssessment = async () => {
-        if (!confirm('Are you sure you want to finish and submit the assessment?')) return;
+    const submitAssessment = async (retryCount = 0) => {
+        if (retryCount === 0 && !confirm('Are you sure you want to finish and submit the assessment?')) return;
         setLoading(true);
+        setSubmitError('');
         try {
             // Combine MCQ answers and Coding answers
             const finalAnswers = { ...answers, ...codeAnswers };
@@ -196,11 +198,16 @@ export default function AssessmentSessionPage() {
                 setIsCompleted(true);
                 if (heartbeatRef.current) clearInterval(heartbeatRef.current);
             } else {
-                alert(data.detail || 'Submit failed');
+                setSubmitError(data.detail || 'Submit failed. Please try again.');
             }
-        } catch (e) {
-            console.error(e);
-            alert('An error occurred while submitting.');
+        } catch (e: any) {
+            const isNetworkError = e.message === 'Failed to fetch' || e.message?.includes('fetch');
+            if (isNetworkError && retryCount < 3) {
+                setSubmitError(`Server is waking up, retrying submission... (${retryCount + 1}/3)`);
+                setTimeout(() => submitAssessment(retryCount + 1), 8000);
+                return;
+            }
+            setSubmitError('Submission failed: server may be temporarily unavailable. Please try the Retry button.');
         } finally {
             setLoading(false);
         }
@@ -352,11 +359,18 @@ export default function AssessmentSessionPage() {
                             ⏱️ {formatTime(remainingSeconds)}
                         </div>
                     )}
-                    <button className="btn btn-primary" onClick={submitAssessment} disabled={loading}>
+                    <button className="btn btn-primary" onClick={() => submitAssessment()} disabled={loading}>
                         {loading ? 'Submitting...' : 'Submit & Finish'}
                     </button>
                 </div>
             </div>
+
+            {submitError && (
+                <div style={{ padding: '12px 20px', background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444', borderRadius: '10px', color: '#ef4444', fontSize: '14px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>⚠️ {submitError}</span>
+                    <button className="btn btn-sm" style={{ color: '#ef4444', border: '1px solid #ef4444', marginLeft: '12px' }} onClick={() => submitAssessment()}>Retry</button>
+                </div>
+            )}
 
             {description && (
                 <div className="card" style={{ marginBottom: '24px' }}>
