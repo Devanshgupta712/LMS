@@ -827,6 +827,26 @@ async def create_assignment(
     return {"id": assignment.id, "status": "created"}
 
 
+@router.delete("/assignments/{assignment_id}")
+async def delete_assignment(
+    assignment_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+):
+    assignment = await db.get(Assignment, assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+        
+    if user.role == Role.TRAINER and assignment.assigned_by != user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own assignments")
+        
+    await db.delete(assignment)
+    # The 'submissions' relationship specifies cascade="all, delete-orphan", 
+    # so submissions attached to this assignment will be auto-deleted.
+    await db.flush()
+    return {"status": "deleted"}
+
+
 from fastapi import Form, UploadFile, File
 from app.utils.cloudinary import upload_to_cloudinary
 from app.utils.ai_grader import evaluate_submission, extract_text_from_pdf, generate_assignment_instructions

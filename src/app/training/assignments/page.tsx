@@ -139,6 +139,18 @@ export default function AssignmentsPage() {
 
     const isOverdue = (d: string | null) => !!d && new Date(d) < new Date();
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this assignment?')) return;
+        try {
+            const resp = await apiFetch(`/api/training/assignments/${id}`, { method: 'DELETE' });
+            if (!resp.ok) throw new Error('Failed to delete assignment');
+            loadAssignments();
+        } catch (e) {
+            console.error('Delete error', e);
+            alert('Could not delete assignment. You may not have permission.');
+        }
+    };
+
     // ── Steps rendering ───────────────────────────────────────────────────────
     const StepIndicator = ({ steps, current }: { steps: string[]; current: number }) => (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '20px' }}>
@@ -184,7 +196,7 @@ export default function AssignmentsPage() {
             ) : (
                 <div className="table-container">
                     <table className="table">
-                        <thead><tr><th>Assignment</th><th>Type</th><th>Marks</th><th>Due Date</th><th>Submissions</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Assignment</th><th>Type</th><th>Marks</th><th>Due Date</th><th>Submissions</th><th>Status</th><th>Action</th></tr></thead>
                         <tbody>
                             {assignments.map(a => (
                                 <tr key={a.id}>
@@ -197,6 +209,11 @@ export default function AssignmentsPage() {
                                     <td>{a.due_date ? <span style={{ color: isOverdue(a.due_date) ? '#ef4444' : 'var(--text-muted)' }}>{new Date(a.due_date).toLocaleDateString()}{isOverdue(a.due_date) && ' ⚠️'}</span> : '—'}</td>
                                     <td><button className="badge badge-primary" onClick={() => handleViewSubmissions(a)} style={{ cursor: 'pointer', border: 'none' }}>{a.submission_count} submitted</button></td>
                                     <td><span className={`badge ${isOverdue(a.due_date) ? 'badge-danger' : 'badge-success'}`}>{isOverdue(a.due_date) ? 'Overdue' : 'Active'}</span></td>
+                                    <td>
+                                        <button className="btn btn-sm btn-ghost" onClick={() => handleDelete(a.id)} style={{ color: '#ef4444', padding: '4px 8px' }} title="Delete Assignment">
+                                            🗑️
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
