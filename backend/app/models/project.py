@@ -127,6 +127,7 @@ class Assignment(Base):
     type: Mapped[AssignmentType] = mapped_column(Enum(AssignmentType), default=AssignmentType.CODING)
     batch_id: Mapped[str | None] = mapped_column(String, ForeignKey("batches.id"), nullable=True)
     course_id: Mapped[str | None] = mapped_column(String, ForeignKey("courses.id"), nullable=True)
+    student_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     assigned_by: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     total_marks: Mapped[int] = mapped_column(Integer, default=100)
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

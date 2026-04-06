@@ -721,12 +721,16 @@ async def list_assignments(
 ):
     query = select(Assignment)
     
-    # If Student, only show their batch assignments
+    # If Student, only show their batch assignments OR assignments mapped directly to them
     if user.role == Role.STUDENT:
         batch_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
         student_batch = batch_result.scalar()
+        
+        from sqlalchemy import or_
         if student_batch:
-            query = query.where(Assignment.batch_id == student_batch)
+            query = query.where(or_(Assignment.batch_id == student_batch, Assignment.student_id == user.id))
+        else:
+            query = query.where(Assignment.student_id == user.id)
     
     result = await db.execute(query.order_by(Assignment.created_at.desc()))
     assignments = result.scalars().all()
@@ -781,7 +785,7 @@ async def create_assignment(
     assignment = Assignment(
         title=body["title"], description=body.get("description"),
         type=body.get("type", "CODING"),
-        batch_id=body.get("batch_id"), course_id=body.get("course_id"),
+        batch_id=body.get("batch_id"), student_id=body.get("student_id"), course_id=body.get("course_id"),
         assigned_by=user.id, total_marks=body.get("total_marks", 100),
     )
     if body.get("due_date"):
@@ -789,17 +793,33 @@ async def create_assignment(
     db.add(assignment)
     await db.flush()
 
-    # Notify students in the batch
-    if assignment.batch_id:
-        from app.models.notification import Notification
+    from app.models.notification import Notification
+    student_id = body.get("student_id")  # Optional: assign to specific student
+
+    # Notify: specific student OR all batch students
+    if student_id:
+        # Individual student notification
+        notif = Notification(
+            user_id=student_id,
+            title="📝 New Assignment Assigned to You",
+            message=f"You have been assigned '{assignment.title}'. Check the Assignments section for details.",
+            type="ASSIGNMENT",
+            reference_id=assignment.id,
+            link="/training/assignments"
+        )
+        db.add(notif)
+        await db.flush()
+    elif assignment.batch_id:
+        # Entire batch notification
         bs_result = await db.execute(select(BatchStudent).where(BatchStudent.batch_id == assignment.batch_id))
         for bs in bs_result.scalars().all():
             notif = Notification(
                 user_id=bs.student_id,
-                title="New Assignment Created",
-                message=f"A new assignment '{assignment.title}' has been added.",
+                title="📝 New Assignment Added",
+                message=f"A new assignment '{assignment.title}' has been added to your batch.",
                 type="ASSIGNMENT",
-                reference_id=assignment.id
+                reference_id=assignment.id,
+                link="/training/assignments"
             )
             db.add(notif)
         await db.flush()
