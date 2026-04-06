@@ -2,17 +2,15 @@ import os
 import io
 import json
 import PyPDF2
-import google.generativeai as genai
+import httpx
 
-# Gemini API Key — must be set via GEMINI_API_KEY environment variable in Render
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    print("[AI Grader] WARNING: GEMINI_API_KEY not set. AI features will be disabled.")
-else:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Groq API Key — must be set via GROQ_API_KEY environment variable in Render
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    print("[AI Grader] WARNING: GROQ_API_KEY not set. AI features will be disabled.")
 
-# gemini-2.0-flash: faster and smarter than 1.5-flash, still on free tier
-MODEL_NAME = 'gemini-2.0-flash'
+# Llama-3.3-70b-versatile: Extremely fast and capable model on Groq
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
@@ -32,15 +30,36 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
 
 def generate_assignment_instructions(topic: str) -> str:
     """
-    Generates structured assignment instructions based on a topic string.
+    Generates structured assignment instructions based on a topic string using Groq.
     """
+    if not GROQ_API_KEY:
+        return "AI not configured. Please contact admin."
+        
     try:
-        model = genai.GenerativeModel(
-            model_name=MODEL_NAME,
-            system_instruction="You are a senior tech lead designing a challenging, real-world assignment for trainees. Output ONLY clean markdown format. Include Prerequisites, Objective, Constraints, and Grading Criteria. Keep it under 500 words."
-        )
-        response = model.generate_content(f"Create an assignment purely based on this topic/command: {topic}")
-        return response.text
+        prompt = f"Create an assignment purely based on this topic/command: {topic}"
+        
+        with httpx.Client(timeout=40.0) as client:
+            resp = client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": MODEL_NAME,
+                    "messages": [
+                        {"role": "system", "content": "You are a senior tech lead designing a challenging, real-world assignment for trainees. Output ONLY clean markdown format. Include Prerequisites, Objective, Constraints, and Grading Criteria. Keep it under 500 words."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.5,
+                    "max_tokens": 1024
+                }
+            )
+            
+        if resp.is_success:
+            data = resp.json()
+            return data["choices"][0]["message"]["content"].strip()
+        else:
+            print(f"[AI Grader] Groq generation error: {resp.status_code}")
+            return "Failed to generate instructions via Groq. Please try again."
+            
     except Exception as e:
         print(f"[AI Grader] Error generating assignment: {e}")
         return "Failed to generate instructions. Please try manually uploading a PDF."
@@ -48,34 +67,53 @@ def generate_assignment_instructions(topic: str) -> str:
 
 def evaluate_submission(assignment_instructions: str, student_content: str, max_marks: int = 100) -> dict:
     """
-    Evaluates a student's submission text/code against the assignment requirements.
+    Evaluates a student's submission text/code against the assignment requirements using Groq.
     Returns a dict with `score` (integer) and `feedback` (str).
     """
-    try:
-        model = genai.GenerativeModel(
-            model_name=MODEL_NAME,
-            system_instruction=(
-                f"You are a strict, helpful coding instructor grading an assignment. "
-                f"The maximum score is {max_marks}. "
-                f"Return ONLY a strictly valid JSON object with EXACTLY two keys: 'score' (an integer) and 'feedback' (a string). "
-                f"Do NOT wrap it in markdown block quotes. Do NOT return anything else."
-            )
-        )
+    if not GROQ_API_KEY:
+        return {"score": 0, "feedback": "AI Not Configured."}
         
+    try:
         prompt = f"### ASSIGNMENT INSTRUCTIONS:\n{assignment_instructions}\n\n### STUDENT SUBMISSION:\n{student_content}\n\nEvaluate the student submission."
         
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json"
+        with httpx.Client(timeout=40.0) as client:
+            resp = client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": MODEL_NAME,
+                    "messages": [
+                        {
+                            "role": "system", 
+                            "content": (
+                                f"You are an encouraging yet accurate coding instructor grading an assignment. "
+                                f"The maximum score is {max_marks}. "
+                                f"Evaluate the student submission fairly based on logic and requirements. "
+                                f"Return ONLY a strictly valid JSON object with EXACTLY two keys: 'score' (an integer) and 'feedback' (a string). "
+                                f"Return no other text."
+                            )
+                        },
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 1024,
+                    "response_format": {"type": "json_object"}
+                }
             )
-        )
-        
-        result_json = json.loads(response.text)
-        return {
-            "score": int(result_json.get("score", 0)),
-            "feedback": result_json.get("feedback", "No feedback provided by AI.")
-        }
+            
+        if resp.is_success:
+            data = resp.json()
+            raw_content = data["choices"][0]["message"]["content"].strip()
+            result_json = json.loads(raw_content)
+            
+            return {
+                "score": int(result_json.get("score", 0)),
+                "feedback": result_json.get("feedback", "No feedback provided by AI.")
+            }
+        else:
+            print(f"[AI Grader] Groq grading error: {resp.status_code}")
+            return {"score": 0, "feedback": f"AI Evaluation failed (Status {resp.status_code})."}
+            
     except Exception as e:
         print(f"[AI Grader] Error grading submission: {e}")
         return {
