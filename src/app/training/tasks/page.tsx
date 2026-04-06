@@ -141,7 +141,12 @@ export default function TasksPage() {
                 ...form,
                 batch_id: selectedBatch || null,
                 ...(selectedStudent ? { student_id: selectedStudent } : {}),
-                ...(pdfUrl ? { pdf_url: pdfUrl } : {})
+                ...(pdfUrl ? { pdf_url: pdfUrl } : {}),
+                ...(aiPreview ? { 
+                    structured_content: JSON.stringify(aiPreview),
+                    time_limit: aiTimeLimit,
+                    is_randomized: aiRandomize
+                } : {})
             };
 
             const resp = await apiFetch('/api/training/tasks', { method: 'POST', body: JSON.stringify(body) });

@@ -700,7 +700,10 @@ async def create_task(
         assigned_by=user.id,
         priority=body.get("priority", "MEDIUM"),
         status=body.get("status", "PENDING"),
-        pdf_url=body.get("pdf_url")
+        pdf_url=body.get("pdf_url"),
+        time_limit=body.get("time_limit", 0),
+        is_randomized=body.get("is_randomized", False),
+        structured_content=body.get("structured_content")
     )
     if body.get("due_date"):
         task.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
@@ -851,6 +854,9 @@ async def create_assignment(
         type=body.get("type", "CODING"),
         batch_id=body.get("batch_id"), student_id=body.get("student_id"), course_id=body.get("course_id"),
         assigned_by=user.id, total_marks=body.get("total_marks", 100),
+        time_limit=body.get("time_limit", 0),
+        is_randomized=body.get("is_randomized", False),
+        structured_content=body.get("structured_content")
     )
     if body.get("due_date"):
         assignment.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
@@ -1775,7 +1781,8 @@ async def start_assessment_session(
         student_id=user.id,
         reference_id=ref_id,
         reference_type=ref_type.upper(),
-        responses=question_order or item.structured_content
+        responses=question_order or item.structured_content,
+        start_time=datetime.utcnow()
     )
     db.add(session)
     await db.flush()
@@ -2033,14 +2040,12 @@ async def run_code(
                     "language": language,
                     "version": version,
                     "files": [{"content": code}],
-                    "stdin": stdin,
-                    "run_timeout": 5000,
-                    "compile_timeout": 10000,
-                    "run_memory_limit": 128000000,  # 128MB
+                    "stdin": stdin
                 }
             )
         if not resp.is_success:
-            raise HTTPException(status_code=502, detail="Code runner unavailable. Please try again.")
+            err_txt = resp.text
+            raise HTTPException(status_code=502, detail=f"Code runner unavailable: {err_txt}")
         data = resp.json()
         run_result = data.get("run", {})
         compile_result = data.get("compile", {})

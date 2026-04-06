@@ -357,7 +357,7 @@ export default function AssessmentSessionPage() {
                                     <option value="python">Python</option>
                                     <option value="javascript">Node.js</option>
                                     <option value="java">Java</option>
-                                    <option value="cpp">C++</option>
+                                    <option value="c++">C++</option>
                                 </select>
                             </div>
                             <button className="btn btn-primary btn-sm" onClick={runCode} disabled={runningCode}>
