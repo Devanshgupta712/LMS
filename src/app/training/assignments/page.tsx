@@ -35,6 +35,7 @@ export default function AssignmentsPage() {
     // AI generation
     const [aiTopic, setAiTopic] = useState('');
     const [aiDifficulty, setAiDifficulty] = useState('Intermediate');
+    const [aiQuestionCount, setAiQuestionCount] = useState(5);
     const [generating, setGenerating] = useState(false);
     const [aiPreview, setAiPreview] = useState<any>(null);
     const [aiError, setAiError] = useState('');
@@ -82,7 +83,7 @@ export default function AssignmentsPage() {
         try {
             const resp = await apiFetch('/api/training/generate-task', {
                 method: 'POST',
-                body: JSON.stringify({ topic: aiTopic, task_type: form.type, difficulty: aiDifficulty })
+                body: JSON.stringify({ topic: aiTopic, task_type: form.type, difficulty: aiDifficulty, question_count: Number(aiQuestionCount) })
             });
             if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.detail || 'Failed'); }
             const result = await resp.json();
@@ -266,7 +267,7 @@ export default function AssignmentsPage() {
                             <>
                                 <StepIndicator steps={aiSteps} current={1} />
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                                         <div className="form-group" style={{ margin: 0 }}>
                                             <label className="form-label">Assignment Type</label>
                                             <select className="form-input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
@@ -284,7 +285,12 @@ export default function AssignmentsPage() {
                                                 <option>Advanced</option>
                                             </select>
                                         </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label">Items Count</label>
+                                            <input type="number" min={1} max={25} className="form-input" value={aiQuestionCount} onChange={e => setAiQuestionCount(parseInt(e.target.value) || 5)} />
+                                        </div>
                                     </div>
+
                                     <div className="form-group" style={{ margin: 0 }}>
                                         <label className="form-label">Topic / Subject *</label>
                                         <input className="form-input" value={aiTopic} onChange={e => { setAiTopic(e.target.value); setAiError(''); }}

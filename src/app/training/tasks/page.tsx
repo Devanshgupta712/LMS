@@ -34,10 +34,10 @@ export default function TasksPage() {
     const [form, setForm] = useState({ title: '', description: '', priority: 'MEDIUM', due_date: '' });
     const [saving, setSaving] = useState(false);
 
-    // AI generation state
     const [aiTopic, setAiTopic] = useState('');
     const [aiDifficulty, setAiDifficulty] = useState('Intermediate');
     const [aiTaskType, setAiTaskType] = useState('CODING');
+    const [aiQuestionCount, setAiQuestionCount] = useState(5);
     const [generating, setGenerating] = useState(false);
     const [aiPreview, setAiPreview] = useState<any>(null);
     const [aiError, setAiError] = useState('');
@@ -93,7 +93,7 @@ export default function TasksPage() {
         try {
             const resp = await apiFetch('/api/training/generate-task', {
                 method: 'POST',
-                body: JSON.stringify({ topic: aiTopic, task_type: aiTaskType, difficulty: aiDifficulty })
+                body: JSON.stringify({ topic: aiTopic, task_type: aiTaskType, difficulty: aiDifficulty, question_count: Number(aiQuestionCount) })
             });
             if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.detail || 'Failed'); }
             const result = await resp.json();
@@ -275,7 +275,7 @@ export default function TasksPage() {
                             <>
                                 <StepIndicator steps={aiSteps} current={1} />
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                                         <div className="form-group" style={{ margin: 0 }}>
                                             <label className="form-label">Task Format</label>
                                             <select className="form-input" value={aiTaskType} onChange={e => setAiTaskType(e.target.value)}>
@@ -290,6 +290,10 @@ export default function TasksPage() {
                                             <select className="form-input" value={aiDifficulty} onChange={e => setAiDifficulty(e.target.value)}>
                                                 <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
                                             </select>
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label">Items Count</label>
+                                            <input type="number" min={1} max={25} className="form-input" value={aiQuestionCount} onChange={e => setAiQuestionCount(parseInt(e.target.value) || 5)} />
                                         </div>
                                     </div>
                                     <div className="form-group" style={{ margin: 0 }}>

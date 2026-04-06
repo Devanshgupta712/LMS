@@ -1641,6 +1641,7 @@ class GenerateTaskRequest(PydanticBaseModel):
     topic: str
     task_type: str = "CODING"   # CODING, WRITTEN, PROJECT, MCQ
     difficulty: str = "Intermediate"  # Beginner, Intermediate, Advanced
+    question_count: int = 5
 
 @router.post("/generate-task")
 async def generate_task(
@@ -1650,16 +1651,21 @@ async def generate_task(
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="AI not configured. Please contact admin.")
+        
+    if body.task_type.upper() == "MCQ":
+        format_instr = f"Create EXACTLY {body.question_count} multiple-choice questions. Format each question securely into the 'requirements' array. Example array item: 'Q1. What is X? A) .. B) .. C) .. D) .. Answer: A'. Make sure they are strict MCQs."
+    else:
+        format_instr = f"Create EXACTLY {body.question_count} specific coding requirements, implementation steps, or theory questions. Put each required step as a string in the 'requirements' array."
 
-    prompt = f"""Generate a {body.difficulty} level {body.task_type} assignment or task for a software training program on the topic: "{body.topic}".
+    prompt = f"""Generate a {body.difficulty}-level {body.task_type} assignment for a software training program on the topic: "{body.topic}".
 
-If the task_type is 'MCQ', make the 'description' introduce the quiz, and put each multiple choice question along with its 4 options and the correct answer as an individual string inside the 'requirements' array. For example: "1. What does HTML stand for? A) Hyper Text... B) High Tech... C) Home Tool... D) None. Answer: A".
+{format_instr}
 
 Return ONLY valid JSON (no markdown, no explanation) in this exact format:
 {{
   "title": "concise title",
   "description": "2-3 sentence overview of what the student must do or the quiz topic",
-  "requirements": ["requirement or question 1", "requirement or question 2", "requirement or question 3"],
+  "requirements": ["item 1", "item 2", "item 3"],
   "hints": ["helpful hint 1", "helpful hint 2"],
   "estimated_hours": 3
 }}"""
