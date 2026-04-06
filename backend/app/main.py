@@ -73,6 +73,10 @@ async def lifespan(app: FastAPI):
                     "ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS feedback TEXT",
                     "ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP DEFAULT NOW()",
                     "ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS graded_at TIMESTAMP",
+                    # tasks and assignments modifications for specific student assignment
+                    "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS student_id VARCHAR",
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS student_id VARCHAR",
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS pdf_url VARCHAR",
                 ]
                 for sql in pg_migrations:
                     try:
