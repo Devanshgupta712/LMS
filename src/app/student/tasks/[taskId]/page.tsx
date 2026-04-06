@@ -23,9 +23,11 @@ export default function AssessmentSessionPage() {
     const taskId = params.taskId as string;
 
     const [loading, setLoading] = useState(true);
+    const [loadingMsg, setLoadingMsg] = useState('Starting secure session...');
     const [error, setError] = useState('');
     const [sessionId, setSessionId] = useState('');
     const [isCompleted, setIsCompleted] = useState(false);
+    const retryRef = useRef(0);
 
     // Assessment Data
     const [title, setTitle] = useState('');
@@ -75,10 +77,12 @@ export default function AssessmentSessionPage() {
     // Keep ref updated
     useEffect(() => { isCompletedRef.current = isCompleted; }, [isCompleted]);
 
-    const startSession = async () => {
+    const startSession = async (retryCount = 0) => {
         try {
+            setLoadingMsg(retryCount === 0 ? 'Starting secure session...' : `Waking up server... (attempt ${retryCount + 1}/4)`);
+
             // 1. Start or resume
-            let res = await apiFetch(`/api/training/assessments/TASK/${taskId}/start`, { method: 'POST' });
+            const res = await apiFetch(`/api/training/assessments/TASK/${taskId}/start`, { method: 'POST' });
             if (!res.ok) throw new Error('Failed to start assessment');
             const startData = await res.json();
             setSessionId(startData.session_id);
@@ -97,30 +101,30 @@ export default function AssessmentSessionPage() {
             if (qData.questions && qData.questions.length > 0) {
                 const initialCodes: Record<number, string> = {};
                 qData.questions.forEach((q: any, i: number) => {
-                    if (q.initial_code) {
-                        initialCodes[i] = q.initial_code;
-                    }
+                    if (q.initial_code) initialCodes[i] = q.initial_code;
                 });
-                if (Object.keys(initialCodes).length > 0) {
-                    setCodeAnswers(initialCodes);
-                }
+                if (Object.keys(initialCodes).length > 0) setCodeAnswers(initialCodes);
             } else if (qData.description && !qData.questions?.length) {
-                // Fallback for single description-based coding task
                 setCodeAnswers({ 0: '# Write your code here\n' });
             }
 
             if (qData.is_completed) {
-                // If it was already completed, fetch score (or we could fetch ranking)
-                // For a polished flow, you'd fetch the submission details here.
-                setFinalScore(0); // placeholder, actual score is fetched differently in production usually
+                setFinalScore(0);
             } else {
-                // 3. Start Heartbeat
                 startHeartbeat(startData.session_id);
             }
         } catch (err: any) {
-            setError(err.message || 'An error occurred');
+            const isNetworkError = err.message === 'Failed to fetch' || err.message?.includes('fetch');
+            if (isNetworkError && retryCount < 3) {
+                // Auto-retry for Render cold-start (backend sleeping)
+                const delay = 8000;
+                setLoadingMsg(`Server is waking up... retrying in ${delay / 1000}s (${retryCount + 1}/3)`);
+                setTimeout(() => startSession(retryCount + 1), delay);
+                return;
+            }
+            setError(err.message || 'An error occurred. Please refresh the page.');
         } finally {
-            setLoading(false);
+            if (retryCount === 0 || !error) setLoading(false);
         }
     };
 
@@ -242,8 +246,25 @@ export default function AssessmentSessionPage() {
         }
     };
 
-    if (loading && !isCompleted && !questions.length) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Secure Session...</div>;
-    if (error) return <div style={{ padding: '40px', color: 'red', textAlign: 'center' }}>{error}</div>;
+    if (loading) return (
+        <div style={{ padding: '60px', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚙️</div>
+            <div style={{ fontSize: '16px', fontWeight: 600 }}>{loadingMsg}</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                This may take up to 30 seconds on first load (server warm-up).
+            </div>
+            <div style={{ marginTop: '20px', width: '200px', margin: '20px auto 0', height: '4px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', background: 'var(--primary)', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite', width: '60%' }} />
+            </div>
+        </div>
+    );
+    if (error) return (
+        <div style={{ padding: '60px', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚠️</div>
+            <div style={{ color: 'red', fontWeight: 600, marginBottom: '16px' }}>{error}</div>
+            <button className="btn btn-primary" onClick={() => { setError(''); setLoading(true); startSession(); }}>Retry</button>
+        </div>
+    );
 
     const isCodingTask = questions.length === 0;
 
