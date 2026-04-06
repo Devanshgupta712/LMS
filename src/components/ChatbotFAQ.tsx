@@ -28,7 +28,7 @@ async function getGeminiResponse(userMessage: string, previousMessages: Message[
         .map(m => ({ role: m.role === 'bot' ? 'model' : 'user', text: m.text }));
 
     try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
         const res = await fetch(`${API_BASE}/api/training/chatbot`, {
             method: 'POST',
             headers: {
