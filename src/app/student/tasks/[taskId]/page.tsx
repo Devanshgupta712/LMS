@@ -52,6 +52,7 @@ export default function AssessmentSessionPage() {
     const [finalScore, setFinalScore] = useState<number | null>(null);
     const [results, setResults] = useState<any[]>([]);
     const [submitError, setSubmitError] = useState('');
+    const [aiGrading, setAiGrading] = useState<'pending' | 'done' | 'n/a'>('n/a');
 
     const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
     const isCompletedRef = useRef(false);
@@ -195,6 +196,7 @@ export default function AssessmentSessionPage() {
             if (res.ok) {
                 setFinalScore(data.score);
                 setResults(data.results || []);
+                setAiGrading(data.ai_grading || 'n/a');
                 setIsCompleted(true);
                 if (heartbeatRef.current) clearInterval(heartbeatRef.current);
             } else {
@@ -288,16 +290,25 @@ export default function AssessmentSessionPage() {
                         </div>
                     )}
                     
-                    {results.find(r => r.type === 'coding_feedback') && (
+                    {/* AI Tutor Feedback card */}
+                    {results.find(r => r.type === 'coding_feedback') ? (
                         <div className="card" style={{ textAlign: 'left', background: 'var(--bg-secondary)', border: '1px solid var(--primary)', margin: '20px 0', padding: '20px' }}>
                             <h3 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                ✨ AI Tutor Feedback
+                                ✨ AI Tutor Feedback &mdash; Score: {results.find(r => r.type === 'coding_feedback').score}%
                             </h3>
                             <div style={{ fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                                 {results.find(r => r.type === 'coding_feedback').feedback}
                             </div>
                         </div>
-                    )}
+                    ) : aiGrading === 'pending' ? (
+                        <div className="card" style={{ textAlign: 'left', background: 'var(--bg-secondary)', border: '1px solid var(--border)', margin: '20px 0', padding: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ fontSize: '24px' }}>⏳</div>
+                            <div>
+                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>AI Tutor Feedback</div>
+                                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Your code is being graded by AI in the background. Your trainer will see the score shortly. You can safely return to the tasks list.</div>
+                            </div>
+                        </div>
+                    ) : null}
 
                     <button className="btn btn-primary" onClick={() => router.push('/student/tasks')}>Return to Tasks</button>
                     {tabSwitchCount >= 3 && (

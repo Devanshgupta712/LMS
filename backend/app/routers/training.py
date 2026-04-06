@@ -2035,7 +2035,16 @@ async def submit_assessment(
         except Exception:
             pass
 
+    # Determine task type upfront so MCQ grader can skip coding answers
+    is_pure_coding = False
     if questions_source:
+        first_q = questions_source[0] if questions_source else {}
+        if not first_q.get("options"):  # coding questions have no options
+            is_pure_coding = True
+    elif student_answers:  # no questions source at all = pure coding fallback
+        is_pure_coding = True
+
+    if questions_source and not is_pure_coding:
         try:
             questions = questions_source
             total = len(questions)
@@ -2048,13 +2057,18 @@ async def submit_assessment(
                         correct = int(correct)
                     except (ValueError, TypeError):
                         correct = -1
-                    is_correct = selected_raw is not None and int(selected_raw) == correct
+                    # Only grade if selected is a number (MCQ selection), not code string
+                    try:
+                        selected_int = int(selected_raw) if selected_raw is not None else None
+                    except (ValueError, TypeError):
+                        selected_int = None
+                    is_correct = selected_int is not None and selected_int == correct
                     if is_correct:
                         correct_count += 1
                     results.append({
                         "index": i,
-                        "question": q["question"],
-                        "options": q["options"],
+                        "question": q.get("question", ""),
+                        "options": q.get("options", []),
                         "selected": selected_raw,
                         "correct": correct,
                         "is_correct": is_correct,
@@ -2065,63 +2079,74 @@ async def submit_assessment(
         except Exception as e:
             print(f"Grading error: {e}")
 
-    # Determine if this is a coding task that needs AI grading
-    # It's a coding task if there are no MCQ questions, or if it's explicitly typed
-    is_pure_coding = False
-    if not questions_source and student_answers:
-        is_pure_coding = True
-    elif questions_source:
-        # Check if first question looks like coding (no options)
-        first_q = questions_source[0]
-        if not first_q.get("options"):
-            is_pure_coding = True
-
-    if is_pure_coding and student_answers:
-        from app.utils.ai_grader import evaluate_submission
-        try:
-            import asyncio
-            student_code_block = ""
-            for idx, code in student_answers.items():
-                if isinstance(code, str) and len(code) > 2:
-                    student_code_block += f"### Question {int(idx)+1}:\n{code}\n\n"
-
-            if student_code_block:
-                task_context = f"Title: {item.title}\nDescription: {item.description or ''}\n"
-                if item.structured_content:
-                    task_context += f"Detailed Requirements: {item.structured_content}"
-
-                # Run blocking Gemini call in a thread with timeout
-                # This prevents blocking the async event loop (which caused Render timeouts)
-                try:
-                    eval_res = await asyncio.wait_for(
-                        asyncio.to_thread(evaluate_submission, task_context, student_code_block),
-                        timeout=20.0
-                    )
-                except asyncio.TimeoutError:
-                    eval_res = {"score": 0, "feedback": "AI grading timed out. Your trainer will review this submission manually."}
-
-                score = float(eval_res.get("score", 0))
-                results.append({
-                    "type": "coding_feedback",
-                    "score": score,
-                    "feedback": eval_res.get("feedback", "No feedback.")
-                })
-        except Exception as e:
-            print(f"AI Grading error: {e}")
-
-
+    # ── Save submission immediately (do NOT wait for AI grading) ──
+    # This ensures the response is returned within Render's 30s timeout.
+    elapsed = int((datetime.utcnow() - session.start_time).total_seconds())
     session.score = score
     session.is_completed = True
     session.end_time = datetime.utcnow()
     session.completion_time_seconds = elapsed
-    session.responses = json_lib.dumps({"answers": student_answers, "results": results})
+    session.responses = json_lib.dumps({"answers": student_answers, "results": results, "ai_grading": "pending" if is_pure_coding else "n/a"})
     await db.flush()
+
+    # ── Kick off AI grading as a fire-and-forget background task ──
+    if is_pure_coding and student_answers:
+        import asyncio
+        from app.utils.ai_grader import evaluate_submission
+
+        async def _grade_in_background():
+            try:
+                student_code_block = ""
+                for idx, code in student_answers.items():
+                    if isinstance(code, str) and len(code) > 2:
+                        student_code_block += f"### Question {int(idx)+1}:\n{code}\n\n"
+                if not student_code_block:
+                    return
+
+                task_context = f"Title: {item.title}\nDescription: {item.description or ''}\n"
+                if item.structured_content:
+                    task_context += f"Detailed Requirements: {item.structured_content}"
+
+                try:
+                    eval_res = await asyncio.wait_for(
+                        asyncio.to_thread(evaluate_submission, task_context, student_code_block),
+                        timeout=25.0
+                    )
+                except asyncio.TimeoutError:
+                    eval_res = {"score": 0, "feedback": "AI grading timed out. Your trainer will review this submission manually."}
+
+                ai_score = float(eval_res.get("score", 0))
+                ai_feedback = eval_res.get("feedback", "No feedback.")
+
+                # Open a fresh DB session to update the score
+                from app.database import AsyncSessionLocal
+                async with AsyncSessionLocal() as bg_db:
+                    from app.models.project import AssessmentSession as AS
+                    bg_session = await bg_db.get(AS, session_id)
+                    if bg_session:
+                        import json as jl
+                        resp = jl.loads(bg_session.responses or "{}")
+                        resp.setdefault("results", []).append({
+                            "type": "coding_feedback",
+                            "score": ai_score,
+                            "feedback": ai_feedback
+                        })
+                        resp["ai_grading"] = "done"
+                        bg_session.score = ai_score
+                        bg_session.responses = jl.dumps(resp)
+                        await bg_db.commit()
+                        print(f"[AI Grading] Session {session_id} graded: {ai_score}%")
+            except Exception as bg_err:
+                print(f"[AI Grading Background] Error: {bg_err}")
+
+        asyncio.create_task(_grade_in_background())
 
     return {
         "status": "submitted",
         "score": score,
         "completion_time_seconds": elapsed,
         "results": results,
+        "ai_grading": "pending" if is_pure_coding else "n/a",
     }
 
 
