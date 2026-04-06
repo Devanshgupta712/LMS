@@ -1642,6 +1642,8 @@ class GenerateTaskRequest(PydanticBaseModel):
     task_type: str = "CODING"   # CODING, WRITTEN, PROJECT, MCQ
     difficulty: str = "Intermediate"  # Beginner, Intermediate, Advanced
     question_count: int = 5
+    time_limit: int = 0  # 0 = no limit
+    is_randomized: bool = True
 
 @router.post("/generate-task")
 async def generate_task(
@@ -1653,36 +1655,51 @@ async def generate_task(
         raise HTTPException(status_code=503, detail="AI not configured. Please contact admin.")
         
     if body.task_type.upper() == "MCQ":
-        format_instr = f"Create EXACTLY {body.question_count} multiple-choice questions. Format each question securely into the 'requirements' array. Example array item: 'Q1. What is X? A) .. B) .. C) .. D) .. Answer: A'. Make sure they are strict MCQs."
-    else:
-        format_instr = f"Create EXACTLY {body.question_count} specific coding requirements, implementation steps, or theory questions. Put each required step as a string in the 'requirements' array."
-
-    prompt = f"""Generate a {body.difficulty}-level {body.task_type} assignment for a software training program on the topic: "{body.topic}".
-
-{format_instr}
-
-Return ONLY valid JSON (no markdown, no explanation) in this exact format:
+        format_instr = f"""Create EXACTLY {body.question_count} multiple-choice questions.
+Return ONLY a JSON object in this EXACT format, with no extra text:
 {{
-  "title": "concise title",
-  "description": "2-3 sentence overview of what the student must do or the quiz topic",
-  "requirements": ["item 1", "item 2", "item 3"],
-  "hints": ["helpful hint 1", "helpful hint 2"],
+  "title": "concise quiz title",
+  "description": "2-3 sentence intro to the quiz topic",
+  "questions": [
+    {{
+      "question": "Question text here?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "answer": 0,
+      "explanation": "Why option A is correct",
+      "difficulty": "easy",
+      "topic": "specific sub-topic"
+    }}
+  ],
+  "estimated_hours": 1
+}}
+IMPORTANT: 'answer' must be the 0-based INDEX of the correct option in the 'options' array (0=A, 1=B, 2=C, 3=D)."""
+    else:
+        format_instr = f"""Create EXACTLY {body.question_count} specific requirements/steps for this {body.task_type} task.
+Return ONLY a JSON object in this EXACT format:
+{{
+  "title": "concise task title",
+  "description": "2-3 sentence overview of the task",
+  "requirements": ["step 1", "step 2", "step 3"],
+  "hints": ["hint 1", "hint 2"],
   "estimated_hours": 3
 }}"""
 
+    prompt = f"Generate a {body.difficulty}-level {body.task_type} task for a software training program on the topic: \"{body.topic}\"\n\n{format_instr}"
+
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=40.0) as client:
             resp = await client.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "llama-3.1-8b-instant",
+                    "model": "llama-3.3-70b-versatile",
                     "messages": [
-                        {"role": "system", "content": "You are an expert software trainer. Return only valid JSON without any markdown or explanation."},
+                        {"role": "system", "content": "You are an expert software trainer. Return ONLY valid JSON. No markdown, no explanation."},
                         {"role": "user", "content": prompt}
                     ],
-                    "temperature": 0.7,
-                    "max_tokens": 3000
+                    "temperature": 0.5,
+                    "max_tokens": 4096,
+                    "response_format": {"type": "json_object"}
                 }
             )
         if not resp.is_success:
@@ -1694,7 +1711,6 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
         end_idx = raw.rfind('}')
         if start_idx != -1 and end_idx != -1:
             raw = raw[start_idx:end_idx+1]
-            
         import json as json_lib
         task = json_lib.loads(raw)
         return task
@@ -1707,8 +1723,353 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Task generation error: {str(e)}")
 
+# ─── Assessment Session APIs ───────────────────────────────────────────────────
+import random
 
-# ─── Chatbot Proxy ──────────────────────────────────────────────────────────
+@router.post("/assessments/{ref_type}/{ref_id}/start")
+async def start_assessment_session(
+    ref_type: str,
+    ref_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.project import AssessmentSession
+    import json as json_lib
+
+    # Check if already started and not completed
+    existing = await db.execute(select(AssessmentSession).where(
+        AssessmentSession.student_id == user.id,
+        AssessmentSession.reference_id == ref_id,
+        AssessmentSession.is_completed == False
+    ))
+    session = existing.scalar_one_or_none()
+    if session:
+        return {"session_id": session.id, "start_time": session.start_time.isoformat(), "resumed": True}
+
+    # Load the task/assignment for structured content
+    if ref_type.upper() == "TASK":
+        item = await db.get(Task, ref_id)
+    else:
+        item = await db.get(Assignment, ref_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    # Prepare shuffled questions if MCQ with randomization
+    question_order = None
+    if item.structured_content:
+        content = json_lib.loads(item.structured_content)
+        if "questions" in content and getattr(item, 'is_randomized', False):
+            qs = content["questions"]
+            random.shuffle(qs)
+            for q in qs:
+                opts = list(enumerate(q["options"]))
+                random.shuffle(opts)
+                orig_answer = q["answer"]
+                new_index = [i for i, (orig_i, _) in enumerate(opts) if orig_i == orig_answer][0]
+                q["options"] = [opt for _, opt in opts]
+                q["answer"] = new_index
+            question_order = json_lib.dumps(qs)
+
+    session = AssessmentSession(
+        id=str(uuid.uuid4()),
+        student_id=user.id,
+        reference_id=ref_id,
+        reference_type=ref_type.upper(),
+        responses=question_order or item.structured_content
+    )
+    db.add(session)
+    await db.flush()
+    return {"session_id": session.id, "start_time": session.start_time.isoformat(), "resumed": False}
+
+
+@router.get("/assessments/{session_id}/questions")
+async def get_session_questions(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.project import AssessmentSession
+    import json as json_lib
+
+    session = await db.get(AssessmentSession, session_id)
+    if not session or session.student_id != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    time_limit = 0
+    if session.reference_type == "TASK":
+        item = await db.get(Task, session.reference_id)
+    else:
+        item = await db.get(Assignment, session.reference_id)
+    if item:
+        time_limit = getattr(item, 'time_limit', 0)
+
+    # Calculate remaining seconds from backend
+    elapsed = (datetime.utcnow() - session.start_time).total_seconds()
+    remaining_seconds = max(0, time_limit * 60 - int(elapsed)) if time_limit > 0 else None
+
+    # Strip answers from questions for student view
+    content_raw = session.responses or (item.structured_content if item else None)
+    content = {}
+    if content_raw:
+        try:
+            content = json_lib.loads(content_raw)
+        except Exception:
+            pass
+
+    questions_for_student = []
+    if "questions" in content:
+        for i, q in enumerate(content["questions"]):
+            questions_for_student.append({
+                "index": i,
+                "question": q["question"],
+                "options": q["options"],
+                "difficulty": q.get("difficulty"),
+                "topic": q.get("topic"),
+                # answer and explanation are intentionally excluded
+            })
+
+    return {
+        "session_id": session.id,
+        "start_time": session.start_time.isoformat(),
+        "remaining_seconds": remaining_seconds,
+        "time_limit_mins": time_limit,
+        "is_completed": session.is_completed,
+        "tab_switch_count": session.tab_switch_count,
+        "questions": questions_for_student,
+        "title": content.get("title", item.title if item else ""),
+        "description": content.get("description", ""),
+    }
+
+
+@router.post("/assessments/{session_id}/heartbeat")
+async def session_heartbeat(
+    session_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.project import AssessmentSession
+    import json as json_lib
+
+    session = await db.get(AssessmentSession, session_id)
+    if not session or session.student_id != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.is_completed:
+        return {"status": "already_completed", "score": session.score}
+
+    # Auto-submit check: check time limit server-side
+    if session.reference_type == "TASK":
+        item = await db.get(Task, session.reference_id)
+    else:
+        item = await db.get(Assignment, session.reference_id)
+
+    time_limit = getattr(item, 'time_limit', 0) if item else 0
+    elapsed = (datetime.utcnow() - session.start_time).total_seconds()
+    remaining_seconds = max(0, time_limit * 60 - int(elapsed)) if time_limit > 0 else 9999
+
+    # Save answers
+    if "answers" in body:
+        session.responses = json_lib.dumps({"saved_answers": body["answers"]})
+
+    # Log tab switch
+    if body.get("tab_switched"):
+        session.tab_switch_count = (session.tab_switch_count or 0) + 1
+
+    await db.flush()
+
+    # Hard cut-off: auto-submit
+    if remaining_seconds <= 0 or (session.tab_switch_count or 0) >= 3:
+        reason = "time_expired" if remaining_seconds <= 0 else "tab_limit_exceeded"
+        session.is_completed = True
+        session.auto_submitted = True
+        session.end_time = datetime.utcnow()
+        session.completion_time_seconds = int(elapsed)
+        await db.flush()
+        return {"status": "auto_submitted", "reason": reason}
+
+    return {
+        "status": "saved",
+        "remaining_seconds": remaining_seconds,
+        "tab_switch_count": session.tab_switch_count,
+    }
+
+
+@router.post("/assessments/{session_id}/submit")
+async def submit_assessment(
+    session_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.project import AssessmentSession
+    import json as json_lib
+
+    session = await db.get(AssessmentSession, session_id)
+    if not session or session.student_id != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.is_completed:
+        return {"status": "already_completed", "score": session.score}
+
+    if session.reference_type == "TASK":
+        item = await db.get(Task, session.reference_id)
+    else:
+        item = await db.get(Assignment, session.reference_id)
+
+    student_answers = body.get("answers", {})  # {question_index: selected_option_index}
+    score = 0.0
+    results = []
+
+    # Grade MCQ answers if structured content available
+    content_raw = session.responses or (item.structured_content if item else None)
+    if content_raw:
+        try:
+            content = json_lib.loads(content_raw)
+            questions = content.get("questions", [])
+            total = len(questions)
+            if total > 0:
+                correct_count = 0
+                for i, q in enumerate(questions):
+                    selected = student_answers.get(str(i))
+                    correct = q["answer"]
+                    is_correct = selected == correct
+                    if is_correct:
+                        correct_count += 1
+                    results.append({
+                        "index": i,
+                        "question": q["question"],
+                        "options": q["options"],
+                        "selected": selected,
+                        "correct": correct,
+                        "is_correct": is_correct,
+                        "explanation": q.get("explanation", ""),
+                        "topic": q.get("topic", ""),
+                    })
+                score = round((correct_count / total) * 100, 1)
+        except Exception:
+            pass
+
+    elapsed = int((datetime.utcnow() - session.start_time).total_seconds())
+    session.score = score
+    session.is_completed = True
+    session.end_time = datetime.utcnow()
+    session.completion_time_seconds = elapsed
+    session.responses = json_lib.dumps({"answers": student_answers, "results": results})
+    await db.flush()
+
+    return {
+        "status": "submitted",
+        "score": score,
+        "completion_time_seconds": elapsed,
+        "results": results,
+    }
+
+
+@router.get("/assessments/{ref_id}/ranking")
+async def get_assessment_ranking(
+    ref_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.project import AssessmentSession
+
+    # Get all completed sessions for this assessment, sorted by score DESC then completion time ASC
+    result = await db.execute(
+        select(AssessmentSession, User.name)
+        .join(User, AssessmentSession.student_id == User.id)
+        .where(AssessmentSession.reference_id == ref_id, AssessmentSession.is_completed == True)
+        .order_by(AssessmentSession.score.desc(), AssessmentSession.completion_time_seconds.asc())
+        .limit(10)
+    )
+    rows = result.all()
+
+    ranking = []
+    current_rank = None
+    for i, (s, name) in enumerate(rows):
+        entry = {
+            "rank": i + 1, "name": name,
+            "score": s.score,
+            "completion_time_seconds": s.completion_time_seconds,
+            "auto_submitted": s.auto_submitted,
+        }
+        ranking.append(entry)
+        if s.student_id == user.id:
+            current_rank = i + 1
+
+    # Find current user's rank if not in top 10
+    if current_rank is None:
+        all_result = await db.execute(
+            select(AssessmentSession)
+            .where(AssessmentSession.reference_id == ref_id, AssessmentSession.is_completed == True)
+            .order_by(AssessmentSession.score.desc(), AssessmentSession.completion_time_seconds.asc())
+        )
+        all_sessions = all_result.scalars().all()
+        for i, s in enumerate(all_sessions):
+            if s.student_id == user.id:
+                current_rank = i + 1
+                break
+
+    return {"ranking": ranking, "my_rank": current_rank}
+
+
+@router.post("/run-code")
+async def run_code(
+    body: dict,
+    _user: User = Depends(get_current_user),
+):
+    """Secure code execution proxy to Piston API."""
+    language = body.get("language", "python")
+    code = body.get("code", "")
+    stdin = body.get("stdin", "")
+    version = body.get("version", "*")
+
+    if not code.strip():
+        return {"stdout": "", "stderr": "No code provided.", "code": 1}
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                "https://emkc.org/api/v2/piston/execute",
+                json={
+                    "language": language,
+                    "version": version,
+                    "files": [{"content": code}],
+                    "stdin": stdin,
+                    "run_timeout": 5000,
+                    "compile_timeout": 10000,
+                    "run_memory_limit": 128000000,  # 128MB
+                }
+            )
+        if not resp.is_success:
+            raise HTTPException(status_code=502, detail="Code runner unavailable. Please try again.")
+        data = resp.json()
+        run_result = data.get("run", {})
+        compile_result = data.get("compile", {})
+        return {
+            "stdout": run_result.get("stdout", ""),
+            "stderr": run_result.get("stderr", "") or compile_result.get("stderr", ""),
+            "code": run_result.get("code", 0),
+            "signal": run_result.get("signal"),
+            "language": data.get("language"),
+            "version": data.get("version"),
+        }
+    except httpx.TimeoutException:
+        return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code runner error: {str(e)}")
+
+
+@router.get("/piston/runtimes")
+async def get_runtimes(_user: User = Depends(get_current_user)):
+    """Fetch available Piston language runtimes."""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get("https://emkc.org/api/v2/piston/runtimes")
+        if resp.is_success:
+            return resp.json()
+        return []
+    except Exception:
+        return []
+
 
 class ChatMessage(PydanticBaseModel):
     role: str   # "user" or "model"

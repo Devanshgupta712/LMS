@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiGet } from '@/lib/api';
 
 interface TaskItem {
@@ -34,7 +35,7 @@ export default function StudentTasksPage() {
     const [tasks, setTasks] = useState<TaskItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
-    const [viewTask, setViewTask] = useState<TaskItem | null>(null);
+    const router = useRouter();
 
     useEffect(() => { loadTasks(); }, []);
 
@@ -118,7 +119,7 @@ export default function StudentTasksPage() {
                             border: `1px solid ${task.is_overdue ? '#ef444433' : 'var(--border)'}`,
                             background: task.is_overdue ? 'hsla(0,85%,60%,0.04)' : 'var(--bg-secondary)',
                             transition: 'all 0.2s', cursor: 'pointer'
-                        }} onClick={() => setViewTask(task)}>
+                        }} onClick={() => router.push(`/student/tasks/${task.id}`)}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
@@ -169,42 +170,6 @@ export default function StudentTasksPage() {
                             </div>
                         </div>
                     ))}
-                </div>
-            )}
-
-            {/* ── Task Detail Modal ── */}
-            {viewTask && (
-                <div className="modal-overlay" onClick={() => setViewTask(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{viewTask.title}</h2>
-                            <button className="btn btn-sm btn-ghost" onClick={() => setViewTask(null)}>✕</button>
-                        </div>
-                        {viewTask.is_overdue && (
-                            <div style={{ background: 'hsla(0,85%,60%,0.1)', border: '1px solid #ef444433', borderRadius: '10px', padding: '10px 14px', marginBottom: '16px', color: '#ef4444', fontWeight: 700, fontSize: '13px' }}>
-                                ⚠️ This task is overdue!
-                            </div>
-                        )}
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                            <span style={{ fontSize: '12px', background: priorityBg[viewTask.priority], color: priorityColors[viewTask.priority], padding: '4px 12px', borderRadius: '8px', fontWeight: 700 }}>Priority: {viewTask.priority}</span>
-                            <span style={{ fontSize: '12px', background: statusBg[viewTask.status], color: statusColors[viewTask.status], padding: '4px 12px', borderRadius: '8px', fontWeight: 700 }}>Status: {viewTask.status.replace('_', ' ')}</span>
-                            {viewTask.due_date && <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>📅 Due: {formatDate(viewTask.due_date)}</span>}
-                        </div>
-                        {viewTask.description && (
-                            <div style={{ background: 'var(--bg-secondary)', borderRadius: '12px', padding: '16px', marginBottom: '16px', fontSize: '14px', lineHeight: '1.7', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
-                                {viewTask.description}
-                            </div>
-                        )}
-                        {viewTask.pdf_url && (
-                            <a href={viewTask.pdf_url} target="_blank" rel="noreferrer"
-                                className="btn btn-primary" style={{ display: 'inline-flex', gap: '8px', textDecoration: 'none'  }}>
-                                📄 Open Task PDF
-                            </a>
-                        )}
-                        {viewTask.assigned_by && (
-                            <p style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>Assigned by: <strong>{viewTask.assigned_by}</strong></p>
-                        )}
-                    </div>
                 </div>
             )}
         </div>

@@ -114,6 +114,12 @@ class Task(Base):
     status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), default=TaskStatus.PENDING)
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     pdf_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    
+    # New Assessment Fields
+    time_limit: Mapped[int] = mapped_column(Integer, default=0) # 0 = no limit
+    is_randomized: Mapped[bool] = mapped_column(Boolean, default=False)
+    structured_content: Mapped[str | None] = mapped_column(Text, nullable=True) # JSON question bank
+
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -133,6 +139,12 @@ class Assignment(Base):
     assigned_by: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     total_marks: Mapped[int] = mapped_column(Integer, default=100)
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    
+    # New Assessment Fields
+    time_limit: Mapped[int] = mapped_column(Integer, default=0)
+    is_randomized: Mapped[bool] = mapped_column(Boolean, default=False)
+    structured_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -181,3 +193,25 @@ class Violation(Base):
 
     student = relationship("User", foreign_keys=[student_id], backref="violations")
     resolved_by = relationship("User", foreign_keys=[resolved_by_id])
+
+
+class AssessmentSession(Base):
+    __tablename__ = "assessment_sessions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    student_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
+    reference_id: Mapped[str] = mapped_column(String, nullable=False) # Task/Assignment ID
+    reference_type: Mapped[str] = mapped_column(String(50), nullable=False) # "TASK" | "ASSIGNMENT"
+    
+    start_time: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    end_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    responses: Mapped[str | None] = mapped_column(Text, nullable=True) # JSON student answers
+    
+    tab_switch_count: Mapped[int] = mapped_column(Integer, default=0)
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    completion_time_seconds: Mapped[int] = mapped_column(Integer, default=0)
+    auto_submitted: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

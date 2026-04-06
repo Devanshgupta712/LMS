@@ -77,6 +77,30 @@ async def lifespan(app: FastAPI):
                     "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS student_id VARCHAR",
                     "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS student_id VARCHAR",
                     "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS pdf_url VARCHAR",
+                    # Assessment system upgrade
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS time_limit INTEGER DEFAULT 0",
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_randomized BOOLEAN DEFAULT FALSE",
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS structured_content TEXT",
+                    "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS time_limit INTEGER DEFAULT 0",
+                    "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS is_randomized BOOLEAN DEFAULT FALSE",
+                    "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS structured_content TEXT",
+                    # Assessment Sessions
+                    """CREATE TABLE IF NOT EXISTS assessment_sessions (
+                        id VARCHAR PRIMARY KEY,
+                        student_id VARCHAR REFERENCES users(id),
+                        reference_id VARCHAR NOT NULL,
+                        reference_type VARCHAR(50) NOT NULL,
+                        start_time TIMESTAMP DEFAULT NOW(),
+                        end_time TIMESTAMP,
+                        responses TEXT,
+                        tab_switch_count INTEGER DEFAULT 0,
+                        score FLOAT DEFAULT 0.0,
+                        completion_time_seconds INTEGER DEFAULT 0,
+                        auto_submitted BOOLEAN DEFAULT FALSE,
+                        is_completed BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    )""",
                 ]
                 for sql in pg_migrations:
                     try:
