@@ -14,3 +14,4 @@ greenlet
 cloudinary
 PyPDF2
 google-generativeai
+httpx

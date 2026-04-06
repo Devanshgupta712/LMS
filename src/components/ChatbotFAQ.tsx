@@ -20,7 +20,7 @@ const QUICK_QUESTIONS = [
 
 async function getGeminiResponse(userMessage: string, previousMessages: Message[]): Promise<string> {
     // Call our backend proxy — key is managed server-side in Render env vars
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://lms-api-bkuw.onrender.com';
     
     // Build history from previous messages (exclude welcome/typing messages)
     const history = previousMessages
