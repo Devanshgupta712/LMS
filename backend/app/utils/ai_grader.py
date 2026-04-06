@@ -86,9 +86,10 @@ def evaluate_submission(assignment_instructions: str, student_content: str, max_
                         {
                             "role": "system", 
                             "content": (
-                                f"You are an encouraging yet accurate coding instructor grading an assignment. "
-                                f"The maximum score is {max_marks}. "
-                                f"Evaluate the student submission fairly based on logic and requirements. "
+                                f"You are an encouraging yet accurate coding instructor grading a submission. "
+                                f"The submission may contain MULTIPLE problems (marked as PROBLEM 1, PROBLEM 2, etc.). "
+                                f"You MUST evaluate ALL problems provided and provide a single holistic score (out of {max_marks}) considering the overall quality and completion of all tasks. "
+                                f"If multiple problems are solved, summarize the feedback for each. "
                                 f"Return ONLY a strictly valid JSON object with EXACTLY two keys: 'score' (an integer) and 'feedback' (a string). "
                                 f"Return no other text."
                             )

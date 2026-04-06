@@ -2112,11 +2112,23 @@ async def submit_assessment(
         async def _grade_in_background():
             try:
                 student_code_block = ""
+                code_count = 0
                 for idx, code in student_answers.items():
-                    if isinstance(code, str) and len(code) > 2:
-                        student_code_block += f"### Question {int(idx)+1}:\n{code}\n\n"
+                    # Only include string answers that look like actual code (not MCQ option '0', '1', etc)
+                    # For multi-question tasks, the keys '0', '1', '2' hold code if it's a pure coding task.
+                    if isinstance(code, str) and len(code.strip()) > 1:
+                        # Exclude single digit strings which are likely unintentional MCQ selections
+                        if code.strip().isdigit() and len(code.strip()) == 1:
+                            continue
+                            
+                        student_code_block += f"### PROBLEM {int(idx)+1}:\n{code}\n\n"
+                        code_count += 1
+                        
                 if not student_code_block:
+                    print(f"[AI Grading] ⚠️ No valid code found to grade for session {session_id}")
                     return
+
+                print(f"[AI Grading] 🚀 Sending {code_count} problems ({len(student_code_block)} chars) to Groq for session {session_id}...")
 
                 task_context = f"Title: {item.title}\nDescription: {item.description or ''}\n"
                 if item.structured_content:
@@ -2125,7 +2137,7 @@ async def submit_assessment(
                 try:
                     eval_res = await asyncio.wait_for(
                         asyncio.to_thread(evaluate_submission, task_context, student_code_block),
-                        timeout=25.0
+                        timeout=60.0 # Increased timeout for larger multi-question tasks
                     )
                 except asyncio.TimeoutError:
                     eval_res = {"score": 0, "feedback": "AI grading timed out. Your trainer will review this submission manually."}
