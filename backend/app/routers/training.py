@@ -2114,58 +2114,59 @@ async def run_code(
             "version": data.get("version"),
         }
     except Exception as e:
-        # Piston is dead. Use Paiza.io as the universal public code runner Fallback!
+        # Fallback to extremely robust Compiler Explorer (Godbolt) API
         lang_str = body.get("language", language).lower()
-        paiza_lang = "python3"
+        gb_compiler = "python311"
         if "java" in lang_str and "javascript" not in lang_str:
-            paiza_lang = "java"
+            gb_compiler = "java2100"
         elif "c++" in lang_str or "cpp" in lang_str:
-            paiza_lang = "cpp"
+            gb_compiler = "g141"
         elif "javascript" in lang_str or "node" in lang_str:
-            paiza_lang = "javascript"
+            gb_compiler = "v8113"
             
         try:
-            import asyncio
             code = body.get("files", [{}])[0].get("content", "")
+            stdin_data = body.get("stdin", "")
             
-            # Step 1: Create Runner Request
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                submit_res = await client.post(
-                    "http://api.paiza.io/runners/create",
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                res = await client.post(
+                    f"https://godbolt.org/api/compiler/{gb_compiler}/compile",
                     json={
-                        "source_code": code,
-                        "language": paiza_lang,
-                        "api_key": "guest"
-                    }
+                        "source": code,
+                        "options": {
+                            "userArguments": "",
+                            "executeParameters": {"args": [], "stdin": stdin_data},
+                            "compilerOptions": {"executorRequest": True}
+                        },
+                        "filters": {"execute": True}
+                    },
+                    headers={"Accept": "application/json"}
                 )
-                if not submit_res.is_success:
-                    raise Exception("Paiza submission failed")
+                
+                if not res.is_success:
+                    raise Exception(f"Godbolt execution failed: {res.status_code}")
                     
-                runner_id = submit_res.json().get("id")
+                data = res.json()
                 
-                # Step 2: Poll for completion (max 5 tries, 1 second apart)
-                for _ in range(5):
-                    await asyncio.sleep(1)
-                    poll_res = await client.get(
-                        f"http://api.paiza.io/runners/get_details?id={runner_id}&api_key=guest"
-                    )
-                    if poll_res.is_success:
-                        details = poll_res.json()
-                        if details.get("status") == "completed":
-                            stdout = details.get("stdout") or ""
-                            stderr = details.get("stderr") or details.get("build_stderr") or ""
-                            # Paiza sometimes returns null instead of empty strings
-                            return {
-                                "stdout": stdout if stdout else "",
-                                "stderr": stderr if stderr else "",
-                                "code": details.get("exit_code", 0) if not stderr else 1,
-                                "signal": None,
-                                "language": lang_str,
-                                "version": "paiza_latest",
-                            }
-                            
-                return {"stdout": "", "stderr": "Execution timed out (5s limit via Cloud Compiler).", "code": 1}
+                # Godbolt formats stdout as a list of dicts {"text": "output line"}
+                out_arr = data.get("stdout", [])
+                err_arr = data.get("stderr", [])
+                build_err_arr = data.get("buildResult", {}).get("stderr", [])
                 
+                stdout_str = "\n".join(x.get("text", "") for x in out_arr)
+                stderr_str = "\n".join(x.get("text", "") for x in err_arr + build_err_arr)
+                
+                return {
+                    "stdout": stdout_str,
+                    "stderr": stderr_str,
+                    "code": data.get("code", 0),
+                    "signal": None,
+                    "language": lang_str,
+                    "version": gb_compiler,
+                }
+                
+        except httpx.TimeoutException:
+            return {"stdout": "", "stderr": "Execution timed out (15s limit via Cloud Compiler).", "code": 1}
         except Exception as ex:
             raise HTTPException(status_code=502, detail=f"Code runner unavailable: Both primary API and Cloud compilers failed. Please configure JDoodle API keys or contact support. Details: {str(ex)}")
 
