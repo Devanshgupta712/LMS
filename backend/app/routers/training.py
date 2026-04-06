@@ -2042,18 +2042,27 @@ async def submit_assessment(
     if is_pure_coding and student_answers:
         from app.utils.ai_grader import evaluate_submission
         try:
+            import asyncio
             student_code_block = ""
             for idx, code in student_answers.items():
-                # Filter out MCQ numeric answers if mixed (unlikely but safe)
                 if isinstance(code, str) and len(code) > 2:
                     student_code_block += f"### Question {int(idx)+1}:\n{code}\n\n"
-            
+
             if student_code_block:
-                task_context = f"Title: {item.title}\nDescription: {item.description}\n"
+                task_context = f"Title: {item.title}\nDescription: {item.description or ''}\n"
                 if item.structured_content:
                     task_context += f"Detailed Requirements: {item.structured_content}"
-                    
-                eval_res = evaluate_submission(task_context, student_code_block)
+
+                # Run blocking Gemini call in a thread with timeout
+                # This prevents blocking the async event loop (which caused Render timeouts)
+                try:
+                    eval_res = await asyncio.wait_for(
+                        asyncio.to_thread(evaluate_submission, task_context, student_code_block),
+                        timeout=20.0
+                    )
+                except asyncio.TimeoutError:
+                    eval_res = {"score": 0, "feedback": "AI grading timed out. Your trainer will review this submission manually."}
+
                 score = float(eval_res.get("score", 0))
                 results.append({
                     "type": "coding_feedback",
@@ -2062,6 +2071,7 @@ async def submit_assessment(
                 })
         except Exception as e:
             print(f"AI Grading error: {e}")
+
 
     session.score = score
     session.is_completed = True
