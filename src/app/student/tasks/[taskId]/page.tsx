@@ -38,13 +38,13 @@ export default function AssessmentSessionPage() {
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
 
     // User Input State
-    const [answers, setAnswers] = useState<Record<string, number>>({});
-    const [codeStr, setCodeStr] = useState<string>('# Write your Python code here\n');
+    const [answers, setAnswers] = useState<Record<string, any>>({});
+    const [codeAnswers, setCodeAnswers] = useState<Record<number, string>>({});
     const [language, setLanguage] = useState('python');
 
     // Code Runner State
-    const [runningCode, setRunningCode] = useState(false);
-    const [runOutput, setRunOutput] = useState<RunResult | null>(null);
+    const [runningCode, setRunningCode] = useState<Record<number, boolean>>({});
+    const [runOutputs, setRunOutputs] = useState<Record<number, RunResult | null>>({});
 
     // Final Results State
     const [finalScore, setFinalScore] = useState<number | null>(null);
@@ -92,6 +92,22 @@ export default function AssessmentSessionPage() {
             setRemainingSeconds(qData.remaining_seconds);
             setIsCompleted(qData.is_completed);
             setTabSwitchCount(qData.tab_switch_count || 0);
+
+            // Pre-fill coding answers with initial_code if it's a coding task
+            if (qData.questions && qData.questions.length > 0) {
+                const initialCodes: Record<number, string> = {};
+                qData.questions.forEach((q: any, i: number) => {
+                    if (q.initial_code) {
+                        initialCodes[i] = q.initial_code;
+                    }
+                });
+                if (Object.keys(initialCodes).length > 0) {
+                    setCodeAnswers(initialCodes);
+                }
+            } else if (qData.description && !qData.questions?.length) {
+                // Fallback for single description-based coding task
+                setCodeAnswers({ 0: '# Write your code here\n' });
+            }
 
             if (qData.is_completed) {
                 // If it was already completed, fetch score (or we could fetch ranking)
@@ -162,10 +178,12 @@ export default function AssessmentSessionPage() {
         if (!confirm('Are you sure you want to finish and submit the assessment?')) return;
         setLoading(true);
         try {
+            // Combine MCQ answers and Coding answers
+            const finalAnswers = { ...answers, ...codeAnswers };
+            
             const res = await apiFetch(`/api/training/assessments/${sessionId}/submit`, {
                 method: 'POST',
-                // If it's a coding task (questions length 0), we submit the code as the answer
-                body: JSON.stringify({ answers: questions.length ? answers : { "0": codeStr } })
+                body: JSON.stringify({ answers: finalAnswers })
             });
             const data = await res.json();
             if (res.ok) {
@@ -203,21 +221,24 @@ export default function AssessmentSessionPage() {
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
-    const runCode = async () => {
-        setRunningCode(true);
-        setRunOutput(null);
+    const runCode = async (qIdx: number) => {
+        const codeToRun = codeAnswers[qIdx] || '';
+        if (!codeToRun.trim()) return;
+
+        setRunningCode(prev => ({ ...prev, [qIdx]: true }));
+        setRunOutputs(prev => ({ ...prev, [qIdx]: null }));
         try {
             const res = await apiFetch('/api/training/run-code', {
                 method: 'POST',
-                body: JSON.stringify({ language, code: codeStr })
+                body: JSON.stringify({ language, code: codeToRun })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Execution failed');
-            setRunOutput(data);
+            setRunOutputs(prev => ({ ...prev, [qIdx]: data }));
         } catch (e: any) {
-            setRunOutput({ stdout: '', stderr: e.message, code: 1 });
+            setRunOutputs(prev => ({ ...prev, [qIdx]: { stdout: '', stderr: e.message, code: 1 } }));
         } finally {
-            setRunningCode(false);
+            setRunningCode(prev => ({ ...prev, [qIdx]: false }));
         }
     };
 
@@ -233,16 +254,23 @@ export default function AssessmentSessionPage() {
                 <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
                     <h2>Assessment Completed</h2>
-                    {finalScore !== null && !isCodingTask && (
+                    {finalScore !== null && (
                         <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--primary)', margin: '20px 0' }}>
-                            Score: {finalScore}%
+                            Overall Score: {finalScore}%
                         </div>
                     )}
-                    {isCodingTask && (
-                         <div style={{ fontSize: '18px', margin: '20px 0' }}>
-                            Your code has been submitted successfully to the trainer for grading.
+                    
+                    {results.find(r => r.type === 'coding_feedback') && (
+                        <div className="card" style={{ textAlign: 'left', background: 'var(--bg-secondary)', border: '1px solid var(--primary)', margin: '20px 0', padding: '20px' }}>
+                            <h3 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                ✨ AI Tutor Feedback
+                            </h3>
+                            <div style={{ fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                                {results.find(r => r.type === 'coding_feedback').feedback}
+                            </div>
                         </div>
                     )}
+
                     <button className="btn btn-primary" onClick={() => router.push('/student/tasks')}>Return to Tasks</button>
                     {tabSwitchCount >= 3 && (
                         <p style={{ marginTop: '16px', color: 'red', fontWeight: 'bold' }}>This assessment was auto-submitted due to tab switching rules.</p>
@@ -315,84 +343,158 @@ export default function AssessmentSessionPage() {
                 </div>
             )}
 
-            {/* MCQ ENGINE */}
-            {!isCodingTask && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {questions.map((q, i) => (
-                        <div key={i} className="card" style={{ padding: '24px' }}>
-                            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', lineHeight: '1.5' }}>
-                                {i + 1}. {q.question}
-                            </h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {q.options.map((opt, optIdx) => (
-                                    <label key={optIdx} style={{
-                                        display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-                                        background: answers[q.index] === optIdx ? 'var(--primary-glow)' : 'var(--bg-secondary)',
-                                        border: `1px solid ${answers[q.index] === optIdx ? 'var(--primary)' : 'transparent'}`,
-                                        borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 500
-                                    }}>
-                                        <input
-                                            type="radio"
-                                            name={`q_${q.index}`}
-                                            checked={answers[q.index] === optIdx}
-                                            onChange={() => handleAnswerSelect(q.index, optIdx)}
-                                            style={{ accentColor: 'var(--primary)', transform: 'scale(1.2)' }}
-                                        />
-                                        <span>{String.fromCharCode(65 + optIdx)}. {opt}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* CODING WORKSPACE */}
-            {isCodingTask && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '16px' }}>
-                    <div className="card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '12px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                <select className="form-input" style={{ width: '150px', padding: '6px 12px', fontSize: '13px' }} value={language} onChange={e => setLanguage(e.target.value)}>
-                                    <option value="python">Python</option>
-                                    <option value="javascript">Node.js</option>
-                                    <option value="java">Java</option>
-                                    <option value="c++">C++</option>
-                                </select>
-                            </div>
-                            <button className="btn btn-primary btn-sm" onClick={runCode} disabled={runningCode}>
-                                {runningCode ? 'Running...' : '▶ Run Code'}
-                            </button>
-                        </div>
-                        <div style={{ height: '400px', width: '100%' }}>
-                            <Editor
-                                height="100%"
-                                language={language}
-                                theme="vs-dark"
-                                value={codeStr}
-                                onChange={val => setCodeStr(val || '')}
-                                options={{ minimap: { enabled: false }, fontSize: 14, tabSize: 4 }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Console Output */}
-                    <div className="card" style={{ background: '#1e1e1e', color: '#fff', padding: '16px', fontFamily: 'monospace', minHeight: '150px' }}>
-                        <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: 'bold' }}>CONSOLE OUTPUT</div>
-                        {runOutput ? (
-                            <div style={{ whiteSpace: 'pre-wrap', fontSize: '13px', lineHeight: 1.5 }}>
-                                {runOutput.stderr ? (
-                                    <span style={{ color: '#ef4444' }}>{runOutput.stderr}</span>
-                                ) : (
-                                    <span style={{ color: '#4ade80' }}>{runOutput.stdout || 'Program exited with code 0'}</span>
-                                )}
-                            </div>
-                        ) : (
-                            <div style={{ color: '#555', fontSize: '13px' }}>Click 'Run Code' to see output here. Execution limited to 5s and disabled network access.</div>
-                        )}
-                    </div>
-                </div>
-            )}
+            {/* QUESTION RENDERER */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                {questions.length === 0 ? (
+                    // Legacy Fallback for single coding task without "questions" array
+                    <CodingEditor 
+                        index={0} 
+                        questionText={description} 
+                        code={codeAnswers[0] || ''}
+                        onChange={(val) => setCodeAnswers(prev => ({ ...prev, 0: val }))}
+                        onRun={() => runCode(0)}
+                        running={!!runningCode[0]}
+                        output={runOutputs[0]}
+                        language={language}
+                        setLanguage={setLanguage}
+                    />
+                ) : (
+                    questions.map((q, i) => {
+                        const isMCQ = q.options && q.options.length > 0;
+                        if (isMCQ) {
+                            return (
+                                <div key={i} className="card" style={{ padding: '24px' }}>
+                                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', lineHeight: '1.5' }}>
+                                        {i + 1}. {q.question}
+                                    </h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        {q.options.map((opt, optIdx) => (
+                                            <label key={optIdx} style={{
+                                                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+                                                background: answers[q.index] === optIdx ? 'var(--primary-glow)' : 'var(--bg-secondary)',
+                                                border: `1px solid ${answers[q.index] === optIdx ? 'var(--primary)' : 'transparent'}`,
+                                                borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: 500
+                                            }}>
+                                                <input
+                                                    type="radio"
+                                                    name={`q_${q.index}`}
+                                                    checked={answers[q.index] === optIdx}
+                                                    onChange={() => handleAnswerSelect(q.index, optIdx)}
+                                                    style={{ accentColor: 'var(--primary)', transform: 'scale(1.2)' }}
+                                                />
+                                                <span>{String.fromCharCode(65 + optIdx)}. {opt}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        } else {
+                            return (
+                                <CodingEditor 
+                                    key={i}
+                                    index={i} 
+                                    questionText={q.question} 
+                                    code={codeAnswers[i] || ''}
+                                    onChange={(val) => setCodeAnswers(prev => ({ ...prev, [i]: val }))}
+                                    onRun={() => runCode(i)}
+                                    running={!!runningCode[i]}
+                                    output={runOutputs[i]}
+                                    language={language}
+                                    setLanguage={setLanguage}
+                                    hints={(q as any).hints}
+                                    constraints={(q as any).constraints}
+                                />
+                            );
+                        }
+                    })
+                )}
+            </div>
         </div>
     );
+}
+
+interface CodingEditorProps {
+    index: number;
+    questionText: string;
+    code: string;
+    onChange: (val: string) => void;
+    onRun: () => void;
+    running: boolean;
+    output: RunResult | null;
+    language: string;
+    setLanguage: (l: string) => void;
+    hints?: string[];
+    constraints?: string[];
+}
+
+function CodingEditor({ index, questionText, code, onChange, onRun, running, output, language, setLanguage, hints, constraints }: CodingEditorProps) {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="card" style={{ padding: '24px' }}>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Question {index + 1}</h3>
+                <p style={{ fontSize: '15px', lineHeight: 1.6, margin: '0 0 16px' }}>{questionText}</p>
+                
+                {(constraints && constraints.length > 0) && (
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Constraints</div>
+                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                            {constraints.map((c, i) => <li key={i}>{c}</li>)}
+                        </ul>
+                    </div>
+                )}
+
+                {(hints && hints.length > 0) && (
+                    <div>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Hints</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {hints.map((h, i) => (
+                                <span key={i} style={{ padding: '4px 10px', background: 'var(--bg-secondary)', borderRadius: '6px', fontSize: '12px', border: '1px solid var(--border)' }}>💡 {h}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '12px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <select className="form-input" style={{ width: '130px', padding: '4px 8px', fontSize: '12px' }} value={language} onChange={e => setLanguage(e.target.value)}>
+                        <option value="python">Python</option>
+                        <option value="javascript">Node.js</option>
+                        <option value="java">Java</option>
+                        <option value="c++">C++</option>
+                    </select>
+                    <button className="btn btn-primary btn-sm" onClick={onRun} disabled={running}>
+                        {running ? 'Running...' : '▶ Run Code'}
+                    </button>
+                </div>
+                <div style={{ height: '350px', width: '100%' }}>
+                    <Editor
+                        height="100%"
+                        language={language}
+                        theme="vs-dark"
+                        value={code}
+                        onChange={val => onChange(val || '')}
+                        options={{ minimap: { enabled: false }, fontSize: 13, tabSize: 4, scrollBeyondLastLine: false }}
+                    />
+                </div>
+            </div>
+
+            {/* Console Output */}
+            <div className="card" style={{ background: '#1e1e1e', color: '#fff', padding: '16px', fontFamily: 'monospace', minHeight: '100px' }}>
+                <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px', fontWeight: 'bold' }}>CONSOLE OUTPUT (Q{index + 1})</div>
+                {output ? (
+                    <div style={{ whiteSpace: 'pre-wrap', fontSize: '12px', lineHeight: 1.5 }}>
+                        {output.stderr ? (
+                            <span style={{ color: '#ef4444' }}>{output.stderr}</span>
+                        ) : (
+                            <span style={{ color: '#4ade80' }}>{output.stdout || 'Program exited with code 0'}</span>
+                        )}
+                    </div>
+                ) : (
+                    <div style={{ color: '#555', fontSize: '12px' }}>Output will appear here...</div>
+                )}
+            </div>
+        </div>
+    );
+}
 }

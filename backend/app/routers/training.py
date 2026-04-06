@@ -1682,6 +1682,23 @@ Return ONLY a JSON object in this EXACT format, with no extra text:
   "estimated_hours": 1
 }}
 IMPORTANT: 'answer' must be the 0-based INDEX of the correct option in the 'options' array (0=A, 1=B, 2=C, 3=D)."""
+    elif body.task_type.upper() == "CODING":
+        format_instr = f"""Create EXACTLY {body.question_count} distinct coding problems.
+Return ONLY a JSON object in this EXACT format:
+{{
+  "title": "concise lab title",
+  "description": "overall objective of the coding lab",
+  "questions": [
+    {{
+      "index": 0,
+      "question": "Clear problem statement and instructions for this specific problem",
+      "initial_code": "# code boilerplate or comment",
+      "constraints": ["constraint 1", "constraint 2"],
+      "hints": ["hint 1"]
+    }}
+  ],
+  "estimated_hours": 2
+}}"""
     else:
         format_instr = f"""Create EXACTLY {body.question_count} specific requirements/steps for this {body.task_type} task.
 Return ONLY a JSON object in this EXACT format:
@@ -2011,7 +2028,41 @@ async def submit_assessment(
         except Exception as e:
             print(f"Grading error: {e}")
 
-    elapsed = int((datetime.utcnow() - session.start_time).total_seconds())
+    # Determine if this is a coding task that needs AI grading
+    # It's a coding task if there are no MCQ questions, or if it's explicitly typed
+    is_pure_coding = False
+    if not questions_source and student_answers:
+        is_pure_coding = True
+    elif questions_source:
+        # Check if first question looks like coding (no options)
+        first_q = questions_source[0]
+        if not first_q.get("options"):
+            is_pure_coding = True
+
+    if is_pure_coding and student_answers:
+        from app.utils.ai_grader import evaluate_submission
+        try:
+            student_code_block = ""
+            for idx, code in student_answers.items():
+                # Filter out MCQ numeric answers if mixed (unlikely but safe)
+                if isinstance(code, str) and len(code) > 2:
+                    student_code_block += f"### Question {int(idx)+1}:\n{code}\n\n"
+            
+            if student_code_block:
+                task_context = f"Title: {item.title}\nDescription: {item.description}\n"
+                if item.structured_content:
+                    task_context += f"Detailed Requirements: {item.structured_content}"
+                    
+                eval_res = evaluate_submission(task_context, student_code_block)
+                score = float(eval_res.get("score", 0))
+                results.append({
+                    "type": "coding_feedback",
+                    "score": score,
+                    "feedback": eval_res.get("feedback", "No feedback.")
+                })
+        except Exception as e:
+            print(f"AI Grading error: {e}")
+
     session.score = score
     session.is_completed = True
     session.end_time = datetime.utcnow()
