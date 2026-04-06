@@ -1682,18 +1682,19 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.7,
-                    "max_tokens": 600
+                    "max_tokens": 3000
                 }
             )
         if not resp.is_success:
             raise HTTPException(status_code=502, detail=f"AI error: {resp.status_code}")
         data = resp.json()
         raw = data["choices"][0]["message"]["content"].strip()
-        # Strip markdown code blocks if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
+        # Robust JSON extraction
+        start_idx = raw.find('{')
+        end_idx = raw.rfind('}')
+        if start_idx != -1 and end_idx != -1:
+            raw = raw[start_idx:end_idx+1]
+            
         import json as json_lib
         task = json_lib.loads(raw)
         return task
