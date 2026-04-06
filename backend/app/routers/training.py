@@ -1849,7 +1849,24 @@ async def get_session_questions(
     elapsed = (datetime.utcnow() - session.start_time).total_seconds()
     remaining_seconds = max(0, time_limit * 60 - int(elapsed)) if time_limit > 0 else None
 
-    content_raw = session.responses or (item.structured_content if item else None)
+    # Smart content source: session.responses may contain either:
+    #   a) Randomized question data (has 'questions' key) → use it
+    #   b) Heartbeat-saved answers (has 'saved_answers' key only) → use item.structured_content instead
+    content_raw = None
+    if session.responses:
+        try:
+            sess_data = json_lib.loads(session.responses)
+            if isinstance(sess_data, dict) and "questions" in sess_data:
+                # This is a randomized question snapshot — use it
+                content_raw = session.responses
+            # else: heartbeat saved_answers — fall through to item.structured_content
+        except Exception:
+            pass
+
+    # Always fall back to the original item content
+    if content_raw is None:
+        content_raw = item.structured_content if item else None
+
     content = {}
     if content_raw:
         try:
@@ -1865,14 +1882,34 @@ async def get_session_questions(
 
     questions_for_student = []
     for i, q in enumerate(qs_list):
-        questions_for_student.append({
+        if not isinstance(q, dict):
+            continue
+        entry: dict = {
             "index": i,
-            "question": q["question"],
-            "options": q["options"],
+            "question": q.get("question", ""),
+            "options": q.get("options", []),
             "difficulty": q.get("difficulty"),
             "topic": q.get("topic"),
-            # answer and explanation are intentionally excluded
-        })
+        }
+        if "initial_code" in q:
+            entry["initial_code"] = q["initial_code"]
+        if "hints" in q:
+            entry["hints"] = q["hints"]
+        if "constraints" in q:
+            entry["constraints"] = q["constraints"]
+        questions_for_student.append(entry)
+
+    # For non-MCQ coding tasks (no questions array), build description from requirements
+    task_description = content.get("description", "")
+    if not task_description and isinstance(content, dict):
+        requirements = content.get("requirements", [])
+        hints = content.get("hints", [])
+        parts = []
+        if requirements:
+            parts.append("Requirements:\n" + "\n".join(f"• {r}" for r in requirements))
+        if hints:
+            parts.append("Hints:\n" + "\n".join(f"💡 {h}" for h in hints))
+        task_description = "\n\n".join(parts) if parts else (item.description or "")
 
     return {
         "session_id": session.id,
@@ -1883,7 +1920,7 @@ async def get_session_questions(
         "tab_switch_count": session.tab_switch_count,
         "questions": questions_for_student,
         "title": content.get("title", item.title if item else ""),
-        "description": content.get("description", ""),
+        "description": task_description,
     }
 
 
