@@ -2114,7 +2114,7 @@ async def run_code(
             "version": data.get("version"),
         }
     except Exception as e:
-        # Fallback to extremely robust Compiler Explorer (Godbolt) API
+        # Fallback to Compiler Explorer (Godbolt) API
         lang_str = body.get("language", language).lower()
         gb_compiler = "python311"
         if "java" in lang_str and "javascript" not in lang_str:
@@ -2123,16 +2123,28 @@ async def run_code(
             gb_compiler = "g141"
         elif "javascript" in lang_str or "node" in lang_str:
             gb_compiler = "v8113"
-            
+
         try:
-            code = body.get("files", [{}])[0].get("content", "")
-            stdin_data = body.get("stdin", "")
-            
+            # `code` was already extracted at top of function from body["code"]
+            # Do NOT re-read from body["files"] - frontend sends plain {code, language, stdin}
+            source_code = code  # already set from body.get("code", "") above
+            stdin_data = body.get("stdin", stdin)
+
+            # Godbolt always saves Java files as "example.java"
+            # So rename the public class to "example" to avoid compile error
+            if "java" in lang_str and "javascript" not in lang_str:
+                import re
+                source_code = re.sub(
+                    r'public\s+class\s+\w+',
+                    'public class example',
+                    source_code
+                )
+
             async with httpx.AsyncClient(timeout=15.0) as client:
                 res = await client.post(
                     f"https://godbolt.org/api/compiler/{gb_compiler}/compile",
                     json={
-                        "source": code,
+                        "source": source_code,
                         "options": {
                             "userArguments": "",
                             "executeParameters": {"args": [], "stdin": stdin_data},
@@ -2142,20 +2154,20 @@ async def run_code(
                     },
                     headers={"Accept": "application/json"}
                 )
-                
+
                 if not res.is_success:
                     raise Exception(f"Godbolt execution failed: {res.status_code}")
-                    
+
                 data = res.json()
-                
-                # Godbolt formats stdout as a list of dicts {"text": "output line"}
+
+                # Godbolt returns stdout/stderr as list of {"text": "..."} dicts
                 out_arr = data.get("stdout", [])
                 err_arr = data.get("stderr", [])
                 build_err_arr = data.get("buildResult", {}).get("stderr", [])
-                
+
                 stdout_str = "\n".join(x.get("text", "") for x in out_arr)
                 stderr_str = "\n".join(x.get("text", "") for x in err_arr + build_err_arr)
-                
+
                 return {
                     "stdout": stdout_str,
                     "stderr": stderr_str,
@@ -2164,11 +2176,11 @@ async def run_code(
                     "language": lang_str,
                     "version": gb_compiler,
                 }
-                
+
         except httpx.TimeoutException:
-            return {"stdout": "", "stderr": "Execution timed out (15s limit via Cloud Compiler).", "code": 1}
+            return {"stdout": "", "stderr": "Execution timed out (15s limit).", "code": 1}
         except Exception as ex:
-            raise HTTPException(status_code=502, detail=f"Code runner unavailable: Both primary API and Cloud compilers failed. Please configure JDoodle API keys or contact support. Details: {str(ex)}")
+            raise HTTPException(status_code=502, detail=f"Code runner unavailable: Both primary and cloud compilers failed. Details: {str(ex)}")
 
 
 @router.get("/piston/runtimes")
