@@ -1765,16 +1765,30 @@ async def start_assessment_session(
     if item.structured_content:
         content = json_lib.loads(item.structured_content)
         if "questions" in content and getattr(item, 'is_randomized', False):
-            qs = content["questions"]
-            random.shuffle(qs)
-            for q in qs:
-                opts = list(enumerate(q["options"]))
-                random.shuffle(opts)
-                orig_answer = q["answer"]
-                new_index = [i for i, (orig_i, _) in enumerate(opts) if orig_i == orig_answer][0]
-                q["options"] = [opt for _, opt in opts]
-                q["answer"] = new_index
-            question_order = json_lib.dumps(qs)
+            try:
+                qs = content["questions"]
+                random.shuffle(qs)
+                for q in qs:
+                    opts = list(enumerate(q["options"]))
+                    random.shuffle(opts)
+                    
+                    # Robust type conversion for AI edge-cases
+                    orig_answer_raw = q.get("answer", 0)
+                    try:
+                        orig_answer = int(orig_answer_raw)
+                    except (ValueError, TypeError):
+                        orig_answer = 0
+                        
+                    # find the new index
+                    matches = [i for i, (orig_i, _) in enumerate(opts) if orig_i == orig_answer]
+                    new_index = matches[0] if matches else 0
+                    
+                    q["options"] = [opt for _, opt in opts]
+                    q["answer"] = new_index
+                question_order = json_lib.dumps(qs)
+            except Exception as e:
+                print(f"Warning: Failed to randomize questions: {e}")
+                pass # Fallback to un-randomized content
 
     session = AssessmentSession(
         id=str(uuid.uuid4()),
