@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { apiGet, apiPost } from '@/lib/api';
+import { useState, useEffect, useRef } from 'react';
+import { apiGet, apiPost, apiFetch, API_BASE } from '@/lib/api';
 
 interface AssignmentItem {
     id: string; title: string; description: string | null;
@@ -21,8 +21,23 @@ export default function AssignmentsPage() {
     const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [modalTab, setModalTab] = useState<'ai' | 'pdf'>('ai');
+
+    // Shared form fields
     const [form, setForm] = useState({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '' });
     const [saving, setSaving] = useState(false);
+
+    // AI generation state
+    const [aiTopic, setAiTopic] = useState('');
+    const [aiDifficulty, setAiDifficulty] = useState('Intermediate');
+    const [generating, setGenerating] = useState(false);
+    const [aiPreview, setAiPreview] = useState<any>(null);
+    const [aiError, setAiError] = useState('');
+
+    // PDF upload state
+    const [pdfFile, setPdfFile] = useState<File | null>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
+
     const [viewSubmissions, setViewSubmissions] = useState<any>(null);
     const [submissionsData, setSubmissionsData] = useState<any[]>([]);
 
@@ -32,15 +47,76 @@ export default function AssignmentsPage() {
         try { setAssignments(await apiGet('/api/training/assignments')); } catch { } finally { setLoading(false); }
     };
 
+    const resetModal = () => {
+        setModalTab('ai');
+        setForm({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '' });
+        setAiTopic(''); setAiDifficulty('Intermediate');
+        setAiPreview(null); setAiError('');
+        setPdfFile(null);
+    };
+
+    // ── AI Generation ────────────────────────────────────────────────────────
+    const handleGenerate = async () => {
+        if (!aiTopic.trim()) { setAiError('Please enter a topic.'); return; }
+        setGenerating(true); setAiError(''); setAiPreview(null);
+        try {
+            const resp = await apiFetch('/api/training/generate-task', {
+                method: 'POST',
+                body: JSON.stringify({ topic: aiTopic, task_type: form.type, difficulty: aiDifficulty })
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail || 'Generation failed');
+            }
+            const result = await resp.json();
+            setAiPreview(result);
+            // Auto-fill form fields from AI result
+            setForm(f => ({
+                ...f,
+                title: result.title || '',
+                description: [
+                    result.description || '',
+                    result.requirements?.length ? '\n\nRequirements:\n' + result.requirements.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n') : '',
+                    result.hints?.length ? '\n\nHints:\n' + result.hints.map((h: string) => `• ${h}`).join('\n') : '',
+                    result.estimated_hours ? `\n\nEstimated Time: ${result.estimated_hours} hours` : ''
+                ].join('')
+            }));
+        } catch (e: any) {
+            setAiError(e?.message || 'AI generation failed. Please try again.');
+        } finally { setGenerating(false); }
+    };
+
+    // ── Save Assignment ───────────────────────────────────────────────────────
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!form.title.trim()) return;
         setSaving(true);
         try {
+            let pdfUrl: string | undefined;
+
+            // If PDF tab and file selected — upload first
+            if (modalTab === 'pdf' && pdfFile) {
+                const fd = new FormData();
+                fd.append('file', pdfFile);
+                const token = localStorage.getItem('auth_token');
+                const uploadResp = await fetch(`${API_BASE}/api/training/upload-assignment-pdf`, {
+                    method: 'POST',
+                    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: fd,
+                });
+                if (uploadResp.ok) {
+                    const uploadData = await uploadResp.json();
+                    pdfUrl = uploadData.url;
+                }
+            }
+
             await apiPost('/api/training/assignments', {
-                ...form, total_marks: parseInt(form.total_marks) || 100
+                ...form,
+                total_marks: parseInt(form.total_marks) || 100,
+                ...(pdfUrl ? { pdf_url: pdfUrl } : {})
             });
             setShowModal(false);
-            setForm({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '' });
+            resetModal();
             loadAssignments();
         } catch { } finally { setSaving(false); }
     };
@@ -66,7 +142,7 @@ export default function AssignmentsPage() {
                     <h1 className="page-title">Assignments</h1>
                     <p className="page-subtitle">Graded coursework with deadlines & submissions</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Assignment</button>
+                <button className="btn btn-primary" onClick={() => { resetModal(); setShowModal(true); }}>+ New Assignment</button>
             </div>
 
             {/* Stats */}
@@ -124,21 +200,135 @@ export default function AssignmentsPage() {
                 </div>
             )}
 
-            {/* Create Assignment Modal */}
+            {/* ── Create Assignment Modal ── */}
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">Create Assignment</h2>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 className="modal-title" style={{ margin: 0 }}>New Assignment</h2>
+                            <button className="btn btn-sm btn-ghost" onClick={() => setShowModal(false)}>✕</button>
+                        </div>
+
+                        {/* Tab Switcher */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '10px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setModalTab('ai')}
+                                style={{
+                                    flex: 1, padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                                    fontWeight: 600, fontSize: '14px', transition: 'all 0.2s',
+                                    background: modalTab === 'ai' ? 'var(--primary)' : 'transparent',
+                                    color: modalTab === 'ai' ? '#fff' : 'var(--text-secondary)',
+                                }}
+                            >
+                                ✨ Generate with AI
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setModalTab('pdf')}
+                                style={{
+                                    flex: 1, padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                                    fontWeight: 600, fontSize: '14px', transition: 'all 0.2s',
+                                    background: modalTab === 'pdf' ? 'var(--primary)' : 'transparent',
+                                    color: modalTab === 'pdf' ? '#fff' : 'var(--text-secondary)',
+                                }}
+                            >
+                                📄 Upload PDF
+                            </button>
+                        </div>
+
                         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                            {/* ── AI TAB ── */}
+                            {modalTab === 'ai' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', border: '1px solid var(--border)', borderRadius: '10px', background: 'var(--bg-secondary)' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label">Assignment Type</label>
+                                            <select className="form-input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                                                <option value="CODING">💻 Coding</option>
+                                                <option value="WRITTEN">✍️ Written</option>
+                                                <option value="MCQ">📝 MCQ</option>
+                                                <option value="PROJECT">🏗️ Project</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label">Difficulty</label>
+                                            <select className="form-input" value={aiDifficulty} onChange={e => setAiDifficulty(e.target.value)}>
+                                                <option>Beginner</option>
+                                                <option>Intermediate</option>
+                                                <option>Advanced</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="form-group" style={{ margin: 0 }}>
+                                        <label className="form-label">Topic / Subject</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input
+                                                className="form-input"
+                                                value={aiTopic}
+                                                onChange={e => setAiTopic(e.target.value)}
+                                                placeholder="e.g. Spring Boot REST API, React Hooks, SQL Joins..."
+                                                style={{ flex: 1 }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary"
+                                                onClick={handleGenerate}
+                                                disabled={generating}
+                                                style={{ whiteSpace: 'nowrap' }}
+                                            >
+                                                {generating ? '⏳ Generating...' : '✨ Generate'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {aiError && <p style={{ color: '#ef4444', fontSize: '13px', margin: 0 }}>⚠️ {aiError}</p>}
+                                    {aiPreview && (
+                                        <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '8px', border: '1px solid #10b98130' }}>
+                                            <p style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, margin: '0 0 4px' }}>✅ AI Generated — review & edit below</p>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                {aiPreview.requirements?.map((r: string, i: number) => (
+                                                    <span key={i} style={{ fontSize: '11px', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '99px', color: 'var(--text-secondary)' }}>✓ {r}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── PDF TAB ── */}
+                            {modalTab === 'pdf' && (
+                                <div
+                                    style={{ border: '2px dashed var(--border)', borderRadius: '10px', padding: '24px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-secondary)' }}
+                                    onClick={() => fileRef.current?.click()}
+                                >
+                                    <input ref={fileRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => setPdfFile(e.target.files?.[0] || null)} />
+                                    {pdfFile ? (
+                                        <div>
+                                            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📄</div>
+                                            <p style={{ fontWeight: 600, margin: '0 0 4px' }}>{pdfFile.name}</p>
+                                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{(pdfFile.size / 1024).toFixed(1)} KB — click to change</p>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <div style={{ fontSize: '40px', marginBottom: '8px' }}>📂</div>
+                                            <p style={{ fontWeight: 600, margin: '0 0 4px' }}>Click to upload PDF</p>
+                                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>Assignment instructions / task sheet</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── Common Fields ── */}
                             <div className="form-group">
                                 <label className="form-label">Title *</label>
-                                <input className="form-input" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. React Component Assignment" />
+                                <input className="form-input" required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Build a Student Management API" />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Description / Instructions</label>
-                                <textarea className="form-input" rows={5} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Describe the assignment requirements..." />
+                                <textarea className="form-input" rows={5} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Will be auto-filled by AI, or write manually..." />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                                 <div className="form-group">
                                     <label className="form-label">Type</label>
                                     <select className="form-input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
@@ -152,12 +342,12 @@ export default function AssignmentsPage() {
                                     <label className="form-label">Total Marks</label>
                                     <input type="number" className="form-input" value={form.total_marks} onChange={e => setForm({ ...form, total_marks: e.target.value })} />
                                 </div>
+                                <div className="form-group">
+                                    <label className="form-label">Due Date</label>
+                                    <input type="date" className="form-input" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Due Date</label>
-                                <input type="date" className="form-input" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
-                            </div>
-                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
                                 <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" disabled={saving}>
                                     {saving ? 'Creating...' : 'Create Assignment'}

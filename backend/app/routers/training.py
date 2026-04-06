@@ -1527,11 +1527,75 @@ async def delete_time_tracking(
     return {"status": "success"}
 
 
-# ─── Chatbot Proxy ──────────────────────────────────────────────────────────
+# ─── AI Task Generator ───────────────────────────────────────────────────────
 import os
 import httpx
 from pydantic import BaseModel as PydanticBaseModel
 from typing import List as TypingList
+
+class GenerateTaskRequest(PydanticBaseModel):
+    topic: str
+    task_type: str = "CODING"   # CODING, WRITTEN, PROJECT, MCQ
+    difficulty: str = "Intermediate"  # Beginner, Intermediate, Advanced
+
+@router.post("/generate-task")
+async def generate_task(
+    body: GenerateTaskRequest,
+    _current_user: User = Depends(require_roles(Role.TRAINER, Role.SUPER_ADMIN, Role.ADMIN))
+):
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="AI not configured. Please contact admin.")
+
+    prompt = f"""Generate a {body.difficulty} level {body.task_type} assignment for a software training program on the topic: "{body.topic}".
+
+Return ONLY valid JSON (no markdown, no explanation) in this exact format:
+{{
+  "title": "concise assignment title",
+  "description": "2-3 sentence overview of what the student must build or do",
+  "requirements": ["requirement 1", "requirement 2", "requirement 3", "requirement 4"],
+  "hints": ["helpful hint 1", "helpful hint 2"],
+  "estimated_hours": 3
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [
+                        {"role": "system", "content": "You are an expert software trainer. Return only valid JSON without any markdown or explanation."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 600
+                }
+            )
+        if not resp.is_success:
+            raise HTTPException(status_code=502, detail=f"AI error: {resp.status_code}")
+        data = resp.json()
+        raw = data["choices"][0]["message"]["content"].strip()
+        # Strip markdown code blocks if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        import json as json_lib
+        task = json_lib.loads(raw)
+        return task
+    except json_lib.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI returned invalid format. Please try again.")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="AI timed out. Please try again.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Task generation error: {str(e)}")
+
+
+# ─── Chatbot Proxy ──────────────────────────────────────────────────────────
 
 class ChatMessage(PydanticBaseModel):
     role: str   # "user" or "model"
