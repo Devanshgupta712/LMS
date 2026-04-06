@@ -1683,22 +1683,22 @@ Return ONLY a JSON object in this EXACT format, with no extra text:
 }}
 IMPORTANT: 'answer' must be the 0-based INDEX of the correct option in the 'options' array (0=A, 1=B, 2=C, 3=D)."""
     elif body.task_type.upper() == "CODING":
-        format_instr = f"""Create EXACTLY {body.question_count} distinct coding problems.
-Return ONLY a JSON object in this EXACT format:
+        # Build example question slots to show the AI exactly how many to generate
+        example_qs = ",\n    ".join([
+            f'{{"index": {i}, "question": "Problem {i+1} statement here — be specific and detailed", "initial_code": "# starter code for problem {i+1}\\n", "constraints": ["constraint 1", "constraint 2"], "hints": ["hint 1"]}}'
+            for i in range(body.question_count)
+        ])
+        format_instr = f"""Create EXACTLY {body.question_count} distinct coding problems about "{body.topic}".
+Return ONLY a JSON object in this EXACT format with ALL {body.question_count} questions in the array:
 {{
   "title": "concise lab title",
   "description": "overall objective of the coding lab",
   "questions": [
-    {{
-      "index": 0,
-      "question": "Clear problem statement and instructions for this specific problem",
-      "initial_code": "# code boilerplate or comment",
-      "constraints": ["constraint 1", "constraint 2"],
-      "hints": ["hint 1"]
-    }}
+    {example_qs}
   ],
-  "estimated_hours": 2
-}}"""
+  "estimated_hours": {max(1, body.question_count // 2)}
+}}
+IMPORTANT: The "questions" array MUST contain EXACTLY {body.question_count} items. Each problem must be unique and clearly described."""
     else:
         format_instr = f"""Create EXACTLY {body.question_count} specific requirements/steps for this {body.task_type} task.
 Return ONLY a JSON object in this EXACT format:
