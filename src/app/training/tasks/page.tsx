@@ -37,6 +37,7 @@ export default function TasksPage() {
     // AI generation state
     const [aiTopic, setAiTopic] = useState('');
     const [aiDifficulty, setAiDifficulty] = useState('Intermediate');
+    const [aiTaskType, setAiTaskType] = useState('CODING');
     const [generating, setGenerating] = useState(false);
     const [aiPreview, setAiPreview] = useState<any>(null);
     const [aiError, setAiError] = useState('');
@@ -92,7 +93,7 @@ export default function TasksPage() {
         try {
             const resp = await apiFetch('/api/training/generate-task', {
                 method: 'POST',
-                body: JSON.stringify({ topic: aiTopic, task_type: 'PROJECT', difficulty: aiDifficulty })
+                body: JSON.stringify({ topic: aiTopic, task_type: aiTaskType, difficulty: aiDifficulty })
             });
             if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.detail || 'Failed'); }
             const result = await resp.json();
@@ -138,9 +139,15 @@ export default function TasksPage() {
             };
 
             const resp = await apiFetch('/api/training/tasks', { method: 'POST', body: JSON.stringify(body) });
-            if (!resp.ok) throw new Error('Failed to create');
+            if (!resp.ok) {
+                const errJson = await resp.json().catch(() => ({}));
+                throw new Error(errJson.detail || 'Failed to create');
+            }
             setShowModal(false); resetModal(); loadTasks();
-        } catch { } finally { setSaving(false); }
+        } catch (e: any) {
+            console.error('Task creation error:', e);
+            alert(`Error: ${e.message}`);
+        } finally { setSaving(false); }
     };
 
     const filtered = filter === 'ALL' ? tasks : tasks.filter(t => t.status === filter);
@@ -268,11 +275,22 @@ export default function TasksPage() {
                             <>
                                 <StepIndicator steps={aiSteps} current={1} />
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    <div className="form-group" style={{ margin: 0 }}>
-                                        <label className="form-label">Difficulty</label>
-                                        <select className="form-input" value={aiDifficulty} onChange={e => setAiDifficulty(e.target.value)}>
-                                            <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
-                                        </select>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label">Task Format</label>
+                                            <select className="form-input" value={aiTaskType} onChange={e => setAiTaskType(e.target.value)}>
+                                                <option value="CODING">💻 Coding</option>
+                                                <option value="WRITTEN">✍️ Written</option>
+                                                <option value="MCQ">📝 MCQ</option>
+                                                <option value="PROJECT">🏗️ Project</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label">Difficulty</label>
+                                            <select className="form-input" value={aiDifficulty} onChange={e => setAiDifficulty(e.target.value)}>
+                                                <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="form-group" style={{ margin: 0 }}>
                                         <label className="form-label">Topic / Subject *</label>

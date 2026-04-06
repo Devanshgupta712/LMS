@@ -1651,13 +1651,15 @@ async def generate_task(
     if not api_key:
         raise HTTPException(status_code=503, detail="AI not configured. Please contact admin.")
 
-    prompt = f"""Generate a {body.difficulty} level {body.task_type} assignment for a software training program on the topic: "{body.topic}".
+    prompt = f"""Generate a {body.difficulty} level {body.task_type} assignment or task for a software training program on the topic: "{body.topic}".
+
+If the task_type is 'MCQ', make the 'description' introduce the quiz, and put each multiple choice question along with its 4 options and the correct answer as an individual string inside the 'requirements' array. For example: "1. What does HTML stand for? A) Hyper Text... B) High Tech... C) Home Tool... D) None. Answer: A".
 
 Return ONLY valid JSON (no markdown, no explanation) in this exact format:
 {{
-  "title": "concise assignment title",
-  "description": "2-3 sentence overview of what the student must build or do",
-  "requirements": ["requirement 1", "requirement 2", "requirement 3", "requirement 4"],
+  "title": "concise title",
+  "description": "2-3 sentence overview of what the student must do or the quiz topic",
+  "requirements": ["requirement or question 1", "requirement or question 2", "requirement or question 3"],
   "hints": ["helpful hint 1", "helpful hint 2"],
   "estimated_hours": 3
 }}"""
