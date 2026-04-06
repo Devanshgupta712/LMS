@@ -2115,11 +2115,12 @@ async def run_code(
         }
     except Exception as e:
         # Fallback to local execution if language is Python
-        if "python" in body.language.lower():
+        lang_str = body.get("language", language).lower()
+        
+        if "python" in lang_str:
             try:
                 import subprocess
                 import sys
-                code = body.files[0].content
                 # Run locally in a secure timeout
                 proc = subprocess.run(
                     [sys.executable, "-c", code],
@@ -2137,10 +2138,9 @@ async def run_code(
                 return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
             except Exception as ex:
                 raise HTTPException(status_code=500, detail=f"Local runner failed: {str(ex)}")
-        elif "javascript" in body.language.lower() or "node" in body.language.lower():
+        elif "javascript" in lang_str or "node" in lang_str:
             try:
                 import subprocess
-                code = body.files[0].content
                 proc = subprocess.run(
                     ["node", "-e", code],
                     capture_output=True, text=True, timeout=5.0
@@ -2156,7 +2156,7 @@ async def run_code(
             except Exception:
                 pass
                 
-        raise HTTPException(status_code=502, detail=f"Code runner unavailable: Public Piston API is whitelist only. Configure JDoodle API keys or host locally. Language requested: {body.language}")
+        raise HTTPException(status_code=502, detail=f"Code runner unavailable: Public Piston API is whitelist only. Configure JDoodle API keys or host locally. Language requested: {lang_str}")
 
 
 @router.get("/piston/runtimes")
