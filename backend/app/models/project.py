@@ -108,10 +108,12 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     batch_id: Mapped[str | None] = mapped_column(String, ForeignKey("batches.id"), nullable=True)
+    student_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     assigned_by: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     priority: Mapped[TaskPriority] = mapped_column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
     status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), default=TaskStatus.PENDING)
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    pdf_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

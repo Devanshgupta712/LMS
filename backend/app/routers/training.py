@@ -614,8 +614,24 @@ async def create_project(
 
 # ─── Tasks ────────────────────────────────────────────
 @router.get("/tasks")
-async def list_tasks(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Task).order_by(Task.created_at.desc()))
+async def list_tasks(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    query = select(Task)
+    
+    # If Student, only show their batch tasks OR tasks mapped directly to them
+    if user.role == Role.STUDENT:
+        batch_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
+        student_batch = batch_result.scalar()
+        
+        from sqlalchemy import or_
+        if student_batch:
+            query = query.where(or_(Task.batch_id == student_batch, Task.student_id == user.id))
+        else:
+            query = query.where(Task.student_id == user.id)
+            
+    result = await db.execute(query.order_by(Task.created_at.desc()))
     tasks = result.scalars().all()
     out = []
     for t in tasks:
@@ -625,13 +641,45 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
             is_overdue = True
         out.append({
             "id": t.id, "title": t.title, "description": t.description,
-            "batch_id": t.batch_id, "priority": t.priority.value,
+            "batch_id": t.batch_id, "student_id": t.student_id, "priority": t.priority.value,
             "status": t.status.value, "is_overdue": is_overdue,
             "assigned_by": trainer.name if trainer else None,
             "due_date": t.due_date.isoformat() if t.due_date else None,
+            "pdf_url": t.pdf_url,
             "created_at": t.created_at.isoformat() if t.created_at else None,
         })
     return out
+
+@router.delete("/tasks/{task_id}")
+async def delete_task(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
+):
+    task = await db.get(Task, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    if user.role == Role.TRAINER and task.assigned_by != user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own tasks")
+        
+    await db.delete(task)
+    await db.flush()
+    return {"status": "deleted"}
+
+from fastapi import Form, UploadFile, File
+from app.utils.cloudinary import upload_to_cloudinary
+
+@router.post("/upload-task-pdf")
+async def upload_task_pdf(
+    file: UploadFile = File(...),
+    user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER))
+):
+    is_pdf = file.filename.lower().endswith(".pdf")
+    if not is_pdf:
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    pdf_url = upload_to_cloudinary(file.file, folder="lms/tasks", is_pdf=True)
+    return {"url": pdf_url}
 
 
 @router.post("/tasks", status_code=201)
@@ -648,26 +696,42 @@ async def create_task(
 
     task = Task(
         title=body["title"], description=body.get("description"),
-        batch_id=body.get("batch_id"), assigned_by=user.id,
+        batch_id=body.get("batch_id"), student_id=body.get("student_id"),
+        assigned_by=user.id,
         priority=body.get("priority", "MEDIUM"),
         status=body.get("status", "PENDING"),
+        pdf_url=body.get("pdf_url")
     )
     if body.get("due_date"):
         task.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
     db.add(task)
     await db.flush()
 
-    # Notify students in the batch
-    if task.batch_id:
-        from app.models.notification import Notification
+    # Notify students
+    from app.models.notification import Notification
+    student_id = body.get("student_id")
+    
+    if student_id:
+        notif = Notification(
+            user_id=student_id,
+            title="📋 New Task Assigned to You",
+            message=f"You have been assigned '{task.title}'.",
+            type="TASK",
+            reference_id=task.id,
+            link="/training/tasks"
+        )
+        db.add(notif)
+        await db.flush()
+    elif task.batch_id:
         bs_result = await db.execute(select(BatchStudent).where(BatchStudent.batch_id == task.batch_id))
         for bs in bs_result.scalars().all():
             notif = Notification(
                 user_id=bs.student_id,
-                title="New Task Assigned",
+                title="📋 New Task Assigned",
                 message=f"A new task '{task.title}' has been assigned to your batch.",
                 type="TASK",
-                reference_id=task.id
+                reference_id=task.id,
+                link="/training/tasks"
             )
             db.add(notif)
         await db.flush()
