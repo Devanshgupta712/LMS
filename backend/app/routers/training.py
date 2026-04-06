@@ -646,6 +646,9 @@ async def list_tasks(
             "assigned_by": trainer.name if trainer else None,
             "due_date": t.due_date.isoformat() if t.due_date else None,
             "pdf_url": t.pdf_url,
+            "time_limit": getattr(t, 'time_limit', 0) or 0,
+            "is_randomized": getattr(t, 'is_randomized', False) or False,
+            "has_assessment": bool(getattr(t, 'structured_content', None)),
             "created_at": t.created_at.isoformat() if t.created_at else None,
         })
     return out
@@ -1785,7 +1788,8 @@ async def start_assessment_session(
                     
                     q["options"] = [opt for _, opt in opts]
                     q["answer"] = new_index
-                question_order = json_lib.dumps(qs)
+                content["questions"] = qs
+                question_order = json_lib.dumps(content)
             except Exception as e:
                 print(f"Warning: Failed to randomize questions: {e}")
                 pass # Fallback to un-randomized content
@@ -1828,7 +1832,6 @@ async def get_session_questions(
     elapsed = (datetime.utcnow() - session.start_time).total_seconds()
     remaining_seconds = max(0, time_limit * 60 - int(elapsed)) if time_limit > 0 else None
 
-    # Strip answers from questions for student view
     content_raw = session.responses or (item.structured_content if item else None)
     content = {}
     if content_raw:
@@ -1837,17 +1840,22 @@ async def get_session_questions(
         except Exception:
             pass
 
+    qs_list = []
+    if isinstance(content, list):
+        qs_list = content
+    elif isinstance(content, dict) and "questions" in content:
+        qs_list = content["questions"]
+
     questions_for_student = []
-    if "questions" in content:
-        for i, q in enumerate(content["questions"]):
-            questions_for_student.append({
-                "index": i,
-                "question": q["question"],
-                "options": q["options"],
-                "difficulty": q.get("difficulty"),
-                "topic": q.get("topic"),
-                # answer and explanation are intentionally excluded
-            })
+    for i, q in enumerate(qs_list):
+        questions_for_student.append({
+            "index": i,
+            "question": q["question"],
+            "options": q["options"],
+            "difficulty": q.get("difficulty"),
+            "topic": q.get("topic"),
+            # answer and explanation are intentionally excluded
+        })
 
     return {
         "session_id": session.id,
@@ -1888,9 +1896,22 @@ async def session_heartbeat(
     elapsed = (datetime.utcnow() - session.start_time).total_seconds()
     remaining_seconds = max(0, time_limit * 60 - int(elapsed)) if time_limit > 0 else 9999
 
-    # Save answers
+    # Save answers WITHOUT overwriting the question data
     if "answers" in body:
-        session.responses = json_lib.dumps({"saved_answers": body["answers"]})
+        # Store saved answers separately - do NOT overwrite 'responses' (which holds question data)
+        existing_resp = session.responses or "{}"
+        try:
+            import json as json_lib
+            resp_data = json_lib.loads(existing_resp)
+            if isinstance(resp_data, dict) and "questions" in resp_data:
+                # Preserve question data, merge saved answers
+                resp_data["saved_answers"] = body["answers"]
+                session.responses = json_lib.dumps(resp_data)
+            else:
+                # No question data yet, just save answers
+                session.responses = json_lib.dumps({"saved_answers": body["answers"]})
+        except Exception:
+            pass
 
     # Log tab switch
     if body.get("tab_switched"):
@@ -1941,33 +1962,54 @@ async def submit_assessment(
     results = []
 
     # Grade MCQ answers if structured content available
-    content_raw = session.responses or (item.structured_content if item else None)
-    if content_raw:
+    # ALWAYS read questions from the original item.structured_content (not session.responses which may hold saved_answers)
+    # But if session has randomized questions embedded, use those.
+    questions_source = None
+    if item and item.structured_content:
         try:
-            content = json_lib.loads(content_raw)
-            questions = content.get("questions", [])
+            item_content = json_lib.loads(item.structured_content)
+            questions_source = item_content.get("questions", [])
+        except Exception:
+            pass
+
+    # If session.responses has randomized questions, prefer those
+    if session.responses and session.responses.strip().startswith('{'):
+        try:
+            sess_content = json_lib.loads(session.responses)
+            if "questions" in sess_content:
+                questions_source = sess_content["questions"]
+        except Exception:
+            pass
+
+    if questions_source:
+        try:
+            questions = questions_source
             total = len(questions)
             if total > 0:
                 correct_count = 0
                 for i, q in enumerate(questions):
-                    selected = student_answers.get(str(i))
-                    correct = q["answer"]
-                    is_correct = selected == correct
+                    selected_raw = student_answers.get(str(i)) or student_answers.get(i)
+                    correct = q.get("answer", -1)
+                    try:
+                        correct = int(correct)
+                    except (ValueError, TypeError):
+                        correct = -1
+                    is_correct = selected_raw is not None and int(selected_raw) == correct
                     if is_correct:
                         correct_count += 1
                     results.append({
                         "index": i,
                         "question": q["question"],
                         "options": q["options"],
-                        "selected": selected,
+                        "selected": selected_raw,
                         "correct": correct,
                         "is_correct": is_correct,
                         "explanation": q.get("explanation", ""),
                         "topic": q.get("topic", ""),
                     })
                 score = round((correct_count / total) * 100, 1)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Grading error: {e}")
 
     elapsed = int((datetime.utcnow() - session.start_time).total_seconds())
     session.score = score

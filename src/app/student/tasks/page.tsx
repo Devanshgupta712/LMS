@@ -15,6 +15,8 @@ interface TaskItem {
     due_date: string | null;
     pdf_url: string | null;
     created_at: string;
+    has_assessment: boolean;
+    time_limit: number;
 }
 
 const priorityColors: Record<string, string> = {
@@ -124,6 +126,12 @@ export default function StudentTasksPage() {
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
                                         <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{task.title}</h3>
+                                        {task.has_assessment && (
+                                            <span style={{ fontSize: '11px', background: 'hsla(239,80%,65%,0.15)', color: '#6366f1', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>📝 MCQ Assessment</span>
+                                        )}
+                                        {task.time_limit > 0 && (
+                                            <span style={{ fontSize: '11px', background: 'hsla(38,95%,55%,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>⏱️ {task.time_limit} min</span>
+                                        )}
                                         {task.is_overdue && (
                                             <span style={{ fontSize: '11px', background: 'hsla(0,85%,60%,0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>⚠️ Overdue</span>
                                         )}
