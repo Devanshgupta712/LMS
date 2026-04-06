@@ -2155,7 +2155,105 @@ async def run_code(
                 }
             except Exception:
                 pass
+        
+        elif "java" in lang_str and "javascript" not in lang_str:
+            try:
+                import subprocess, tempfile, os
+                code = body.get("files", [{}])[0].get("content", "")
                 
+                # Create a temporary directory to host the .java file and compile it
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Find public class name or default to Main
+                    import re
+                    class_match = re.search(r'public\s+class\s+(\w+)', code)
+                    class_name = class_match.group(1) if class_match else "Main"
+                    file_path = os.path.join(temp_dir, f"{class_name}.java")
+                    
+                    with open(file_path, "w") as f:
+                        f.write(code)
+                        
+                    # Compile
+                    compile_proc = subprocess.run(
+                        ["javac", file_path],
+                        capture_output=True, text=True, timeout=5.0
+                    )
+                    
+                    if compile_proc.returncode != 0:
+                        return {
+                            "stdout": "",
+                            "stderr": compile_proc.stderr,
+                            "code": compile_proc.returncode,
+                            "signal": None,
+                            "language": "java",
+                            "version": "javac",
+                        }
+                        
+                    # Run
+                    run_proc = subprocess.run(
+                        ["java", "-cp", temp_dir, class_name],
+                        capture_output=True, text=True, timeout=5.0
+                    )
+                    
+                    return {
+                        "stdout": run_proc.stdout,
+                        "stderr": run_proc.stderr,
+                        "code": run_proc.returncode,
+                        "signal": None,
+                        "language": "java",
+                        "version": "java",
+                    }
+            except subprocess.TimeoutExpired:
+                return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
+            except Exception as ex:
+                raise HTTPException(status_code=500, detail=f"Local Java runner failed. Please ensure 'java' and 'javac' are installed on the server: {str(ex)}")
+
+        elif "c++" in lang_str or "cpp" in lang_str:
+            try:
+                import subprocess, tempfile, os
+                code = body.get("files", [{}])[0].get("content", "")
+                
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    src_path = os.path.join(temp_dir, "main.cpp")
+                    out_path = os.path.join(temp_dir, "main.out")
+                    
+                    with open(src_path, "w") as f:
+                        f.write(code)
+                        
+                    # Compile
+                    compile_proc = subprocess.run(
+                        ["g++", src_path, "-o", out_path],
+                        capture_output=True, text=True, timeout=5.0
+                    )
+                    
+                    if compile_proc.returncode != 0:
+                        return {
+                            "stdout": "",
+                            "stderr": compile_proc.stderr,
+                            "code": compile_proc.returncode,
+                            "signal": None,
+                            "language": "c++",
+                            "version": "g++",
+                        }
+                        
+                    # Run
+                    run_proc = subprocess.run(
+                        [out_path],
+                        capture_output=True, text=True, timeout=5.0
+                    )
+                    
+                    return {
+                        "stdout": run_proc.stdout,
+                        "stderr": run_proc.stderr,
+                        "code": run_proc.returncode,
+                        "signal": None,
+                        "language": "c++",
+                        "version": "c++",
+                    }
+            except subprocess.TimeoutExpired:
+                return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
+            except Exception as ex:
+                raise HTTPException(status_code=500, detail=f"Local C++ runner failed. Please ensure 'g++' is installed on the server: {str(ex)}")
+
         raise HTTPException(status_code=502, detail=f"Code runner unavailable: Public Piston API is whitelist only. Configure JDoodle API keys or host locally. Language requested: {lang_str}")
 
 
