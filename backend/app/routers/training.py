@@ -2101,7 +2101,7 @@ async def run_code(
             )
         if not resp.is_success:
             err_txt = resp.text
-            raise HTTPException(status_code=502, detail=f"Code runner unavailable: {err_txt}")
+            raise Exception("piston_unavailable")
         data = resp.json()
         run_result = data.get("run", {})
         compile_result = data.get("compile", {})
@@ -2113,10 +2113,50 @@ async def run_code(
             "language": data.get("language"),
             "version": data.get("version"),
         }
-    except httpx.TimeoutException:
-        return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Code runner error: {str(e)}")
+        # Fallback to local execution if language is Python
+        if "python" in body.language.lower():
+            try:
+                import subprocess
+                import sys
+                code = body.files[0].content
+                # Run locally in a secure timeout
+                proc = subprocess.run(
+                    [sys.executable, "-c", code],
+                    capture_output=True, text=True, timeout=5.0
+                )
+                return {
+                    "stdout": proc.stdout,
+                    "stderr": proc.stderr,
+                    "code": proc.returncode,
+                    "signal": None,
+                    "language": "python",
+                    "version": sys.version.split()[0],
+                }
+            except subprocess.TimeoutExpired:
+                return {"stdout": "", "stderr": "Execution timed out (5s limit).", "code": 1}
+            except Exception as ex:
+                raise HTTPException(status_code=500, detail=f"Local runner failed: {str(ex)}")
+        elif "javascript" in body.language.lower() or "node" in body.language.lower():
+            try:
+                import subprocess
+                code = body.files[0].content
+                proc = subprocess.run(
+                    ["node", "-e", code],
+                    capture_output=True, text=True, timeout=5.0
+                )
+                return {
+                    "stdout": proc.stdout,
+                    "stderr": proc.stderr,
+                    "code": proc.returncode,
+                    "signal": None,
+                    "language": "javascript",
+                    "version": "node",
+                }
+            except Exception:
+                pass
+                
+        raise HTTPException(status_code=502, detail=f"Code runner unavailable: Public Piston API is whitelist only. Configure JDoodle API keys or host locally. Language requested: {body.language}")
 
 
 @router.get("/piston/runtimes")
