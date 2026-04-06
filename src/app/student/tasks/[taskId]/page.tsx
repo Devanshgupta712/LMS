@@ -497,4 +497,3 @@ function CodingEditor({ index, questionText, code, onChange, onRun, running, out
         </div>
     );
 }
-}
