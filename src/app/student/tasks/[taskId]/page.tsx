@@ -111,7 +111,10 @@ export default function AssessmentSessionPage() {
             }
 
             if (qData.is_completed) {
-                setFinalScore(0);
+                setFinalScore(qData.score || 0);
+                setResults(qData.results || []);
+                setAiGrading(qData.ai_grading || 'n/a');
+                if (heartbeatRef.current) clearInterval(heartbeatRef.current);
             } else {
                 startHeartbeat(startData.session_id);
             }
@@ -129,6 +132,29 @@ export default function AssessmentSessionPage() {
             if (retryCount === 0 || !error) setLoading(false);
         }
     };
+
+    // Polling for AI Grading results
+    useEffect(() => {
+        let pollTimer: NodeJS.Timeout | null = null;
+
+        if (isCompleted && aiGrading === 'pending' && sessionId) {
+            pollTimer = setInterval(async () => {
+                try {
+                    const qData = await apiGet(`/api/training/assessments/${sessionId}/questions`);
+                    if (qData.ai_grading !== 'pending') {
+                        setFinalScore(qData.score || 0);
+                        setResults(qData.results || []);
+                        setAiGrading(qData.ai_grading || 'n/a');
+                        if (pollTimer) clearInterval(pollTimer);
+                    }
+                } catch (e) {
+                    console.error('Polling for AI grading failed', e);
+                }
+            }, 5000);
+        }
+
+        return () => { if (pollTimer) clearInterval(pollTimer); };
+    }, [isCompleted, aiGrading, sessionId]);
 
     const startHeartbeat = (sid: string) => {
         if (heartbeatRef.current) clearInterval(heartbeatRef.current);

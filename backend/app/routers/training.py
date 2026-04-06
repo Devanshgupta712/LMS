@@ -1911,6 +1911,18 @@ async def get_session_questions(
             parts.append("Hints:\n" + "\n".join(f"💡 {h}" for h in hints))
         task_description = "\n\n".join(parts) if parts else (item.description or "")
 
+    # Extract score and results from responses if available
+    session_score = session.score or 0
+    session_results = []
+    ai_status = "n/a"
+    if session.responses:
+        try:
+            resp_data = json_lib.loads(session.responses)
+            session_results = resp_data.get("results", [])
+            ai_status = resp_data.get("ai_grading", "n/a")
+        except Exception:
+            pass
+
     return {
         "session_id": session.id,
         "start_time": session.start_time.isoformat(),
@@ -1921,6 +1933,9 @@ async def get_session_questions(
         "questions": questions_for_student,
         "title": content.get("title", item.title if item else ""),
         "description": task_description,
+        "score": session_score,
+        "results": session_results,
+        "ai_grading": ai_status,
     }
 
 
@@ -2126,18 +2141,30 @@ async def submit_assessment(
                     if bg_session:
                         import json as jl
                         resp = jl.loads(bg_session.responses or "{}")
-                        resp.setdefault("results", []).append({
+                        
+                        # Store feedback and update the score
+                        feedback_entry = {
                             "type": "coding_feedback",
                             "score": ai_score,
                             "feedback": ai_feedback
-                        })
+                        }
+                        
+                        current_results = resp.get("results", [])
+                        # Ensure we don't duplicate feedback
+                        filtered_results = [r for r in current_results if r.get("type") != "coding_feedback"]
+                        filtered_results.append(feedback_entry)
+                        
+                        resp["results"] = filtered_results
                         resp["ai_grading"] = "done"
                         bg_session.score = ai_score
                         bg_session.responses = jl.dumps(resp)
+                        
                         await bg_db.commit()
-                        print(f"[AI Grading] Session {session_id} graded: {ai_score}%")
+                        print(f"[AI Grading] ✅ Session {session_id} successfully graded: {ai_score}%")
             except Exception as bg_err:
-                print(f"[AI Grading Background] Error: {bg_err}")
+                print(f"[AI Grading Background] ❌ EXCEPTION: {bg_err}")
+                import traceback
+                traceback.print_exc()
 
         asyncio.create_task(_grade_in_background())
 

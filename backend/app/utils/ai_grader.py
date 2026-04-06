@@ -103,11 +103,15 @@ def evaluate_submission(assignment_instructions: str, student_content: str, max_
             
         if resp.is_success:
             data = resp.json()
-            raw_content = data["choices"][0]["message"]["content"].strip()
-            result_json = json.loads(raw_content)
-            
+            raw_score = result_json.get("score")
+            try:
+                # Handle cases where score might be a string like "85" or a float
+                score_val = int(float(str(raw_score)))
+            except (ValueError, TypeError):
+                score_val = 0
+                
             return {
-                "score": int(result_json.get("score", 0)),
+                "score": score_val,
                 "feedback": result_json.get("feedback", "No feedback provided by AI.")
             }
         else:
