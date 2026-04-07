@@ -220,7 +220,7 @@ export default function AssignmentsPage() {
                                     </td>
                                     <td><span className="badge" style={{ background: `${typeColors[a.type]}20`, color: typeColors[a.type] }}>{typeIcons[a.type]} {a.type}</span></td>
                                     <td style={{ fontWeight: 600 }}>{a.total_marks}</td>
-                                    <td>{a.due_date ? <span style={{ color: isOverdue(a.due_date) ? '#ef4444' : 'var(--text-muted)' }}>{new Date(a.due_date).toLocaleDateString()}{isOverdue(a.due_date) && ' ⚠️'}</span> : '—'}</td>
+                                    <td>{a.due_date ? <span style={{ color: isOverdue(a.due_date) ? '#ef4444' : 'var(--text-muted)' }}>{new Date(a.due_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}{isOverdue(a.due_date) && ' ⚠️'}</span> : '—'}</td>
                                     <td><button className="badge badge-primary" onClick={() => handleViewSubmissions(a)} style={{ cursor: 'pointer', border: 'none' }}>{a.submission_count} submitted</button></td>
                                     <td><span className={`badge ${isOverdue(a.due_date) ? 'badge-danger' : 'badge-success'}`}>{isOverdue(a.due_date) ? 'Overdue' : 'Active'}</span></td>
                                     <td>

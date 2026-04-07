@@ -11,6 +11,8 @@ interface TaskItem {
     pdf_url: string | null; created_at: string;
 }
 
+const isOverdue = (d: string | null) => d ? new Date(d) < new Date() : false;
+
 const priorityColors: Record<string, string> = { LOW: '#10b981', MEDIUM: '#f59e0b', HIGH: '#f97316', URGENT: '#ef4444' };
 const statusColors: Record<string, string> = { PENDING: '#94a3b8', IN_PROGRESS: '#3b82f6', COMPLETED: '#10b981' };
 
@@ -245,7 +247,7 @@ export default function TasksPage() {
                                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: priorityColors[task.priority], display: 'inline-block' }} />
                                     {task.priority}
                                 </span>
-                                {task.due_date && <span>📅 {new Date(task.due_date).toLocaleDateString()}</span>}
+                                {task.due_date && <span>📅 {new Date(task.due_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}</span>}
                                 {task.assigned_by && <span>👤 {task.assigned_by}</span>}
                             </div>
                         </div>
@@ -441,7 +443,7 @@ export default function TasksPage() {
                                                 <option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option>
                                             </select>
                                         </div>
-                                        <div className="form-group"><label className="form-label">Due Date</label><input type="date" className="form-input" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
+                                        <div className="form-group"><label className="form-label">Due Date & Time</label><input type="datetime-local" className="form-input" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} /></div>
                                     </div>
 
                                     <div style={{ padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>

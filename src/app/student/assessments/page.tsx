@@ -194,7 +194,7 @@ export default function StudentAssessmentsPage() {
                                 {a.time_limit > 0 && <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px' }}>⏱️ {a.time_limit}m Limit</span>}
                                 {a.due_date && (
                                     <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px', color: isOverdue(a.due_date) ? '#ef4444' : 'inherit' }}>
-                                        📅 {new Date(a.due_date).toLocaleString()}
+                                        📅 {new Date(a.due_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
                                     </span>
                                 )}
                             </div>
