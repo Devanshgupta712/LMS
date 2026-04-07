@@ -59,11 +59,15 @@ export default function StudentAssessmentsPage() {
         document.addEventListener('paste', preventCopyPaste, { capture: true });
         document.addEventListener('keydown', preventCopyPaste, { capture: true });
 
+        // Force hide sidebar/body scroll when examining
+        document.body.style.overflow = 'hidden';
+
         return () => {
             document.removeEventListener('visibilitychange', onVisibilityChange);
             document.removeEventListener('copy', preventCopyPaste, { capture: true });
             document.removeEventListener('paste', preventCopyPaste, { capture: true });
             document.removeEventListener('keydown', preventCopyPaste, { capture: true });
+            document.body.style.overflow = 'unset';
         };
     }, [activeSubmission, submitDone]);
 
@@ -193,11 +197,24 @@ export default function StudentAssessmentsPage() {
 
             {/* Fullscreen Submission Workspace via React Portal */}
             {activeSubmission && typeof document !== 'undefined' && createPortal(
-                <div style={{ position: 'fixed', inset: 0, zIndex: 999999, background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }} onClick={() => setActiveSubmission(null)}>
-                    <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-primary)', width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '24px', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                <div style={{ 
+                    position: 'fixed', 
+                    top: 0, 
+                    left: 0, 
+                    right: 0, 
+                    bottom: 0, 
+                    width: '100vw', 
+                    height: '100vh', 
+                    zIndex: 9999999, 
+                    background: 'var(--bg-primary)', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    overflow: 'hidden' 
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', padding: '24px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
                             <h2 className="modal-title" style={{ margin: 0 }}>{activeSubmission.title}</h2>
-                            <button className="btn btn-sm btn-ghost" onClick={() => setActiveSubmission(null)}>✕</button>
+                            {!submitDone && <button className="btn btn-sm btn-ghost" onClick={() => setActiveSubmission(null)}>✕ Close & Exit</button>}
                         </div>
 
                         <div style={{ flex: 1, overflowY: 'auto' }}>
