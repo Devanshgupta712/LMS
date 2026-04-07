@@ -90,6 +90,7 @@ def evaluate_submission(assignment_instructions: str, student_content: str, max_
                                 f"The submission may contain MULTIPLE problems (marked as PROBLEM 1, PROBLEM 2, etc.). "
                                 f"You MUST evaluate ALL problems provided and provide a single holistic score (out of {max_marks}) considering the overall quality and completion of all tasks. "
                                 f"If multiple problems are solved, summarize the feedback for each. "
+                                f"IMPORTANT: You MUST award partial credit (e.g., 33, 50, 66) if some problems are solved correctly but others are missing, incomplete, or incorrect. Do not give a 0 unless NO problems were solved correctly. "
                                 f"Return ONLY a strictly valid JSON object with EXACTLY two keys: 'score' (an integer) and 'feedback' (a string). "
                                 f"Return no other text."
                             )

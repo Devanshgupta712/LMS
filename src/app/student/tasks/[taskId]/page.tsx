@@ -359,7 +359,7 @@ export default function AssessmentSessionPage() {
                     <div style={{ marginTop: '32px' }}>
                         <h3 className="section-title">Review Answers</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {results.map((r, i) => (
+                            {results.filter(r => r.type !== 'coding_feedback').map((r, i) => (
                                 <div key={i} className="card" style={{ border: `1px solid ${r.is_correct ? '#4ade80' : '#ef4444'}` }}>
                                     <p style={{ fontWeight: 600, fontSize: '15px' }}>{i + 1}. {r.question}</p>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
