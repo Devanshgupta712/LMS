@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiGet, apiFetch } from '@/lib/api';
+import WebDevEditor from '@/components/WebDevEditor';
 
 export default function StudentAssessmentsPage() {
     const [assignments, setAssignments] = useState<any[]>([]);
@@ -13,7 +14,33 @@ export default function StudentAssessmentsPage() {
     const [content, setContent] = useState('');
     const [file, setFile] = useState<File | null>(null);
 
+    // Browser Lock State
+    const [tabSwitchCount, setTabSwitchCount] = useState(0);
+    const tabCountRef = useRef(0);
+
     useEffect(() => { loadAssignments(); }, []);
+
+    // Tab Switching Detection Setup
+    useEffect(() => {
+        if (!activeSubmission) {
+            setTabSwitchCount(0);
+            tabCountRef.current = 0;
+            return;
+        }
+
+        const onVisibilityChange = () => {
+            if (document.hidden && activeSubmission && !submitDone) {
+                tabCountRef.current += 1;
+                setTabSwitchCount(tabCountRef.current);
+                if (tabCountRef.current >= 3) {
+                    forceSubmit('tab_limit_exceeded');
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+    }, [activeSubmission, submitDone]);
 
     const loadAssignments = async () => {
         try {
@@ -21,13 +48,17 @@ export default function StudentAssessmentsPage() {
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
+    const forceSubmit = async (reason: string) => {
+        alert(`Assignment Auto-Submitted: ${reason.replace('_', ' ')}`);
+        submitHandler(true);
+    };
+
     const handleFileDrop = (e: React.DragEvent) => {
         e.preventDefault();
         if (e.dataTransfer.files?.[0]) setFile(e.dataTransfer.files[0]);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const submitHandler = async (isAuto = false) => {
         setSubmitLoading(true);
         try {
             const formData = new FormData();
@@ -45,6 +76,8 @@ export default function StudentAssessmentsPage() {
                     setContent('');
                     setFile(null);
                     setSubmitDone(false);
+                    setTabSwitchCount(0);
+                    tabCountRef.current = 0;
                     loadAssignments();
                 }, 1500);
             } else {
@@ -56,6 +89,11 @@ export default function StudentAssessmentsPage() {
         } finally {
             setSubmitLoading(false);
         }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        submitHandler(false);
     };
 
     const isOverdue = (dueDate: string | null) => {
@@ -150,19 +188,19 @@ export default function StudentAssessmentsPage() {
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {/* Code/Text Input */}
-                                <div className="form-group">
-                                    <label className="form-label">Write or Paste Your Answer</label>
-                                    <textarea
-                                        className="form-input"
-                                        rows={8}
-                                        style={{ fontFamily: 'monospace' }}
-                                        placeholder="Type or paste your code / answer here..."
-                                        value={content}
-                                        onChange={e => setContent(e.target.value)}
-                                        disabled={file !== null}
+                                {tabSwitchCount > 0 && (
+                                    <div style={{ color: 'red', fontWeight: 600, fontSize: '13px', marginBottom: '8px' }}>
+                                        ⚠️ Tab Switches: {tabSwitchCount}/3 (Warning: Assignment will auto-submit on 3rd switch!)
+                                    </div>
+                                )}
+
+                                {/* Web Dev Editor */}
+                                {file === null && (
+                                    <WebDevEditor 
+                                        code={content} 
+                                        onChange={(val) => setContent(val)} 
                                     />
-                                </div>
+                                )}
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                     <hr style={{ flex: 1, borderColor: 'var(--border)' }} />
