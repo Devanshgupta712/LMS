@@ -98,15 +98,39 @@ export default function AssignmentsPage() {
             if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.detail || 'Failed'); }
             const result = await resp.json();
             setAiPreview(result);
+
+            // Format description based on task type and returned structure
+            let generatedDescription = result.description || '';
+            
+            if (result.questions && result.questions.length > 0) {
+                const qList = result.questions.map((q: any, i: number) => {
+                    if (form.type === 'MCQ') {
+                        const opts = q.options?.map((opt: string, idx: number) => `${String.fromCharCode(65 + idx)}) ${opt}`).join('\n') || '';
+                        return `Question ${i + 1}: ${q.question}\n${opts}\n(Correct Answer: Option ${String.fromCharCode(65 + (q.answer || 0))})\n${q.explanation ? `Explanation: ${q.explanation}\n` : ''}`;
+                    } else if (form.type === 'CODING') {
+                        return `Problem ${i+1}: ${q.question}\n\nStarter Code:\n\`\`\`\n${q.initial_code || ''}\n\`\`\`\n\nConstraints:\n${q.constraints?.map((c: string) => `- ${c}`).join('\n') || 'None'}`;
+                    }
+                    return `Item ${i+1}: ${q.question || q.text || ''}`;
+                }).join('\n\n---\n\n');
+                generatedDescription += `\n\n${qList}`;
+            }
+
+            if (result.requirements && result.requirements.length > 0) {
+                generatedDescription += '\n\nRequirements:\n' + result.requirements.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n');
+            }
+
+            if (result.hints && result.hints.length > 0) {
+                generatedDescription += '\n\nHints:\n' + result.hints.map((h: string) => `• ${h}`).join('\n');
+            }
+
+            if (result.estimated_hours) {
+                generatedDescription += `\n\nEstimated Time: ${result.estimated_hours} hours`;
+            }
+
             setForm(f => ({
                 ...f,
-                title: result.title || '',
-                description: [
-                    result.description || '',
-                    result.requirements?.length ? '\n\nRequirements:\n' + result.requirements.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n') : '',
-                    result.hints?.length ? '\n\nHints:\n' + result.hints.map((h: string) => `• ${h}`).join('\n') : '',
-                    result.estimated_hours ? `\n\nEstimated Time: ${result.estimated_hours} hours` : ''
-                ].join(''),
+                title: result.title || f.title,
+                description: generatedDescription,
                 time_limit: (aiTimeLimit || 0).toString()
             }));
             setStep('ai_review');
