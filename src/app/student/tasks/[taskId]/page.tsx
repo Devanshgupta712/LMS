@@ -161,24 +161,28 @@ export default function AssessmentSessionPage() {
         heartbeatRef.current = setInterval(async () => {
             if (isCompletedRef.current) return;
             try {
-                // Use current state via refs if needed, or send current answers
+                // Use functional state updates to grab the freshest answers and codeAnswers without stale closures
                 setAnswers(currentAnswers => {
-                    apiFetch(`/api/training/assessments/${sid}/heartbeat`, {
-                        method: 'POST',
-                        body: JSON.stringify({ answers: currentAnswers })
-                    }).then(res => res.json()).then(data => {
-                        if (data.status === 'auto_submitted') {
-                            alert(`Assessment Auto-Submitted: ${data.reason.replace('_', ' ')}`);
-                            handleSubmissionResult(true);
-                        } else {
-                            if (data.remaining_seconds !== undefined) {
-                                setRemainingSeconds(data.remaining_seconds);
+                    setCodeAnswers(currentCodeAnswers => {
+                        const payload = { ...currentAnswers, ...currentCodeAnswers };
+                        apiFetch(`/api/training/assessments/${sid}/heartbeat`, {
+                            method: 'POST',
+                            body: JSON.stringify({ answers: payload })
+                        }).then(res => res.json()).then(data => {
+                            if (data.status === 'auto_submitted') {
+                                alert(`Assessment Auto-Submitted: ${data.reason.replace('_', ' ')}`);
+                                handleSubmissionResult(true);
+                            } else {
+                                if (data.remaining_seconds !== undefined) {
+                                    setRemainingSeconds(data.remaining_seconds);
+                                }
+                                if (data.tab_switch_count !== undefined) {
+                                    setTabSwitchCount(data.tab_switch_count);
+                                }
                             }
-                            if (data.tab_switch_count !== undefined) {
-                                setTabSwitchCount(data.tab_switch_count);
-                            }
-                        }
-                    }).catch(console.error);
+                        }).catch(console.error);
+                        return currentCodeAnswers; // don't mutate state
+                    });
                     return currentAnswers; // don't mutate state
                 });
             } catch (e) { console.error('Heartbeat failed', e); }
@@ -245,12 +249,20 @@ export default function AssessmentSessionPage() {
         setIsCompleted(true);
         if (heartbeatRef.current) clearInterval(heartbeatRef.current);
         // Force a submit call to finalize score
-        apiFetch(`/api/training/assessments/${sessionId}/submit`, {
-            method: 'POST',
-            body: JSON.stringify({ answers: answers })
-        }).then(res => res.json()).then(data => {
-            setFinalScore(data.score || 0);
-            setResults(data.results || []);
+        setAnswers(currentAnswers => {
+            setCodeAnswers(currentCodeAnswers => {
+                const finalAnswers = { ...currentAnswers, ...currentCodeAnswers };
+                apiFetch(`/api/training/assessments/${sessionId}/submit`, {
+                    method: 'POST',
+                    body: JSON.stringify({ answers: finalAnswers })
+                }).then(res => res.json()).then(data => {
+                    setFinalScore(data.score || 0);
+                    setResults(data.results || []);
+                    setAiGrading(data.ai_grading || 'n/a');
+                });
+                return currentCodeAnswers;
+            });
+            return currentAnswers;
         });
     };
 
