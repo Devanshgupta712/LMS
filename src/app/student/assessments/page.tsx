@@ -20,7 +20,7 @@ export default function StudentAssessmentsPage() {
 
     useEffect(() => { loadAssignments(); }, []);
 
-    // Tab Switching Detection Setup
+    // Tab Switching & Anti-Cheat Setup
     useEffect(() => {
         if (!activeSubmission) {
             setTabSwitchCount(0);
@@ -38,8 +38,32 @@ export default function StudentAssessmentsPage() {
             }
         };
 
+        const preventCopyPaste = (e: ClipboardEvent | KeyboardEvent) => {
+            if (!activeSubmission) return;
+            if (e.type === 'copy' || e.type === 'paste') {
+                e.preventDefault();
+                alert('Copying & Pasting is strictly disabled during assessments.');
+            }
+            if (e.type === 'keydown') {
+                const keyEvent = e as KeyboardEvent;
+                if ((keyEvent.ctrlKey || keyEvent.metaKey) && (keyEvent.key === 'c' || keyEvent.key === 'v')) {
+                    e.preventDefault();
+                    alert('Copying & Pasting is strictly disabled during assessments.');
+                }
+            }
+        };
+
         document.addEventListener('visibilitychange', onVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+        document.addEventListener('copy', preventCopyPaste, { capture: true });
+        document.addEventListener('paste', preventCopyPaste, { capture: true });
+        document.addEventListener('keydown', preventCopyPaste, { capture: true });
+
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            document.removeEventListener('copy', preventCopyPaste, { capture: true });
+            document.removeEventListener('paste', preventCopyPaste, { capture: true });
+            document.removeEventListener('keydown', preventCopyPaste, { capture: true });
+        };
     }, [activeSubmission, submitDone]);
 
     const loadAssignments = async () => {
@@ -166,10 +190,10 @@ export default function StudentAssessmentsPage() {
                 </div>
             )}
 
-            {/* Submission Modal */}
+            {/* Fullscreen Submission Workspace */}
             {activeSubmission && (
-                <div className="modal-overlay" onClick={() => setActiveSubmission(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '95vw', maxWidth: 'none', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 999999, background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }} onClick={() => setActiveSubmission(null)}>
+                    <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-primary)', width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '24px', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
                             <h2 className="modal-title" style={{ margin: 0 }}>{activeSubmission.title}</h2>
                             <button className="btn btn-sm btn-ghost" onClick={() => setActiveSubmission(null)}>✕</button>
