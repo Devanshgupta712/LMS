@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone, date
@@ -2009,6 +2009,7 @@ async def session_heartbeat(
 async def submit_assessment(
     session_id: str,
     body: dict,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -2178,7 +2179,7 @@ async def submit_assessment(
                 import traceback
                 traceback.print_exc()
 
-        asyncio.create_task(_grade_in_background())
+        background_tasks.add_task(_grade_in_background)
 
     return {
         "status": "submitted",
