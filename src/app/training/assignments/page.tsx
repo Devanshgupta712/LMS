@@ -36,6 +36,8 @@ export default function AssignmentsPage() {
     const [aiTopic, setAiTopic] = useState('');
     const [aiDifficulty, setAiDifficulty] = useState('Intermediate');
     const [aiQuestionCount, setAiQuestionCount] = useState(5);
+    const [aiTimeLimit, setAiTimeLimit] = useState(0);
+    const [aiRandomize, setAiRandomize] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [aiPreview, setAiPreview] = useState<any>(null);
     const [aiError, setAiError] = useState('');
@@ -70,6 +72,7 @@ export default function AssignmentsPage() {
         setStep('method');
         setForm({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '', time_limit: '0' });
         setAiTopic(''); setAiDifficulty('Intermediate');
+        setAiQuestionCount(5); setAiTimeLimit(0); setAiRandomize(true);
         setAiPreview(null); setAiError('');
         setPdfFile(null);
         setSelectedBatch(''); setSelectedStudent('');
@@ -83,7 +86,14 @@ export default function AssignmentsPage() {
         try {
             const resp = await apiFetch('/api/training/generate-task', {
                 method: 'POST',
-                body: JSON.stringify({ topic: aiTopic, task_type: form.type, difficulty: aiDifficulty, question_count: Number(aiQuestionCount) })
+                body: JSON.stringify({ 
+                    topic: aiTopic, 
+                    task_type: form.type, 
+                    difficulty: aiDifficulty, 
+                    question_count: Number(aiQuestionCount),
+                    time_limit: Number(aiTimeLimit),
+                    is_randomized: aiRandomize
+                })
             });
             if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.detail || 'Failed'); }
             const result = await resp.json();
@@ -96,7 +106,8 @@ export default function AssignmentsPage() {
                     result.requirements?.length ? '\n\nRequirements:\n' + result.requirements.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n') : '',
                     result.hints?.length ? '\n\nHints:\n' + result.hints.map((h: string) => `• ${h}`).join('\n') : '',
                     result.estimated_hours ? `\n\nEstimated Time: ${result.estimated_hours} hours` : ''
-                ].join('')
+                ].join(''),
+                time_limit: (aiTimeLimit || 0).toString()
             }));
             setStep('ai_review');
         } catch (e: any) { setAiError(e?.message || 'AI generation failed.'); }
@@ -282,14 +293,25 @@ export default function AssignmentsPage() {
                                         <div className="form-group" style={{ margin: 0 }}>
                                             <label className="form-label">Difficulty</label>
                                             <select className="form-input" value={aiDifficulty} onChange={e => setAiDifficulty(e.target.value)}>
-                                                <option>Beginner</option>
-                                                <option>Intermediate</option>
-                                                <option>Advanced</option>
+                                                <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
                                             </select>
                                         </div>
                                         <div className="form-group" style={{ margin: 0 }}>
                                             <label className="form-label">Items Count</label>
                                             <input type="number" min={1} max={25} className="form-input" value={aiQuestionCount} onChange={e => setAiQuestionCount(parseInt(e.target.value) || 5)} />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div className="form-group" style={{ margin: 0 }}>
+                                            <label className="form-label">Time Limit (mins, 0=none)</label>
+                                            <input type="number" min={0} className="form-input" value={aiTimeLimit} onChange={e => setAiTimeLimit(parseInt(e.target.value) || 0)} />
+                                        </div>
+                                        <div className="form-group" style={{ margin: 0, display: 'flex', alignItems: 'center', paddingTop: '28px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}>
+                                                <input type="checkbox" checked={aiRandomize} onChange={e => setAiRandomize(e.target.checked)} style={{ transform: 'scale(1.2)' }} />
+                                                Shuffle questions per student
+                                            </label>
                                         </div>
                                     </div>
 
