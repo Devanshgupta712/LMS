@@ -169,17 +169,18 @@ export default function StudentAssessmentsPage() {
             {/* Submission Modal */}
             {activeSubmission && (
                 <div className="modal-overlay" onClick={() => setActiveSubmission(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '620px', width: '100%' }}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '95vw', maxWidth: 'none', height: '95vh', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <h2 className="modal-title" style={{ margin: 0 }}>{activeSubmission.title}</h2>
                             <button className="btn btn-sm btn-ghost" onClick={() => setActiveSubmission(null)}>✕</button>
                         </div>
 
-                        {activeSubmission.description && (
-                            <div style={{ background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', marginBottom: '16px', lineHeight: 1.6 }}>
-                                {activeSubmission.description}
-                            </div>
-                        )}
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                            {activeSubmission.description && (
+                                <div style={{ background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', marginBottom: '16px', lineHeight: 1.6 }}>
+                                    {activeSubmission.description}
+                                </div>
+                            )}
 
                         {submitDone ? (
                             <div style={{ textAlign: 'center', padding: '32px', color: '#4ade80' }}>
@@ -187,7 +188,7 @@ export default function StudentAssessmentsPage() {
                                 <h3>Submitted Successfully!</h3>
                             </div>
                         ) : (
-                            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
                                 {tabSwitchCount > 0 && (
                                     <div style={{ color: 'red', fontWeight: 600, fontSize: '13px', marginBottom: '8px' }}>
                                         ⚠️ Tab Switches: {tabSwitchCount}/3 (Warning: Assignment will auto-submit on 3rd switch!)
@@ -238,7 +239,7 @@ export default function StudentAssessmentsPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
                                     <button type="button" className="btn btn-ghost" onClick={() => setActiveSubmission(null)}>Cancel</button>
                                     <button type="submit" className="btn btn-primary" disabled={submitLoading || (!content && !file)}>
                                         {submitLoading ? '⏳ Submitting...' : '📤 Submit Assignment'}
@@ -246,6 +247,7 @@ export default function StudentAssessmentsPage() {
                                 </div>
                             </form>
                         )}
+                        </div>
                     </div>
                 </div>
             )}
