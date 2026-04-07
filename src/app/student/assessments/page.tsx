@@ -11,6 +11,7 @@ export default function StudentAssessmentsPage() {
     const [activeSubmission, setActiveSubmission] = useState<any>(null);
     const [submitLoading, setSubmitLoading] = useState(false);
     const [submitDone, setSubmitDone] = useState(false);
+    const [timeLeft, setTimeLeft] = useState<number | null>(null); // seconds remaining
 
     const [content, setContent] = useState('');
     const [file, setFile] = useState<File | null>(null);
@@ -59,6 +60,25 @@ export default function StudentAssessmentsPage() {
         document.addEventListener('paste', preventCopyPaste, { capture: true });
         document.addEventListener('keydown', preventCopyPaste, { capture: true });
 
+        // Timer Logic
+        let timerId: any;
+        if (activeSubmission?.time_limit > 0 && !submitDone) {
+            setTimeLeft(activeSubmission.time_limit * 60);
+            timerId = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev === null) return null;
+                    if (prev <= 1) {
+                        clearInterval(timerId);
+                        forceSubmit('time_expired');
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } else {
+            setTimeLeft(null);
+        }
+
         // Force hide sidebar/body scroll when examining
         document.body.style.overflow = 'hidden';
 
@@ -67,6 +87,7 @@ export default function StudentAssessmentsPage() {
             document.removeEventListener('copy', preventCopyPaste, { capture: true });
             document.removeEventListener('paste', preventCopyPaste, { capture: true });
             document.removeEventListener('keydown', preventCopyPaste, { capture: true });
+            if (timerId) clearInterval(timerId);
             document.body.style.overflow = 'unset';
         };
     }, [activeSubmission, submitDone]);
@@ -93,6 +114,7 @@ export default function StudentAssessmentsPage() {
             const formData = new FormData();
             if (content) formData.append('content', content);
             if (file) formData.append('file', file);
+            formData.append('tab_switches', tabSwitchCount.toString());
 
             const res = await apiFetch(`/api/training/assignments/${activeSubmission.id}/submit`, {
                 method: 'POST',
@@ -169,9 +191,10 @@ export default function StudentAssessmentsPage() {
 
                             <div style={{ display: 'flex', gap: '8px', fontSize: '12px', flexWrap: 'wrap' }}>
                                 <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px' }}>🏆 {a.total_marks} Marks</span>
+                                {a.time_limit > 0 && <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px' }}>⏱️ {a.time_limit}m Limit</span>}
                                 {a.due_date && (
                                     <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px', color: isOverdue(a.due_date) ? '#ef4444' : 'inherit' }}>
-                                        📅 {new Date(a.due_date).toLocaleDateString()}
+                                        📅 {new Date(a.due_date).toLocaleString()}
                                     </span>
                                 )}
                             </div>
@@ -218,11 +241,32 @@ export default function StudentAssessmentsPage() {
                         </div>
 
                         <div style={{ flex: 1, overflowY: 'auto' }}>
-                            {activeSubmission.description && (
-                                <div style={{ background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', marginBottom: '16px', lineHeight: 1.6 }}>
-                                    {activeSubmission.description}
-                                </div>
-                            )}
+                            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                                {activeSubmission.description && (
+                                    <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', lineHeight: 1.6 }}>
+                                        {activeSubmission.description}
+                                    </div>
+                                )}
+                                {timeLeft !== null && (
+                                    <div style={{ 
+                                        width: '180px', 
+                                        background: timeLeft < 300 ? '#ef444415' : 'var(--bg-secondary)', 
+                                        border: `2px solid ${timeLeft < 300 ? '#ef4444' : 'var(--border)'}`,
+                                        padding: '16px', 
+                                        borderRadius: '12px', 
+                                        textAlign: 'center',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        flexShrink: 0
+                                    }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 700, color: timeLeft < 300 ? '#ef4444' : 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Time Remaining</div>
+                                        <div style={{ fontSize: '24px', fontWeight: 800, color: timeLeft < 300 ? '#ef4444' : 'var(--text-primary)', fontFamily: 'monospace' }}>
+                                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                         {submitDone ? (
                             <div style={{ textAlign: 'center', padding: '32px', color: '#4ade80' }}>

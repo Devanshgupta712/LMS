@@ -30,6 +30,7 @@ const docTypes = [
 export default function StudentProfilePage() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [documents, setDocuments] = useState<DocItem[]>([]);
+    const [tabViolations, setTabViolations] = useState(0);
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
     const [editForm, setEditForm] = useState({
@@ -60,6 +61,12 @@ export default function StudentProfilePage() {
             ]);
             setProfile(p);
             setDocuments(d);
+            
+            // Fetch tab violations count
+            try {
+                const violations = await apiGet(`/api/training/violations?student_id=${p.id}&type=TAB_SWITCHING`);
+                setTabViolations(violations?.length || 0);
+            } catch { }
             setEditForm({
                 name: p.name, phone: p.phone || '',
                 dob: p.dob || '', education_status: p.education_status || 'Studying',
@@ -239,17 +246,47 @@ export default function StudentProfilePage() {
                                     <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)} style={{ marginLeft: 'auto' }}>✏️ Edit</button>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', marginTop: '16px' }}>
-                                    <InfoItem icon="✉️" label="Email" value={profile?.email || ''} />
-                                    <InfoItem icon="📱" label="Phone" value={profile?.phone || 'Not provided'} />
-                                    <InfoItem icon="🆔" label="Student ID" value={profile?.student_id || 'N/A'} />
-                                    <InfoItem icon="📅" label="Joined" value={profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : ''} />
-                                    <InfoItem icon="🎂" label="Date of Birth" value={profile?.dob ? new Date(profile.dob).toLocaleDateString() : 'Not provided'} />
-                                    <InfoItem icon="🎓" label="Education Status" value={profile?.education_status === 'Passout' ? 'Passout' : 'Currently Studying'} />
-                                    <InfoItem icon="🏫" label="Highest Education" value={profile?.highest_education || 'Not provided'} />
-                                    <InfoItem icon="📜" label="Degree / Details" value={profile?.degree || 'Not provided'} />
-                                    <InfoItem icon="🎯" label="Passing Year" value={profile?.passing_year || 'Not provided'} />
-                                    <InfoItem icon="🟢" label="Status" value={profile?.is_active ? 'Active' : 'Inactive'} />
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px', marginTop: '24px' }}>
+                                    {/* Primary Info */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <h4 style={{ fontSize: '12px', fontWeight: 700, color: roleColor, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Basic Information</h4>
+                                        <InfoItem icon="✉️" label="Email" value={profile?.email || ''} />
+                                        <InfoItem icon="📱" label="Phone" value={profile?.phone || 'Not provided'} />
+                                        <InfoItem icon="🆔" label="Student ID" value={profile?.student_id || 'N/A'} />
+                                        <InfoItem icon="📅" label="Joined" value={profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : ''} />
+                                    </div>
+
+                                    {/* Education Info */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <h4 style={{ fontSize: '12px', fontWeight: 700, color: roleColor, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Education Details</h4>
+                                        <InfoItem icon="🎓" label="Status" value={profile?.education_status === 'Passout' ? 'Passout' : 'Currently Studying'} />
+                                        <InfoItem icon="🏫" label="Highest" value={profile?.highest_education || 'Not provided'} />
+                                        <InfoItem icon="📜" label="Degree" value={profile?.degree || 'Not provided'} />
+                                        <InfoItem icon="🎯" label="Passout Year" value={profile?.passing_year || 'Not provided'} />
+                                    </div>
+
+                                    {/* Security/Integrity Info */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <h4 style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Security & Integrity</h4>
+                                        <div style={{ 
+                                            padding: '16px', 
+                                            background: tabViolations > 0 ? '#ef444410' : '#10b98110', 
+                                            border: `1px solid ${tabViolations > 0 ? '#ef444430' : '#10b98130'}`,
+                                            borderRadius: '12px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px'
+                                        }}>
+                                            <div style={{ fontSize: '24px' }}>{tabViolations > 0 ? '⚠️' : '🛡️'}</div>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>TAB SWITCH VIOLATIONS</div>
+                                                <div style={{ fontSize: '18px', fontWeight: 800, color: tabViolations > 0 ? '#ef4444' : '#10b981' }}>{tabViolations}</div>
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                            * Tab switching is monitored during proctored assessments.
+                                        </div>
+                                    </div>
                                 </div>
                             </>
                         )}

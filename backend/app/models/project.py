@@ -47,6 +47,7 @@ class ViolationType(str, enum.Enum):
     HONOR_CODE_VIOLATION = "HONOR_CODE_VIOLATION"
     DISRUPTIVE_BEHAVIOR = "DISRUPTIVE_BEHAVIOR"
     PLAGIARISM = "PLAGIARISM"
+    TAB_SWITCHING = "TAB_SWITCHING"
 
 
 class ViolationSeverity(str, enum.Enum):

@@ -832,6 +832,7 @@ async def list_assignments(
             "total_marks": a.total_marks,
             "assigned_by": trainer.name if trainer else None,
             "due_date": a.due_date.isoformat() if a.due_date else None,
+            "time_limit": a.time_limit or 0,
             "submission_count": sub_count.scalar() or 0,
             "created_at": a.created_at.isoformat() if a.created_at else None,
             "my_submission": student_sub,
@@ -862,7 +863,11 @@ async def create_assignment(
         structured_content=body.get("structured_content")
     )
     if body.get("due_date"):
-        assignment.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
+        try:
+            # Try parsing ISO format (with time) first, then fallback to date-only
+            assignment.due_date = datetime.fromisoformat(body["due_date"].replace('Z', '+00:00'))
+        except ValueError:
+            assignment.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
     db.add(assignment)
     await db.flush()
 
@@ -967,6 +972,7 @@ async def submit_assignment(
     assignment_id: str,
     content: str = Form(None),
     file: UploadFile = File(None),
+    tab_switches: int = Form(0),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -983,8 +989,9 @@ async def submit_assignment(
     if not assignment:
         raise HTTPException(404, "Assignment not found")
 
-    # Check deadlines for violations
-    if assignment.due_date and assignment.due_date < datetime.utcnow():
+    # Check deadlines for violations (compare with current UTC time)
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    if assignment.due_date and assignment.due_date < now_utc:
         violation = Violation(
             student_id=user.id,
             type=ViolationType.POOR_ACADEMIC_PERFORMANCE,
@@ -1026,6 +1033,20 @@ async def submit_assignment(
         )
         ai_score = eval_result.get("score")
         ai_feedback = eval_result.get("feedback")
+
+    # 3. Tab Switching Violation Logging
+    if tab_switches > 0:
+        violation = Violation(
+            student_id=user.id,
+            type=ViolationType.TAB_SWITCHING,
+            severity=ViolationSeverity.HIGH if tab_switches >= 3 else ViolationSeverity.MEDIUM,
+            title=f"Proctoring: Tab Switching detected in {assignment.title}",
+            description=f"Student switched tabs {tab_switches} times during the assessment.",
+            reference_type="ASSIGNMENT",
+            reference_id=assignment_id,
+            penalty_points=10 * tab_switches
+        )
+        db.add(violation)
 
     submission = AssignmentSubmission(
         assignment_id=assignment_id, 

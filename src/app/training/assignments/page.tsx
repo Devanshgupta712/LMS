@@ -29,7 +29,7 @@ export default function AssignmentsPage() {
     const [selectedStudent, setSelectedStudent] = useState('');
 
     // Form
-    const [form, setForm] = useState({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '' });
+    const [form, setForm] = useState({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '', time_limit: '0' });
     const [saving, setSaving] = useState(false);
 
     // AI generation
@@ -68,7 +68,7 @@ export default function AssignmentsPage() {
 
     const resetModal = () => {
         setStep('method');
-        setForm({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '' });
+        setForm({ title: '', description: '', type: 'CODING', total_marks: '100', due_date: '', time_limit: '0' });
         setAiTopic(''); setAiDifficulty('Intermediate');
         setAiPreview(null); setAiError('');
         setPdfFile(null);
@@ -121,7 +121,9 @@ export default function AssignmentsPage() {
             }
 
             const body: any = {
-                ...form, total_marks: parseInt(form.total_marks) || 100,
+                ...form, 
+                total_marks: parseInt(form.total_marks) || 100,
+                time_limit: parseInt(form.time_limit) || 0,
                 batch_id: selectedBatch || null,
                 ...(selectedStudent ? { student_id: selectedStudent } : {}),
                 ...(pdfUrl ? { pdf_url: pdfUrl } : {})
@@ -457,7 +459,7 @@ export default function AssignmentsPage() {
                                         <label className="form-label">Description / Instructions</label>
                                         <textarea className="form-input" rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                                         <div className="form-group">
                                             <label className="form-label">Type</label>
                                             <select className="form-input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
@@ -468,12 +470,16 @@ export default function AssignmentsPage() {
                                             </select>
                                         </div>
                                         <div className="form-group">
-                                            <label className="form-label">Total Marks</label>
+                                            <label className="form-label">Marks</label>
                                             <input type="number" className="form-input" value={form.total_marks} onChange={e => setForm({ ...form, total_marks: e.target.value })} />
                                         </div>
                                         <div className="form-group">
-                                            <label className="form-label">Due Date</label>
-                                            <input type="date" className="form-input" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
+                                            <label className="form-label">Due Time</label>
+                                            <input type="datetime-local" className="form-input" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Limit (Min)</label>
+                                            <input type="number" placeholder="0 = No limit" className="form-input" value={form.time_limit} onChange={e => setForm({ ...form, time_limit: e.target.value })} />
                                         </div>
                                     </div>
 
