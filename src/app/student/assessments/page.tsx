@@ -169,8 +169,8 @@ export default function StudentAssessmentsPage() {
             {/* Submission Modal */}
             {activeSubmission && (
                 <div className="modal-overlay" onClick={() => setActiveSubmission(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '95vw', maxWidth: 'none', height: '95vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ width: '95vw', maxWidth: 'none', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
                             <h2 className="modal-title" style={{ margin: 0 }}>{activeSubmission.title}</h2>
                             <button className="btn btn-sm btn-ghost" onClick={() => setActiveSubmission(null)}>✕</button>
                         </div>
@@ -188,22 +188,29 @@ export default function StudentAssessmentsPage() {
                                 <h3>Submitted Successfully!</h3>
                             </div>
                         ) : (
-                            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+                            <form 
+                                onSubmit={handleSubmit} 
+                                onPaste={(e) => { e.preventDefault(); alert('Copy/pasting is disabled for assignments.'); }}
+                                onCopy={(e) => { e.preventDefault(); alert('Copying is disabled for assignments.'); }}
+                                style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}
+                            >
                                 {tabSwitchCount > 0 && (
-                                    <div style={{ color: 'red', fontWeight: 600, fontSize: '13px', marginBottom: '8px' }}>
+                                    <div style={{ color: 'red', fontWeight: 600, fontSize: '13px', marginBottom: '8px', flexShrink: 0 }}>
                                         ⚠️ Tab Switches: {tabSwitchCount}/3 (Warning: Assignment will auto-submit on 3rd switch!)
                                     </div>
                                 )}
 
                                 {/* Web Dev Editor */}
                                 {file === null && (
-                                    <WebDevEditor 
-                                        code={content} 
-                                        onChange={(val) => setContent(val)} 
-                                    />
+                                    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                                        <WebDevEditor 
+                                            code={content} 
+                                            onChange={(val) => setContent(val)} 
+                                        />
+                                    </div>
                                 )}
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
                                     <hr style={{ flex: 1, borderColor: 'var(--border)' }} />
                                     <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>OR</span>
                                     <hr style={{ flex: 1, borderColor: 'var(--border)' }} />
@@ -239,7 +246,7 @@ export default function StudentAssessmentsPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
                                     <button type="button" className="btn btn-ghost" onClick={() => setActiveSubmission(null)}>Cancel</button>
                                     <button type="submit" className="btn btn-primary" disabled={submitLoading || (!content && !file)}>
                                         {submitLoading ? '⏳ Submitting...' : '📤 Submit Assignment'}
