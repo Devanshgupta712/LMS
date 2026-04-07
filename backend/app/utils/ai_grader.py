@@ -104,6 +104,9 @@ def evaluate_submission(assignment_instructions: str, student_content: str, max_
             
         if resp.is_success:
             data = resp.json()
+            raw_content = data["choices"][0]["message"]["content"].strip()
+            result_json = json.loads(raw_content)
+            
             raw_score = result_json.get("score")
             try:
                 # Handle cases where score might be a string like "85" or a float
