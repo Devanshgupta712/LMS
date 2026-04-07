@@ -62,7 +62,7 @@ export default function WebDevEditor({ code, onChange, title, description }: Web
                 </div>
                 
                 {/* Two Column Layout for Code and Output */}
-                <div style={{ display: 'flex', flex: 1, minHeight: '500px' }}>
+                <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
                     
                     {/* Monaco Editor Panel */}
                     <div style={{ flex: 1, borderRight: '1px solid var(--border)', background: '#1e1e1e' }}>
@@ -77,7 +77,8 @@ export default function WebDevEditor({ code, onChange, title, description }: Web
                                 fontSize: 13,
                                 tabSize: 4,
                                 scrollBeyondLastLine: false,
-                                wordWrap: 'on'
+                                wordWrap: 'on',
+                                contextmenu: false
                             }}
                         />
                     </div>

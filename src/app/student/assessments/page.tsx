@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { apiGet, apiFetch } from '@/lib/api';
 import WebDevEditor from '@/components/WebDevEditor';
 
@@ -190,8 +191,8 @@ export default function StudentAssessmentsPage() {
                 </div>
             )}
 
-            {/* Fullscreen Submission Workspace */}
-            {activeSubmission && (
+            {/* Fullscreen Submission Workspace via React Portal */}
+            {activeSubmission && typeof document !== 'undefined' && createPortal(
                 <div style={{ position: 'fixed', inset: 0, zIndex: 999999, background: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }} onClick={() => setActiveSubmission(null)}>
                     <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-primary)', width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '24px', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
@@ -280,7 +281,7 @@ export default function StudentAssessmentsPage() {
                         )}
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
         </div>
     );
