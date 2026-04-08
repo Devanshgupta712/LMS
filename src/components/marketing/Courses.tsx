@@ -10,7 +10,7 @@ const fallbackCourses = [
   { id: 4, title: 'MERN Stack', category: 'Web Dev', icon: '🚀', price: '₹52,999', rating: '4.9/5' },
 ];
 
-export default function Courses() {
+export default function Courses({ activeCategory = 'All Courses' }: { activeCategory?: string }) {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,10 +26,13 @@ export default function Courses() {
       .finally(() => setLoading(false));
   }, []);
 
-const displayCourses = courses.length > 0 ? courses : fallbackCourses;
+  const allCourses = courses.length > 0 ? courses : fallbackCourses;
+  const displayCourses = activeCategory === 'All Courses' 
+    ? allCourses 
+    : allCourses.filter(c => c.category === activeCategory);
 
   return (
-    <section style={{ padding: '100px 0', background: '#fff' }}>
+    <section style={{ padding: '40px 0 100px', background: '#fff' }}>
       <div className="container-wide" style={{ maxWidth: '1280px', padding: '0 40px' }}>
         <div style={{ marginBottom: '60px' }}>
           <h2 style={{ 

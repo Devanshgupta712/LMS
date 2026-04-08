@@ -5,7 +5,10 @@ import Footer from '@/components/marketing/Footer';
 import Courses from '@/components/marketing/Courses';
 import CTA from '@/components/marketing/CTA';
 
+import { useState } from 'react';
+
 export default function CoursesPage() {
+  const [selectedCategory, setSelectedCategory] = useState('All Courses');
   const allCategories = ['All Courses', 'Backend', 'Frontend', 'Data Science', 'Testing', 'Full Stack'];
   
   return (
@@ -14,28 +17,33 @@ export default function CoursesPage() {
       
       <main>
         {/* Header Section */}
-        <section className="section-padding" style={{ paddingTop: 'clamp(120px, 15vh, 180px)', paddingBottom: 'var(--space-12)' }}>
+        <section className="section-padding" style={{ paddingTop: 'clamp(80px, 10vh, 120px)', paddingBottom: 'var(--space-6)' }}>
           <div className="container-wide" style={{ maxWidth: '1200px', textAlign: 'center', padding: '0 var(--space-8)' }}>
-            <h1 style={{ fontSize: 'clamp(40px, 8vw, 72px)', fontWeight: 700, marginBottom: 'var(--space-6)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>Pick Your Career Pathway.</h1>
-            <p style={{ fontSize: '20px', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '800px', margin: '0 auto var(--space-12)' }}>
+            <h1 style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 800, marginBottom: 'var(--space-4)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>Pick Your Career Pathway.</h1>
+            <p style={{ fontSize: '18px', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '700px', margin: '0 auto var(--space-8)' }}>
               From Full Stack Web Development to Data Science, choose the program that aligns with your goals.
             </p>
             
             {/* Filter Bar */}
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', flexWrap: 'wrap', padding: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', flexWrap: 'wrap', padding: 'var(--space-4) 0' }}>
               {allCategories.map((cat, i) => (
-                <button key={i} className="hover-lift" style={{ 
-                  padding: '12px 28px', 
-                  borderRadius: '100px', 
-                  border: '1px solid var(--border)', 
-                  background: i === 0 ? 'var(--primary)' : '#fff', 
-                  color: i === 0 ? '#fff' : 'var(--text-secondary)', 
-                  fontWeight: 700, 
-                  fontSize: '14px', 
-                  cursor: 'pointer', 
-                  transition: 'all 0.2s', 
-                  boxShadow: i === 0 ? 'var(--shadow-md)' : 'var(--shadow-sm)' 
-                }}>
+                <button 
+                  key={i} 
+                  onClick={() => setSelectedCategory(cat)}
+                  className="hover-lift" 
+                  style={{ 
+                    padding: '10px 24px', 
+                    borderRadius: '100px', 
+                    border: '1px solid', 
+                    borderColor: selectedCategory === cat ? 'var(--primary)' : 'var(--border)', 
+                    background: selectedCategory === cat ? 'var(--primary)' : '#fff', 
+                    color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)', 
+                    fontWeight: 700, 
+                    fontSize: '13px', 
+                    cursor: 'pointer', 
+                    transition: 'all 0.2s', 
+                    boxShadow: selectedCategory === cat ? 'var(--shadow-md)' : 'var(--shadow-sm)' 
+                  }}>
                   {cat}
                 </button>
               ))}
@@ -43,7 +51,7 @@ export default function CoursesPage() {
           </div>
         </section>
 
-        <Courses />
+        <Courses activeCategory={selectedCategory} />
 
         <div className="section-divider"></div>
 

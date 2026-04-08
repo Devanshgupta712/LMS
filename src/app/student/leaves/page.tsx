@@ -164,26 +164,27 @@ export default function StudentLeavesPage() {
                 </div>
             </div>
 
-            <div style={{ maxWidth: '800px' }}>
-                <div className="glass-premium reveal-on-scroll active">
-                    <h3 className="font-semibold mb-16">New Leave Request</h3>
+            <div style={{ maxWidth: '850px' }}>
+                <div className="glass-premium reveal-on-scroll active" style={{ padding: '40px' }}>
+                    <h3 className="h3 mb-24">New Leave Request</h3>
                     {submitted && (
-                        <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: '12px', padding: '12px', color: '#4ade80', marginBottom: '16px', fontSize: '14px' }}>
-                            ✅ Leave request submitted successfully! It will be reviewed by admin.
+                        <div style={{ background: 'var(--success-glow)', border: '1px solid var(--success)', borderRadius: '12px', padding: '16px', color: 'var(--success)', marginBottom: '24px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span>✅</span> Leave request submitted successfully! It will be reviewed by admin.
                         </div>
                     )}
                     {error && (
-                        <div style={{ background: 'rgba(248, 113, 113, 0.1)', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '12px', padding: '12px', color: '#f87171', marginBottom: '16px', fontSize: '14px' }}>
-                            ⚠️ {error}
+                        <div style={{ background: 'var(--danger-glow)', border: '1px solid var(--danger)', borderRadius: '12px', padding: '16px', color: 'var(--danger)', marginBottom: '24px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span>⚠️</span> {error}
                         </div>
                     )}
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div className="form-group">
-                            <label>Leave Type</label>
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Leave Type</label>
                             <select 
                                 className="form-input" 
                                 value={form.leave_type} 
                                 onChange={e => setForm({ ...form, leave_type: e.target.value })}
+                                style={{ width: '100%' }}
                             >
                                 <option value="MEDICAL">Medical</option>
                                 <option value="INTERVIEW">Interview</option>
@@ -192,36 +193,50 @@ export default function StudentLeavesPage() {
                             </select>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
-                            <div className="form-group"><label>End Date</label><input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Start Date</label>
+                                <input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} style={{ width: '100%' }} />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>End Date</label>
+                                <input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} style={{ width: '100%' }} />
+                            </div>
                         </div>
 
                         {form.leave_type !== 'INTERVIEW' && (
-                            <div className="form-group">
-                                <label>Reason {(form.leave_type === 'OTHER' || form.leave_type === 'WORK_FROM_HOME') ? '(Mandatory)' : '(Optional)'}</label>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>
+                                    Reason {(form.leave_type === 'OTHER' || form.leave_type === 'WORK_FROM_HOME') ? '(Mandatory)' : '(Optional)'}
+                                </label>
                                 <textarea 
                                     className="form-input" 
-                                    rows={3} 
+                                    rows={4} 
                                     required={form.leave_type === 'OTHER' || form.leave_type === 'WORK_FROM_HOME'}
                                     placeholder={form.leave_type === 'WORK_FROM_HOME' ? 'Describe the work you will do from home...' : 'Explain reason for leave...'} 
                                     value={form.reason} 
                                     onChange={e => setForm({ ...form, reason: e.target.value })} 
+                                    style={{ width: '100%', resize: 'none' }}
                                 />
                             </div>
                         )}
 
-                        <div className="form-group">
-                            <label>Proof Attachment (Image or PDF) {form.leave_type === 'MEDICAL' ? '— Mandatory' : '— Optional'}</label>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>
+                                Proof Attachment (Image or PDF) {form.leave_type === 'MEDICAL' ? '— Mandatory' : '— Optional'}
+                            </label>
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                                 <div style={{ flex: 1 }}>
-                                    <input type="file" accept="image/png,image/jpeg,application/pdf" className="form-input" onChange={handleFile} required={form.leave_type === 'MEDICAL'} />
-                                    {form.proof_name && <small style={{ color: '#0066ff', marginTop: '4px', display: 'block' }}>📎 {form.proof_name}</small>}
+                                    <input type="file" accept="image/png,image/jpeg,application/pdf" className="form-input" onChange={handleFile} required={form.leave_type === 'MEDICAL'} style={{ width: '100%' }} />
+                                    {form.proof_name && <small style={{ color: 'var(--primary)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.51a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                        {form.proof_name}
+                                    </small>}
                                 </div>
                                 {form.proof_base64 && (
-                                    <div style={{ width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    <div style={{ width: '64px', height: '64px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-secondary)', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
                                         {form.proof_name.toLowerCase().endsWith('.pdf') ? (
-                                            <div style={{ fontSize: '24px' }}>📄</div>
+                                            <div style={{ fontSize: '20px' }}>📄</div>
                                         ) : (
                                             <img src={form.proof_base64} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         )}
@@ -230,7 +245,7 @@ export default function StudentLeavesPage() {
                             </div>
                         </div>
 
-                        <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }}>🚀 Submit Request</button>
+                        <button type="submit" className="btn btn-primary btn-lg hover-lift shadow-md" style={{ width: '100%', marginTop: '8px' }}>🚀 Submit Request</button>
                     </form>
                 </div>
             </div>
