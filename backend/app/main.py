@@ -54,6 +54,20 @@ async def lifespan(app: FastAPI):
                     await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN leaveType TEXT DEFAULT 'OTHER' NOT NULL"))
                 if "proofUrl" not in leave_cols:
                     await conn.execute(text("ALTER TABLE leave_requests ADD COLUMN proofUrl TEXT"))
+                
+                # Assessment Sessions migrations for SQLite
+                result = await conn.execute(text("PRAGMA table_info(assessment_sessions)"))
+                session_cols = [row[1] for row in result.fetchall()]
+                session_migrations = [
+                    ("fullscreen_exit_count", "INTEGER DEFAULT 0"),
+                    ("face_violation_count", "INTEGER DEFAULT 0"),
+                    ("mic_violation_count", "INTEGER DEFAULT 0"),
+                    ("last_heartbeat", "DATETIME")
+                ]
+                for col_name, col_type in session_migrations:
+                    if col_name not in session_cols:
+                        print(f"Adding column {col_name} to assessment_sessions...")
+                        await conn.execute(text(f"ALTER TABLE assessment_sessions ADD COLUMN {col_name} {col_type}"))
             print("SQLite startup complete.")
         else:
             # For PostgreSQL production: Run critical startup queries
@@ -94,13 +108,21 @@ async def lifespan(app: FastAPI):
                         end_time TIMESTAMP,
                         responses TEXT,
                         tab_switch_count INTEGER DEFAULT 0,
+                        fullscreen_exit_count INTEGER DEFAULT 0,
+                        face_violation_count INTEGER DEFAULT 0,
+                        mic_violation_count INTEGER DEFAULT 0,
                         score FLOAT DEFAULT 0.0,
                         completion_time_seconds INTEGER DEFAULT 0,
                         auto_submitted BOOLEAN DEFAULT FALSE,
                         is_completed BOOLEAN DEFAULT FALSE,
+                        last_heartbeat TIMESTAMP,
                         created_at TIMESTAMP DEFAULT NOW(),
                         updated_at TIMESTAMP DEFAULT NOW()
                     )""",
+                    "ALTER TABLE assessment_sessions ADD COLUMN IF NOT EXISTS fullscreen_exit_count INTEGER DEFAULT 0",
+                    "ALTER TABLE assessment_sessions ADD COLUMN IF NOT EXISTS face_violation_count INTEGER DEFAULT 0",
+                    "ALTER TABLE assessment_sessions ADD COLUMN IF NOT EXISTS mic_violation_count INTEGER DEFAULT 0",
+                    "ALTER TABLE assessment_sessions ADD COLUMN IF NOT EXISTS last_heartbeat TIMESTAMP",
                 ]
                 for sql in pg_migrations:
                     try:
