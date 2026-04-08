@@ -209,6 +209,10 @@ class AssessmentSession(Base):
     responses: Mapped[str | None] = mapped_column(Text, nullable=True) # JSON student answers
     
     tab_switch_count: Mapped[int] = mapped_column(Integer, default=0)
+    fullscreen_exit_count: Mapped[int] = mapped_column(Integer, default=0)
+    face_violation_count: Mapped[int] = mapped_column(Integer, default=0)
+    mic_violation_count: Mapped[int] = mapped_column(Integer, default=0)
+    
     score: Mapped[float] = mapped_column(Float, default=0.0)
     completion_time_seconds: Mapped[int] = mapped_column(Integer, default=0)
     auto_submitted: Mapped[bool] = mapped_column(Boolean, default=False)

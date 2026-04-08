@@ -4,11 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { apiGet, apiFetch } from '@/lib/api';
 import WebDevEditor from '@/components/WebDevEditor';
+import ProctoringOverlay from '@/components/ProctoringOverlay';
 
 export default function StudentAssessmentsPage() {
     const [assignments, setAssignments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeSubmission, setActiveSubmission] = useState<any>(null);
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const [submitLoading, setSubmitLoading] = useState(false);
     const [submitDone, setSubmitDone] = useState(false);
     const [timeLeft, setTimeLeft] = useState<number | null>(null); // seconds remaining
@@ -16,32 +18,43 @@ export default function StudentAssessmentsPage() {
     const [content, setContent] = useState('');
     const [file, setFile] = useState<File | null>(null);
 
-    // Browser Lock State
+    // Proctoring & Lock State
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
-    const tabCountRef = useRef(0);
+    const [fullscreenExitCount, setFullscreenExitCount] = useState(0);
+    const [faceViolationCount, setFaceViolationCount] = useState(0);
+    const [isProctoringActive, setIsProctoringActive] = useState(false);
+    const [graceCountdown, setGraceCountdown] = useState<number | null>(null);
+    const [violationType, setViolationType] = useState<string | null>(null);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const heartbeatRef = useRef<any>(null);
 
     useEffect(() => { loadAssignments(); }, []);
 
-    // Tab Switching & Anti-Cheat Setup
+    // Fullscreen and Tab Locking Logic
     useEffect(() => {
-        if (!activeSubmission) {
-            setTabSwitchCount(0);
-            tabCountRef.current = 0;
+        if (!activeSubmission || submitDone) {
+            setIsProctoringActive(false);
+            setGraceCountdown(null);
+            if (heartbeatRef.current) clearInterval(heartbeatRef.current);
             return;
         }
 
         const onVisibilityChange = () => {
-            if (document.hidden && activeSubmission && !submitDone) {
-                tabCountRef.current += 1;
-                setTabSwitchCount(tabCountRef.current);
-                if (tabCountRef.current >= 3) {
-                    forceSubmit('tab_limit_exceeded');
-                }
+            if (document.hidden && !submitDone) {
+                setTabSwitchCount(prev => prev + 1);
+                triggerGracePeriod('TAB_SWITCH');
+            }
+        };
+
+        const onFullscreenChange = () => {
+            if (!document.fullscreenElement && !submitDone) {
+                setFullscreenExitCount(prev => prev + 1);
+                triggerGracePeriod('FULLSCREEN_EXIT');
             }
         };
 
         const preventCopyPaste = (e: ClipboardEvent | KeyboardEvent) => {
-            if (!activeSubmission) return;
             if (e.type === 'copy' || e.type === 'paste') {
                 e.preventDefault();
                 alert('Copying & Pasting is strictly disabled during assessments.');
@@ -56,41 +69,58 @@ export default function StudentAssessmentsPage() {
         };
 
         document.addEventListener('visibilitychange', onVisibilityChange);
+        document.addEventListener('fullscreenchange', onFullscreenChange);
         document.addEventListener('copy', preventCopyPaste, { capture: true });
         document.addEventListener('paste', preventCopyPaste, { capture: true });
         document.addEventListener('keydown', preventCopyPaste, { capture: true });
 
-        // Timer Logic
-        let timerId: any;
-        if (activeSubmission?.time_limit > 0 && !submitDone) {
-            setTimeLeft(activeSubmission.time_limit * 60);
-            timerId = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev === null) return null;
-                    if (prev <= 1) {
-                        clearInterval(timerId);
-                        forceSubmit('time_expired');
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else {
-            setTimeLeft(null);
-        }
+        // Start Heartbeat
+        heartbeatRef.current = setInterval(sendHeartbeat, 30000);
 
-        // Force hide sidebar/body scroll when examining
+        // Sidebar/body scroll lock
         document.body.style.overflow = 'hidden';
 
         return () => {
             document.removeEventListener('visibilitychange', onVisibilityChange);
+            document.removeEventListener('fullscreenchange', onFullscreenChange);
             document.removeEventListener('copy', preventCopyPaste, { capture: true });
             document.removeEventListener('paste', preventCopyPaste, { capture: true });
             document.removeEventListener('keydown', preventCopyPaste, { capture: true });
-            if (timerId) clearInterval(timerId);
+            if (heartbeatRef.current) clearInterval(heartbeatRef.current);
             document.body.style.overflow = 'unset';
         };
     }, [activeSubmission, submitDone]);
+
+    // Timer and Grace Period Countdown
+    useEffect(() => {
+        let timer: any;
+        if (graceCountdown !== null && graceCountdown > 0) {
+            timer = setInterval(() => {
+                setGraceCountdown(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
+            }, 1000);
+        } else if (graceCountdown === 0) {
+            forceSubmit('Security Violation: Time-out');
+        }
+
+        return () => clearInterval(timer);
+    }, [graceCountdown]);
+
+    const triggerGracePeriod = (type: string) => {
+        setViolationType(type);
+        setGraceCountdown(30);
+    };
+
+    const resumeFullscreen = async () => {
+        if (containerRef.current) {
+            try {
+                await containerRef.current.requestFullscreen();
+                setGraceCountdown(null);
+                setViolationType(null);
+            } catch (e) {
+                console.error('Fullscreen failed', e);
+            }
+        }
+    };
 
     const loadAssignments = async () => {
         try {
@@ -98,8 +128,45 @@ export default function StudentAssessmentsPage() {
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
+    const startSession = async (assignment: any) => {
+        try {
+            const res = await apiFetch(`/api/training/assessments/ASSIGNMENT/${assignment.id}/start`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                setSessionId(data.session_id);
+                setActiveSubmission(assignment);
+                setIsProctoringActive(true);
+                setSubmitDone(false);
+                setContent('');
+                setFile(null);
+                
+                // Trigger auto-fullscreen
+                setTimeout(resumeFullscreen, 500);
+            } else {
+                alert(data.detail || 'Could not start session. You may have already completed this assignment.');
+            }
+        } catch (e) {
+            alert('Error starting session');
+        }
+    };
+
+    const sendHeartbeat = async () => {
+        if (!sessionId || submitDone) return;
+        try {
+            await apiFetch(`/api/training/assessments/${sessionId}/heartbeat`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    answers: { content }, // Save progress
+                    fullscreen_exited: fullscreenExitCount > 0,
+                    face_violation: faceViolationCount > 0,
+                    tab_switched: tabSwitchCount > 0
+                })
+            });
+        } catch (e) { console.error('Heartbeat failed', e); }
+    };
+
     const forceSubmit = async (reason: string) => {
-        alert(`Assignment Auto-Submitted: ${reason.replace('_', ' ')}`);
+        alert(`Assignment Auto-Submitted: ${reason}`);
         submitHandler(true);
     };
 
@@ -109,42 +176,37 @@ export default function StudentAssessmentsPage() {
     };
 
     const submitHandler = async (isAuto = false) => {
+        if (submitLoading) return;
         setSubmitLoading(true);
         try {
             const formData = new FormData();
             if (content) formData.append('content', content);
             if (file) formData.append('file', file);
-            formData.append('tab_switches', tabSwitchCount.toString());
+            
+            const url = isAuto ? `/api/training/assessments/${sessionId}/submit` : `/api/training/assignments/${activeSubmission.id}/submit`;
 
-            const res = await apiFetch(`/api/training/assignments/${activeSubmission.id}/submit`, {
+            const res = await apiFetch(url, {
                 method: 'POST',
-                body: formData
+                body: isAuto ? JSON.stringify({ answers: { content } }) : formData
             });
+
             if (res.ok) {
                 setSubmitDone(true);
+                if (document.fullscreenElement) document.exitFullscreen();
                 setTimeout(() => {
                     setActiveSubmission(null);
-                    setContent('');
-                    setFile(null);
+                    setSessionId(null);
                     setSubmitDone(false);
-                    setTabSwitchCount(0);
-                    tabCountRef.current = 0;
                     loadAssignments();
-                }, 1500);
+                }, 2000);
             } else {
-                alert('Submission failed. Please try again.');
+                alert('Submission failed.');
             }
         } catch (error) {
-            console.error(error);
-            alert('Error submitting. Please try again.');
+            alert('Error submitting.');
         } finally {
             setSubmitLoading(false);
         }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        submitHandler(false);
     };
 
     const isOverdue = (dueDate: string | null) => {
@@ -152,195 +214,123 @@ export default function StudentAssessmentsPage() {
         return new Date(dueDate) < new Date();
     };
 
-    const pending = assignments.filter(a => !a.my_submission);
-    const completed = assignments.filter(a => a.my_submission);
-
     return (
         <div className="animate-in">
             <div className="page-header">
                 <div>
                     <h1 className="page-title">My Assignments</h1>
-                    <p className="page-subtitle">View and submit your graded assignments</p>
+                    <p className="page-subtitle">Standard proctored assessments environment</p>
                 </div>
             </div>
 
             {/* Stats */}
             <div className="grid-4 mb-24">
                 <div className="stat-card primary"><div className="stat-icon primary">📝</div><div className="stat-info"><h3>Total</h3><div className="stat-value">{assignments.length}</div></div></div>
-                <div className="stat-card success"><div className="stat-icon success">✅</div><div className="stat-info"><h3>Submitted</h3><div className="stat-value">{completed.length}</div></div></div>
-                <div className="stat-card danger"><div className="stat-icon danger">⏰</div><div className="stat-info"><h3>Pending</h3><div className="stat-value">{pending.length}</div></div></div>
-                <div className="stat-card accent"><div className="stat-icon accent">⚠️</div><div className="stat-info"><h3>Overdue</h3><div className="stat-value">{pending.filter(a => isOverdue(a.due_date)).length}</div></div></div>
+                <div className="stat-card success"><div className="stat-icon success">✅</div><div className="stat-info"><h3>Submitted</h3><div className="stat-value">{assignments.filter(a => a.my_submission).length}</div></div></div>
+                <div className="stat-card danger"><div className="stat-icon danger">⏰</div><div className="stat-info"><h3>Pending</h3><div className="stat-value">{assignments.filter(a => !a.my_submission).length}</div></div></div>
+                <div className="stat-card accent"><div className="stat-icon accent">🔒</div><div className="stat-info"><h3>Security</h3><div className="stat-value">Active</div></div></div>
             </div>
 
-            {loading ? <p>Loading...</p> : assignments.length === 0 ? (
-                <div className="card"><div className="empty-state"><div className="empty-icon">📝</div><h3>No assignments yet</h3><p className="text-sm text-muted">Your trainer hasn't posted any assignments yet.</p></div></div>
-            ) : (
+            {loading ? <p>Loading...</p> : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
                     {assignments.map(a => (
                         <div key={a.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <h3 style={{ margin: 0, fontWeight: 600 }}>{a.title}</h3>
-                                <span className={`badge ${a.my_submission ? 'badge-success' : isOverdue(a.due_date) ? 'badge-danger' : 'badge-warning'}`}>
-                                    {a.my_submission ? 'Submitted' : isOverdue(a.due_date) ? 'Overdue' : 'Pending'}
+                                <span className={`badge ${a.my_submission ? 'badge-success' : 'badge-warning'}`}>
+                                    {a.my_submission ? 'Completed' : 'Pending'}
                                 </span>
                             </div>
-
-                            <p className="text-muted text-sm" style={{ margin: 0 }}>
-                                {a.description?.slice(0, 100)}{a.description?.length > 100 ? '...' : ''}
-                            </p>
-
-                            <div style={{ display: 'flex', gap: '8px', fontSize: '12px', flexWrap: 'wrap' }}>
-                                <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px' }}>🏆 {a.total_marks} Marks</span>
-                                {a.time_limit > 0 && <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px' }}>⏱️ {a.time_limit}m Limit</span>}
-                                {a.due_date && (
-                                    <span style={{ padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px', color: isOverdue(a.due_date) ? '#ef4444' : 'inherit' }}>
-                                        📅 {new Date(a.due_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
-                                    </span>
-                                )}
-                            </div>
-
-                            {a.my_submission ? (
-                                <div style={{ background: 'rgba(74, 222, 128, 0.08)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(74, 222, 128, 0.2)', fontSize: '13px', color: '#4ade80' }}>
-                                    ✅ Submitted successfully
-                                </div>
-                            ) : (
-                                <button
-                                    className="btn btn-primary"
-                                    style={{ width: '100%', marginTop: 'auto' }}
-                                    onClick={() => { setActiveSubmission(a); setContent(''); setFile(null); setSubmitDone(false); }}
-                                    disabled={isOverdue(a.due_date)}
-                                >
-                                    {isOverdue(a.due_date) ? 'Deadline Passed' : 'Submit Assignment'}
-                                </button>
-                            )}
+                            <p className="text-muted text-sm">{a.description?.slice(0, 100)}...</p>
+                            <button
+                                className="btn btn-primary"
+                                style={{ width: '100%', marginTop: 'auto' }}
+                                onClick={() => startSession(a)}
+                                disabled={a.my_submission || isOverdue(a.due_date)}
+                            >
+                                {a.my_submission ? 'Already Attempted' : 'Start Secure Assessment'}
+                            </button>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Fullscreen Submission Workspace via React Portal */}
+            {/* Proctoring Implementation */}
             {activeSubmission && typeof document !== 'undefined' && createPortal(
-                <div style={{ 
-                    position: 'fixed', 
-                    top: 0, 
-                    left: 0, 
-                    right: 0, 
-                    bottom: 0, 
-                    width: '100vw', 
-                    height: '100vh', 
-                    zIndex: 9999999, 
-                    background: 'var(--bg-primary)', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    overflow: 'hidden' 
+                <div ref={containerRef} style={{ 
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+                    zIndex: 9999999, background: 'var(--bg-primary)', 
+                    display: 'flex', flexDirection: 'column', overflow: 'hidden' 
                 }}>
+                    <ProctoringOverlay 
+                        isActive={isProctoringActive && !submitDone}
+                        onViolation={(type) => {
+                            if (type === 'NO_FACE' || type === 'MULTI_FACE') {
+                                setFaceViolationCount(prev => prev + 1);
+                                triggerGracePeriod(type);
+                            } else if (type === 'SCREEN_STOPPED') {
+                                forceSubmit('Screen sharing stopped');
+                            }
+                        }}
+                        onMetricsUpdate={() => {}}
+                    />
+
+                    {/* Grace Period Overlay */}
+                    {graceCountdown !== null && (
+                        <div style={{
+                            position: 'absolute', inset: 0, zIndex: 10000001,
+                            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            textAlign: 'center', color: '#fff', padding: '40px'
+                        }}>
+                            <div style={{ fontSize: '64px', marginBottom: '24px' }}>⚠️</div>
+                            <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '16px' }}>Security Violation Detected</h2>
+                            <p style={{ fontSize: '18px', opacity: 0.8, maxWidth: '500px', marginBottom: '40px' }}>
+                                Type: <span style={{ color: '#ef4444', fontWeight: 700 }}>{violationType?.replace('_', ' ')}</span><br />
+                                Please return to fullscreen and ensure only one face is visible.
+                            </p>
+                            
+                            <div style={{ position: 'relative', width: '120px', height: '120px', marginBottom: '48px' }}>
+                                <svg width="120" height="120" viewBox="0 0 120 120">
+                                    <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
+                                    <circle cx="60" cy="60" r="54" fill="none" stroke="#ef4444" strokeWidth="8" 
+                                        strokeDasharray="339.292" strokeDashoffset={339.292 * (1 - graceCountdown / 30)}
+                                        style={{ transition: 'stroke-dashoffset 1s linear', transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                                    />
+                                </svg>
+                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '32px', fontWeight: 800 }}>
+                                    {graceCountdown}
+                                </div>
+                            </div>
+
+                            <button className="btn btn-primary btn-lg" onClick={resumeFullscreen} style={{ padding: '16px 48px' }}>
+                                Resume Assessment
+                            </button>
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', padding: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
-                            <h2 className="modal-title" style={{ margin: 0 }}>{activeSubmission.title}</h2>
-                            {!submitDone && <button className="btn btn-sm btn-ghost" onClick={() => setActiveSubmission(null)}>✕ Close & Exit</button>}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h2 className="modal-title">{activeSubmission.title}</h2>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Proctoring Active • Do not switch tabs</div>
                         </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                                {activeSubmission.description && (
-                                    <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: '10px', fontSize: '14px', lineHeight: 1.6 }}>
-                                        {activeSubmission.description}
-                                    </div>
-                                )}
-                                {timeLeft !== null && (
-                                    <div style={{ 
-                                        width: '180px', 
-                                        background: timeLeft < 300 ? '#ef444415' : 'var(--bg-secondary)', 
-                                        border: `2px solid ${timeLeft < 300 ? '#ef4444' : 'var(--border)'}`,
-                                        padding: '16px', 
-                                        borderRadius: '12px', 
-                                        textAlign: 'center',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        justifyContent: 'center',
-                                        flexShrink: 0
-                                    }}>
-                                        <div style={{ fontSize: '11px', fontWeight: 700, color: timeLeft < 300 ? '#ef4444' : 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Time Remaining</div>
-                                        <div style={{ fontSize: '24px', fontWeight: 800, color: timeLeft < 300 ? '#ef4444' : 'var(--text-primary)', fontFamily: 'monospace' }}>
-                                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
                         {submitDone ? (
-                            <div style={{ textAlign: 'center', padding: '32px', color: '#4ade80' }}>
-                                <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
-                                <h3>Submitted Successfully!</h3>
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                                <div><div style={{ fontSize: '64px', marginBottom: '16px' }}>✅</div><h3>Submitted Successfully</h3></div>
                             </div>
                         ) : (
-                            <form 
-                                onSubmit={handleSubmit} 
-                                onPaste={(e) => { e.preventDefault(); alert('Copy/pasting is disabled for assignments.'); }}
-                                onCopy={(e) => { e.preventDefault(); alert('Copying is disabled for assignments.'); }}
-                                style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}
-                            >
-                                {tabSwitchCount > 0 && (
-                                    <div style={{ color: 'red', fontWeight: 600, fontSize: '13px', marginBottom: '8px', flexShrink: 0 }}>
-                                        ⚠️ Tab Switches: {tabSwitchCount}/3 (Warning: Assignment will auto-submit on 3rd switch!)
-                                    </div>
-                                )}
-
-                                {/* Web Dev Editor */}
-                                {file === null && (
-                                    <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                                        <WebDevEditor 
-                                            code={content} 
-                                            onChange={(val) => setContent(val)} 
-                                        />
-                                    </div>
-                                )}
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-                                    <hr style={{ flex: 1, borderColor: 'var(--border)' }} />
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>OR</span>
-                                    <hr style={{ flex: 1, borderColor: 'var(--border)' }} />
+                            <form onSubmit={(e) => { e.preventDefault(); submitHandler(); }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                <div style={{ flex: 1, minHeight: 0, marginBottom: '16px' }}>
+                                    <WebDevEditor code={content} onChange={setContent} />
                                 </div>
-
-                                {/* PDF Upload */}
-                                <div className="form-group">
-                                    <label className="form-label">Upload PDF</label>
-                                    <div
-                                        onDragOver={e => e.preventDefault()}
-                                        onDrop={handleFileDrop}
-                                        style={{
-                                            border: '2px dashed var(--border)',
-                                            padding: '28px',
-                                            borderRadius: '12px',
-                                            textAlign: 'center',
-                                            opacity: content ? 0.4 : 1,
-                                            transition: '0.2s',
-                                            background: 'var(--bg-secondary)'
-                                        }}
-                                    >
-                                        {file ? (
-                                            <div style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                                📄 {file.name}
-                                                <button type="button" onClick={() => setFile(null)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px' }}>✕</button>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <p style={{ margin: '0 0 8px 0', color: 'var(--text-muted)' }}>Drag & drop your PDF here</p>
-                                                <input type="file" accept=".pdf" onChange={e => e.target.files && setFile(e.target.files[0])} disabled={content.length > 0} />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-                                    <button type="button" className="btn btn-ghost" onClick={() => setActiveSubmission(null)}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary" disabled={submitLoading || (!content && !file)}>
-                                        {submitLoading ? '⏳ Submitting...' : '📤 Submit Assignment'}
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', pt: '12px', borderTop: '1px solid var(--border)' }}>
+                                    <button type="submit" className="btn btn-primary" disabled={submitLoading || content.length < 10}>
+                                        {submitLoading ? 'Submitting...' : 'Complete & Submit'}
                                     </button>
                                 </div>
                             </form>
                         )}
-                        </div>
                     </div>
                 </div>, document.body
             )}

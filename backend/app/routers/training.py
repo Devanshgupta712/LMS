@@ -969,6 +969,17 @@ async def list_assignment_submissions(
     out = []
     for sub in submissions:
         student = await db.get(User, sub.student_id)
+        
+        # Get session metrics
+        sess_res = await db.execute(
+            select(AssessmentSession).where(
+                AssessmentSession.student_id == sub.student_id,
+                AssessmentSession.reference_id == assignment_id,
+                AssessmentSession.reference_type == "ASSIGNMENT"
+            )
+        )
+        session = sess_res.scalars().first()
+        
         out.append({
             "id": sub.id,
             "student_name": student.name if student else "Unknown",
@@ -1881,9 +1892,23 @@ async def get_session_questions(
     if item:
         time_limit = getattr(item, 'time_limit', 0)
 
-    # Calculate remaining seconds from backend
-    elapsed = (datetime.utcnow() - session.start_time).total_seconds()
+    # Calculation for response
     remaining_seconds = max(0, time_limit * 60 - int(elapsed)) if time_limit > 0 else None
+
+    # Inactivity check (10-minute rule) for resumption
+    if not session.is_completed and session.updated_at:
+        inactive_seconds = (datetime.utcnow() - session.updated_at.replace(tzinfo=None)).total_seconds()
+        if inactive_seconds > 600: # 10 minutes
+            session.is_completed = True
+            session.auto_submitted = True
+            session.end_time = datetime.utcnow()
+            await db.flush()
+            return {
+                "session_id": session.id,
+                "is_completed": True,
+                "status": "cancelled",
+                "reason": "inactivity_timeout"
+            }
 
     # Smart content source: session.responses may contain either:
     #   a) Randomized question data (has 'questions' key) → use it
@@ -2018,15 +2043,33 @@ async def session_heartbeat(
         except Exception:
             pass
 
-    # Log tab switch
+    # Log proctoring violations
     if body.get("tab_switched"):
         session.tab_switch_count = (session.tab_switch_count or 0) + 1
+    if body.get("fullscreen_exited"):
+        session.fullscreen_exit_count = (session.fullscreen_exit_count or 0) + 1
+    if body.get("face_violation"):
+        session.face_violation_count = (session.face_violation_count or 0) + 1
+    if body.get("mic_violation"):
+        session.mic_violation_count = (session.mic_violation_count or 0) + 1
+
+    # Inactivity check (10-minute rule)
+    # If the student resume a session after being 'gone' for > 10 mins
+    # This is checked here and in get_questions
+    if session.updated_at:
+        inactive_seconds = (datetime.utcnow() - session.updated_at.replace(tzinfo=None)).total_seconds()
+        if inactive_seconds > 600: # 10 minutes
+            session.is_completed = True
+            session.auto_submitted = True
+            session.end_time = datetime.utcnow()
+            await db.flush()
+            return {"status": "cancelled", "reason": "inactivity_timeout"}
 
     await db.flush()
 
-    # Hard cut-off: auto-submit
-    if remaining_seconds <= 0 or (session.tab_switch_count or 0) >= 3:
-        reason = "time_expired" if remaining_seconds <= 0 else "tab_limit_exceeded"
+    # Hard cut-off: auto-submit on excessive tab switches (optional, kept for backward compatibility)
+    if remaining_seconds <= 0 or (session.tab_switch_count or 0) >= 10: # Increased limit since we have 30s grace
+        reason = "time_expired" if remaining_seconds <= 0 else "excessive_violations"
         session.is_completed = True
         session.auto_submitted = True
         session.end_time = datetime.utcnow()
@@ -2038,6 +2081,8 @@ async def session_heartbeat(
         "status": "saved",
         "remaining_seconds": remaining_seconds,
         "tab_switch_count": session.tab_switch_count,
+        "fullscreen_exit_count": session.fullscreen_exit_count,
+        "face_violation_count": session.face_violation_count,
     }
 
 

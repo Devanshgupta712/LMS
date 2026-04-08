@@ -565,18 +565,51 @@ export default function AssignmentsPage() {
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 {submissionsData.map(sub => (
-                                    <div key={sub.id} className="card" style={{ padding: '16px', background: 'var(--bg-secondary)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <h3 style={{ margin: 0 }}>{sub.student_name}</h3>
-                                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : 'Submitted'}</span>
+                                    <div key={sub.id} className="card" style={{ padding: '16px', background: 'var(--bg-secondary)', border: sub.proctoring_report?.auto_submitted ? '1px solid #ef444430' : '1px solid var(--border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontSize: '16px' }}>{sub.student_name}</h3>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                    {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : 'Processing'}
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                {sub.proctoring_report?.auto_submitted && (
+                                                    <span className="badge badge-danger" style={{ marginBottom: '4px', display: 'inline-block' }}>⚠️ AUTO-SUBMITTED</span>
+                                                )}
+                                                <div style={{ fontSize: '11px', fontWeight: 600 }}>
+                                                    ⏱️ {Math.floor(sub.proctoring_report?.completion_time / 60)}m {sub.proctoring_report?.completion_time % 60}s
+                                                </div>
+                                            </div>
                                         </div>
+
+                                        {/* Proctoring Report Brief */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tab Switches</div>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.tab_switches > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.tab_switches}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>FS Exits</div>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.fullscreen_exits > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.fullscreen_exits}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Face Violations</div>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.face_violations > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.face_violations}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Mic Interrupts</div>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.mic_violations > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.mic_violations}</div>
+                                            </div>
+                                        </div>
+
                                         {sub.content && (
                                             <pre style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '12px', borderRadius: '8px', overflowX: 'auto', fontSize: '12px', border: '1px solid var(--border)', marginTop: '4px' }}>
                                                 {sub.content.slice(0, 400)}{sub.content.length > 400 ? '...' : ''}
                                             </pre>
                                         )}
                                         {sub.file_url && (
-                                            <a href={sub.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>📥 Download PDF</a>
+                                            <a href={sub.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>📥 Download PDF</a>
                                         )}
                                     </div>
                                 ))}
