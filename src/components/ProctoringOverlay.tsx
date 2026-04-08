@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 interface ProctoringProps {
   isActive: boolean;
-  onViolation: (type: 'NO_FACE' | 'MULTI_FACE' | 'MIC_SILENT' | 'SCREEN_STOPPED' | 'FULLSCREEN_EXIT') => void;
+  onViolation: (type: 'NO_FACE' | 'MULTI_FACE' | 'MIC_SILENT' | 'SCREEN_STOPPED' | 'FULLSCREEN_EXIT' | 'HIGH_NOISE') => void;
   onMetricsUpdate: (metrics: { faceCount: number; volume: number; isScreenActive: boolean }) => void;
 }
 
@@ -107,6 +107,11 @@ export default function ProctoringOverlay({ isActive, onViolation, onMetricsUpda
           const sum = dataArray.reduce((a, b) => a + b, 0);
           const vol = sum / dataArray.length;
           setVolume(vol);
+
+          // Threshold for loud noise (adjust as necessary)
+          if (vol > 45) {
+             onViolation('HIGH_NOISE');
+          }
         }
 
         onMetricsUpdate({

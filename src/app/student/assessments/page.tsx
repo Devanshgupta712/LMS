@@ -22,6 +22,7 @@ export default function StudentAssessmentsPage() {
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
     const [fullscreenExitCount, setFullscreenExitCount] = useState(0);
     const [faceViolationCount, setFaceViolationCount] = useState(0);
+    const [micViolationCount, setMicViolationCount] = useState(0);
     const [isProctoringActive, setIsProctoringActive] = useState(false);
     const [graceCountdown, setGraceCountdown] = useState<number | null>(null);
     const [violationType, setViolationType] = useState<string | null>(null);
@@ -116,8 +117,9 @@ export default function StudentAssessmentsPage() {
     }, [graceCountdown]);
 
     const triggerGracePeriod = (type: string) => {
-        setViolationType(type);
-        setGraceCountdown(30);
+        // Use functional state updates to avoid stale closure resets while active
+        setViolationType(prev => prev ? prev : type);
+        setGraceCountdown(prev => prev !== null ? prev : 30);
     };
 
     const resumeFullscreen = async () => {
@@ -172,7 +174,8 @@ export default function StudentAssessmentsPage() {
                     answers: { content }, // Save progress
                     fullscreen_exited: fullscreenExitCount > 0,
                     face_violation: faceViolationCount > 0,
-                    tab_switched: tabSwitchCount > 0
+                    tab_switched: tabSwitchCount > 0,
+                    mic_violation: micViolationCount > 0
                 })
             });
         } catch (e) { console.error('Heartbeat failed', e); }
@@ -288,6 +291,9 @@ export default function StudentAssessmentsPage() {
                             if (type === 'NO_FACE' || type === 'MULTI_FACE') {
                                 setFaceViolationCount(prev => prev + 1);
                                 triggerGracePeriod(type);
+                            } else if (type === 'HIGH_NOISE') {
+                                setMicViolationCount(prev => prev + 1);
+                                triggerGracePeriod("Background Noise Too High");
                             } else if (type === 'SCREEN_STOPPED') {
                                 forceSubmit('Screen sharing stopped');
                             }
@@ -329,10 +335,20 @@ export default function StudentAssessmentsPage() {
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', padding: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h2 className="modal-title">{activeSubmission.title}</h2>
-                            <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Proctoring Active • Do not switch tabs</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', padding: '32px', overflow: 'hidden' }}>
+                        <div style={{ flexShrink: 0, marginBottom: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <h2 className="modal-title" style={{ marginBottom: '12px', fontSize: '28px' }}>{activeSubmission.title}</h2>
+                                    <p className="text-muted" style={{ marginBottom: '16px', fontSize: '15px', lineHeight: '1.6', maxWidth: '800px' }}>
+                                        {activeSubmission.description || "Refer to the instructions to solve the challenges below."}
+                                    </p>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span className="badge badge-warning" style={{ fontSize: '13px', display: 'inline-block', marginBottom: '8px' }}>Proctoring Active</span>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Do not switch tabs, exit fullscreen, or mute mic.</div>
+                                </div>
+                            </div>
                         </div>
 
                         {submitDone ? (
@@ -341,11 +357,11 @@ export default function StudentAssessmentsPage() {
                             </div>
                         ) : (
                             <form onSubmit={(e) => { e.preventDefault(); submitHandler(); }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                <div style={{ flex: 1, minHeight: 0, marginBottom: '16px' }}>
+                                <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', borderRadius: '12px', border: '1px solid var(--border)', background: '#1e1e1e' }}>
                                     <WebDevEditor code={content} onChange={setContent} />
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
-                                    <button type="submit" className="btn btn-primary" disabled={submitLoading || content.length < 10}>
+                                <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '16px 0 0', borderTop: '1px solid var(--border)' }}>
+                                    <button type="submit" className="btn btn-primary btn-lg" disabled={submitLoading || content.length < 10}>
                                         {submitLoading ? 'Submitting...' : 'Complete & Submit'}
                                     </button>
                                 </div>
