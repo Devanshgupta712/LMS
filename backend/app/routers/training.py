@@ -640,11 +640,11 @@ async def list_tasks(
     # If Student, only show their batch tasks OR tasks mapped directly to them
     if user.role == Role.STUDENT:
         batch_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
-        student_batch = batch_result.scalar()
+        student_batches = batch_result.scalars().all()
         
         from sqlalchemy import or_
-        if student_batch:
-            query = query.where(or_(Task.batch_id == student_batch, Task.student_id == user.id))
+        if student_batches:
+            query = query.where(or_(Task.batch_id.in_(student_batches), Task.student_id == user.id))
         else:
             query = query.where(Task.student_id == user.id)
             
@@ -810,12 +810,13 @@ async def list_assignments(
     
     # If Student, only show their batch assignments OR assignments mapped directly to them
     if user.role == Role.STUDENT:
+        from app.models.project import BatchStudent
         batch_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
-        student_batch = batch_result.scalar()
+        student_batches = batch_result.scalars().all()
         
         from sqlalchemy import or_
-        if student_batch:
-            query = query.where(or_(Assignment.batch_id == student_batch, Assignment.student_id == user.id))
+        if student_batches:
+            query = query.where(or_(Assignment.batch_id.in_(student_batches), Assignment.student_id == user.id))
         else:
             query = query.where(Assignment.student_id == user.id)
     
