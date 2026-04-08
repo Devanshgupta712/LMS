@@ -219,7 +219,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                 </header>
 
-                <div className="reveal-on-scroll">
+                <div className="animate-in">
                     {children}
                 </div>
             </main>
