@@ -149,10 +149,10 @@ export default function ChatbotFAQ() {
                     maxWidth: 'calc(100vw - 32px)',
                     height: '500px',
                     maxHeight: 'calc(100vh - 180px)',
-                    background: 'var(--bg-primary)',
+                    background: '#fff',
                     border: '1px solid var(--border)',
                     borderRadius: '20px',
-                    boxShadow: '0 16px 48px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,102,255,0.05)',
+                    boxShadow: 'var(--shadow-lg)',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
@@ -161,8 +161,8 @@ export default function ChatbotFAQ() {
 
                     {/* Header */}
                     <div style={{
-                        background: 'linear-gradient(135deg, #0044cc, #0066ff)',
-                        padding: '16px 20px',
+                        background: 'var(--primary)',
+                        padding: '20px',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -172,64 +172,63 @@ export default function ChatbotFAQ() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{
                                 width: '40px', height: '40px', borderRadius: '12px',
-                                background: 'rgba(255,255,255,0.2)',
+                                background: 'rgba(255,255,255,0.1)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '22px'
+                                fontSize: '20px'
                             }}>🤖</div>
                             <div>
-                                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>AppTechno AI</h3>
-                                <p style={{ margin: 0, fontSize: '11px', opacity: 0.85, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399', display: 'inline-block' }}></span>
-                                    Online • Ask me anything
+                                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, letterSpacing: '-0.01em' }}>AppTechno AI</h3>
+                                <p style={{ margin: 0, fontSize: '11px', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                                    Ready to help
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}
-                            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', transition: 'background 0.2s' }}
-                            onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
-                            onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}
                         >✕</button>
                     </div>
 
                     {/* Chat Messages */}
                     <div style={{
-                        flex: 1, overflowY: 'auto', padding: '16px',
-                        display: 'flex', flexDirection: 'column', gap: '12px',
-                        background: 'var(--bg-primary)',
+                        flex: 1, overflowY: 'auto', padding: '20px',
+                        display: 'flex', flexDirection: 'column', gap: '16px',
+                        background: '#fff',
                     }}>
                         {messages.map(msg => (
                             <div key={msg.id} style={{
                                 display: 'flex',
                                 flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-                                gap: '8px',
+                                gap: '10px',
                                 alignItems: 'flex-end',
                             }}>
                                 {msg.role === 'bot' && (
                                     <div style={{
                                         width: '28px', height: '28px', borderRadius: '8px',
-                                        background: 'linear-gradient(135deg, #0066ff, #3399ff)',
+                                        background: 'var(--bg-secondary)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '14px', flexShrink: 0,
-                                    }}>🤖</div>
+                                        fontSize: '14px', flexShrink: 0, color: 'var(--primary)', fontWeight: 800
+                                    }}>A</div>
                                 )}
                                 <div style={{
-                                    maxWidth: '80%',
-                                    padding: '10px 14px',
-                                    borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                                    background: msg.role === 'user' ? 'linear-gradient(135deg, #0066ff, #3399ff)' : '#ffffff',
-                                    color: msg.role === 'user' ? '#ffffff' : '#1a1a2e',
-                                    fontSize: '13px',
-                                    lineHeight: '1.5',
-                                    boxShadow: msg.role === 'bot' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                                    border: msg.role === 'bot' ? '1px solid #eef1f6' : 'none',
+                                    maxWidth: '85%',
+                                    padding: '12px 16px',
+                                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                                    background: msg.role === 'user' ? 'var(--primary)' : 'var(--bg-secondary)',
+                                    color: msg.role === 'user' ? '#ffffff' : 'var(--text-primary)',
+                                    fontSize: '14px',
+                                    lineHeight: '1.6',
+                                    fontWeight: 500,
+                                    border: msg.role === 'bot' ? '1px solid var(--border)' : 'none',
                                 }}>
                                     <div dangerouslySetInnerHTML={{ __html: formatBotText(msg.text) }} />
                                     <div style={{
                                         fontSize: '10px',
-                                        opacity: 0.6,
-                                        marginTop: '4px',
+                                        opacity: 0.5,
+                                        marginTop: '6px',
                                         textAlign: msg.role === 'user' ? 'right' : 'left',
+                                        fontWeight: 600
                                     }}>{msg.time}</div>
                                 </div>
                             </div>
@@ -237,24 +236,23 @@ export default function ChatbotFAQ() {
 
                         {/* Typing indicator */}
                         {isTyping && (
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
                                 <div style={{
                                     width: '28px', height: '28px', borderRadius: '8px',
-                                    background: 'linear-gradient(135deg, #0066ff, #3399ff)',
+                                    background: 'var(--bg-secondary)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '14px', flexShrink: 0,
-                                }}>🤖</div>
+                                    fontSize: '14px', flexShrink: 0, color: 'var(--primary)', fontWeight: 800
+                                }}>A</div>
                                 <div style={{
-                                    background: 'var(--bg-primary)', border: '1px solid var(--border)',
-                                    borderRadius: '14px 14px 14px 4px',
+                                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                                    borderRadius: '16px 16px 16px 4px',
                                     padding: '12px 16px',
-                                    display: 'flex', gap: '4px', alignItems: 'center',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                                    display: 'flex', gap: '4px', alignItems: 'center'
                                 }}>
                                     {[0, 1, 2].map(i => (
                                         <span key={i} style={{
-                                            width: '7px', height: '7px', borderRadius: '50%',
-                                            background: '#0066ff',
+                                            width: '6px', height: '6px', borderRadius: '50%',
+                                            background: 'var(--primary)',
                                             display: 'inline-block',
                                             animation: `dotPulse 1.4s ease infinite ${i * 0.2}s`,
                                         }} />
@@ -265,24 +263,24 @@ export default function ChatbotFAQ() {
 
                         {/* Quick questions (only show at start) */}
                         {messages.length <= 1 && !isTyping && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingLeft: '36px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingLeft: '38px', marginTop: '4px' }}>
                                 {QUICK_QUESTIONS.map((q, i) => (
                                     <button
                                         key={i}
                                         onClick={() => sendMessage(q)}
                                         style={{
-                                            background: 'var(--bg-primary)',
+                                            background: '#fff',
                                             border: '1px solid var(--border)',
-                                            color: '#0066ff',
-                                            padding: '6px 12px',
-                                            borderRadius: '16px',
+                                            color: 'var(--primary)',
+                                            padding: '8px 14px',
+                                            borderRadius: '10px',
                                             fontSize: '12px',
                                             cursor: 'pointer',
                                             transition: 'all 0.2s',
-                                            fontWeight: 500,
+                                            fontWeight: 700,
                                         }}
-                                        onMouseOver={e => { e.currentTarget.style.background = '#f0f4ff'; e.currentTarget.style.borderColor = '#0066ff'; }}
-                                        onMouseOut={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                                        onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                                        onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                                     >{q}</button>
                                 ))}
                             </div>
@@ -293,12 +291,12 @@ export default function ChatbotFAQ() {
 
                     {/* Input Area */}
                     <form onSubmit={handleSubmit} style={{
-                        padding: '12px 16px',
-                        borderTop: '1px solid #eef1f6',
+                        padding: '16px 20px',
+                        borderTop: '1px solid var(--border)',
                         display: 'flex',
-                        gap: '8px',
+                        gap: '10px',
                         alignItems: 'center',
-                        background: 'var(--bg-primary)',
+                        background: '#fff',
                         flexShrink: 0,
                     }}>
                         <input
@@ -306,35 +304,38 @@ export default function ChatbotFAQ() {
                             type="text"
                             value={input}
                             onChange={e => setInput(e.target.value)}
-                            placeholder="Ask me anything..."
+                            placeholder="Type a message..."
                             disabled={isTyping}
                             style={{
                                 flex: 1,
-                                padding: '10px 14px',
-                                borderRadius: '12px',
+                                padding: '12px 16px',
+                                borderRadius: '10px',
                                 border: '1px solid var(--border)',
-                                background: '#f5f7fa',
+                                background: 'var(--bg-secondary)',
                                 color: 'var(--text-primary)',
-                                fontSize: '13px',
+                                fontSize: '14px',
                                 outline: 'none',
-                                transition: 'border-color 0.2s',
+                                transition: 'all 0.2s',
+                                fontWeight: 500
                             }}
-                            onFocus={e => e.currentTarget.style.borderColor = '#0066ff'}
-                            onBlur={e => e.currentTarget.style.borderColor = '#e2e8f0'}
+                            onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = '#fff'; }}
+                            onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-secondary)'; }}
                         />
                         <button
                             type="submit"
                             disabled={!input.trim() || isTyping}
                             style={{
-                                width: '38px', height: '38px', borderRadius: '10px',
-                                background: input.trim() ? 'linear-gradient(135deg, #0044cc, #0066ff)' : '#e2e8f0',
+                                width: '44px', height: '44px', borderRadius: '10px',
+                                background: input.trim() ? 'var(--primary)' : 'var(--bg-secondary)',
                                 border: 'none', color: '#ffffff',
                                 cursor: input.trim() ? 'pointer' : 'default',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '16px', transition: 'all 0.2s',
+                                fontSize: '18px', transition: 'all 0.2s',
                                 flexShrink: 0,
                             }}
-                        >➤</button>
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
                     </form>
                 </div>
             )}
@@ -343,28 +344,28 @@ export default function ChatbotFAQ() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '16px',
-                    background: 'linear-gradient(135deg, #0044cc, #0066ff)',
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '20px',
+                    background: 'var(--primary)',
                     border: 'none',
                     color: 'white',
-                    fontSize: '24px',
+                    fontSize: '28px',
                     cursor: 'pointer',
-                    boxShadow: '0 8px 24px rgba(0, 102, 255, 0.35)',
+                    boxShadow: 'var(--shadow-lg)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                 }}
                 onMouseOver={(e) => {
-                    e.currentTarget.style.transform = isOpen ? 'rotate(90deg) scale(1.05)' : 'scale(1.08)';
-                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 102, 255, 0.5)';
+                    e.currentTarget.style.transform = isOpen ? 'rotate(90deg) scale(1.05)' : 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(26, 31, 113, 0.4)';
                 }}
                 onMouseOut={(e) => {
                     e.currentTarget.style.transform = isOpen ? 'rotate(90deg)' : 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 102, 255, 0.35)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
                 }}
             >
                 {isOpen ? '✕' : '💬'}

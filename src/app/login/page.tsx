@@ -80,61 +80,56 @@ export default function PortalSelector() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)', position: 'relative', overflow: 'hidden', fontFamily: 'var(--font-family)' }}>
-
-      <header style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '24px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      background: '#fff', 
+      color: 'var(--text-primary)', 
+      position: 'relative', 
+      fontFamily: 'var(--font-family)' 
+    }}>
+      <header style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        padding: '32px 48px', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        zIndex: 50 
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} /><span style={{ fontSize: '20px', background: 'linear-gradient(135deg, #0066ff, #3399ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 700 }}>AppTechno Software</span></div>
+          <img src="/logo.png" alt="AppTechno" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+          <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.02em' }}>AppTechno</span>
         </div>
         <a href="/" style={{
-          display: 'flex', alignItems: 'center', gap: '8px', color: '#555770', textDecoration: 'none', fontSize: '14px', fontWeight: 600,
-          padding: '8px 16px', borderRadius: '12px', background: '#f5f7fa', border: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '14px', fontWeight: 700,
+          padding: '10px 20px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)',
           transition: 'all 0.2s'
-        }}
-          onMouseOver={(e) => { e.currentTarget.style.color = '#1a1a2e'; e.currentTarget.style.background = '#eef1f6'; }}
-          onMouseOut={(e) => { e.currentTarget.style.color = '#555770'; e.currentTarget.style.background = '#f5f7fa'; }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-          Home
+        }}>
+          ← Back to Site
         </a>
       </header>
 
-      {/* Decorative Background Elements */}
-      <div style={{ position: 'absolute', top: '10%', right: '10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(0, 102, 255, 0.08) 0%, rgba(255,255,255,0) 70%)', borderRadius: '50%', filter: 'blur(80px)' }} />
-      <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(255, 184, 0, 0.08) 0%, rgba(255,255,255,0) 70%)', borderRadius: '50%', filter: 'blur(100px)' }} />
-
-      <div style={{ width: '100%', maxWidth: '560px', padding: '24px', margin: '20px', position: 'relative', zIndex: 10 }}>
-
+      <div style={{ width: '100%', maxWidth: '480px', padding: '24px', position: 'relative', zIndex: 10 }}>
         {/* Main Login Card */}
         <div style={{
-          background: 'var(--bg-primary)',
-          backdropFilter: 'blur(30px)',
-          WebkitBackdropFilter: 'blur(30px)',
+          background: '#fff',
           border: '1px solid var(--border)',
-          borderRadius: '32px',
-          padding: '48px',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-          position: 'relative', overflow: 'hidden'
+          borderRadius: '24px',
+          padding: '56px 48px',
+          boxShadow: 'var(--shadow-lg)',
+          position: 'relative'
         }}>
-          {/* Subtle Card Glow */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, transparent, rgba(0,102,255,0.3), transparent)' }} />
-
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <div style={{
-              width: '80px', height: '80px', borderRadius: '24px',
-              background: 'var(--bg-primary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 24px',
-              boxShadow: '0 4px 16px rgba(0, 102, 255, 0.12)',
-              position: 'relative', padding: '8px', border: '1px solid var(--border)'
-            }}>
-              <img src="/logo.png" alt="AppTechno Software" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '16px' }} />
-            </div>
-            <h1 style={{ color: 'var(--text-primary)', fontSize: '32px', fontWeight: 600, margin: '0 0 12px', letterSpacing: '-0.04em' }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <h1 style={{ color: 'var(--text-primary)', fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.04em' }}>
               Welcome back
             </h1>
-            <p style={{ color: '#555770', fontSize: '15px', margin: 0, fontWeight: 500 }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', margin: 0, fontWeight: 500 }}>
               Access your learning dashboard
             </p>
           </div>
@@ -142,75 +137,60 @@ export default function PortalSelector() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {error && (
               <div style={{
-                background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '16px', padding: '14px', color: '#fca5a5', fontSize: '14px',
-                textAlign: 'center', fontWeight: 500, backdropFilter: 'blur(10px)',
-                animation: 'slideDown 0.3s ease-out'
+                background: 'var(--danger-glow)', border: '1px solid var(--danger)',
+                borderRadius: '12px', padding: '14px', color: 'var(--danger)', fontSize: '14px',
+                textAlign: 'center', fontWeight: 700
               }}>
                 {error}
               </div>
             )}
 
-            <style jsx>{`
-              @keyframes slideDown {
-                from { opacity: 0; transform: translateY(-10px); }
-                to { opacity: 1; transform: translateY(0); }
-              }
-            `}</style>
-
-            <div style={{ position: 'relative' }}>
+            <div>
               <label style={{
-                color: email ? '#0066ff' : '#555770', fontSize: '13px', fontWeight: 600, display: 'block',
-                marginBottom: '8px', transition: 'color 0.2s'
+                color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700, display: 'block',
+                marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em'
               }}>Email Address</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              <input 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required
+                placeholder="name@company.com"
                 style={{
-                  width: '100%', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)',
-                  background: '#f5f7fa', color: 'var(--text-primary)', fontSize: '15px', outline: 'none',
-                  boxSizing: 'border-box', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
+                  width: '100%', padding: '14px 16px', borderRadius: '10px', border: '1px solid var(--border)',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px', outline: 'none',
+                  boxSizing: 'border-box', transition: 'all 0.2s'
                 }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#0066ff';
-                  e.currentTarget.style.background = 'rgba(245,247,250,0.95)';
-                  e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 102, 255, 0.15), inset 0 2px 4px rgba(0,0,0,0.08)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#e2e8f0';
-                  e.currentTarget.style.background = '#f5f7fa';
-                  e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.08)';
-                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = '#fff'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-secondary)'; }}
               />
             </div>
 
-            <div style={{ position: 'relative' }}>
-              <label style={{
-                color: password ? '#0066ff' : '#555770', fontSize: '13px', fontWeight: 600, display: 'block',
-                marginBottom: '8px', transition: 'color 0.2s'
-              }}>Password</label>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <label style={{
+                  color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.05em'
+                }}>Password</label>
+                <a href="#" style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>Forgot?</a>
+              </div>
               <div style={{ position: 'relative' }}>
-                <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required
+                  placeholder="••••••••"
                   style={{
-                    width: '100%', padding: '16px 48px 16px 16px', borderRadius: '16px', border: '1px solid var(--border)',
-                    background: '#f5f7fa', color: 'var(--text-primary)', fontSize: '15px', outline: 'none',
-                    boxSizing: 'border-box', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
+                    width: '100%', padding: '14px 16px', borderRadius: '10px', border: '1px solid var(--border)',
+                    background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '15px', outline: 'none',
+                    boxSizing: 'border-box', transition: 'all 0.2s'
                   }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#0066ff';
-                    e.currentTarget.style.background = 'rgba(245,247,250,0.95)';
-                    e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 102, 255, 0.15), inset 0 2px 4px rgba(0,0,0,0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.background = '#f5f7fa';
-                    e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.08)';
-                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = '#fff'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-secondary)'; }}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#8e8ea0', cursor: 'pointer', padding: '4px', fontSize: '18px', transition: 'color 0.2s' }}
-                  onMouseOver={(e) => e.currentTarget.style.color = '#1a1a2e'}
-                  onMouseOut={(e) => e.currentTarget.style.color = '#8e8ea0'}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', fontSize: '18px' }}
                 >
                   {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
@@ -218,46 +198,24 @@ export default function PortalSelector() {
             </div>
 
             <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '16px', borderRadius: '16px', border: 'none',
-              background: 'linear-gradient(135deg, #0044cc, #0066ff)', color: '#ffffff',
+              width: '100%', padding: '16px', borderRadius: '10px', border: 'none',
+              background: 'var(--primary)', color: '#ffffff',
               fontSize: '16px', fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
               marginTop: '12px', opacity: loading ? 0.7 : 1,
-              boxShadow: '0 8px 25px rgba(0, 68, 204, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', letterSpacing: '0.01em',
-              position: 'relative', overflow: 'hidden'
-            }}
-              onMouseOver={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 15px 35px rgba(0, 68, 204, 0.5), inset 0 1px 0 rgba(255,255,255,0.3)';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 68, 204, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
-                }
-              }}
-            >
-              {loading ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span> Authenticating...
-                </div>
-              ) : 'Access Dashboard'}
+              transition: 'all 0.2s',
+              boxShadow: 'var(--shadow-md)'
+            }}>
+              {loading ? 'Authenticating...' : 'Sign In'}
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '32px', fontSize: '14px', color: '#555770', fontWeight: 500 }}>
+          <div style={{ textAlign: 'center', marginTop: '32px', fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500 }}>
             Don&apos;t have an account?{' '}
-            <a href="/register" style={{
-              color: '#ffb800', textDecoration: 'none', fontWeight: 600,
-              borderBottom: '1px solid transparent', transition: 'border-color 0.2s', paddingBottom: '2px'
-            }} onMouseOver={e => e.currentTarget.style.borderColor = '#ffb800'} onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}>
-              Apply as Student
+            <a href="/register" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 700 }}>
+              Create Account
             </a>
           </div>
         </div>
-
       </div>
     </div>
   );

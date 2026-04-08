@@ -7,25 +7,18 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
-    
-    if (getStoredUser()) {
-      setIsLoggedIn(true);
-    }
-    
+    if (getStoredUser()) setIsLoggedIn(true);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const navLinks = [
     { name: 'Features', href: '/features' },
     { name: 'Courses', href: '/courses' },
-    { name: 'About', href: '/about' },
+    { name: 'Pricing', href: '/pricing' },
     { name: 'Contact', href: '/contact' },
   ];
 
@@ -33,20 +26,15 @@ export default function Navbar() {
     <nav 
       style={{ 
         position: 'fixed', 
-        top: isScrolled ? '12px' : '0', 
-        left: '50%', 
-        transform: 'translateX(-50%)',
-        width: isScrolled ? 'calc(100% - 40px)' : '100%', 
-        maxWidth: isScrolled ? '1200px' : '100%',
+        top: 0,
+        left: 0,
+        width: '100%',
         zIndex: 1000, 
-        padding: isScrolled ? '12px 24px' : '24px 40px', 
-        transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-        background: isScrolled ? 'var(--bg-card)' : 'transparent',
-        backdropFilter: isScrolled ? 'blur(20px) saturate(180%)' : 'none',
-        borderRadius: isScrolled ? '24px' : '0',
-        border: isScrolled ? '1px solid var(--border)' : 'none',
-        boxShadow: isScrolled ? 'var(--shadow-premium)' : 'none',
-        WebkitBackdropFilter: isScrolled ? 'blur(20px) saturate(180%)' : 'none'
+        padding: isScrolled ? '16px 40px' : '24px 40px', 
+        transition: 'all 0.4s ease',
+        background: isScrolled ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+        backdropFilter: isScrolled ? 'blur(10px)' : 'none',
+        borderBottom: isScrolled ? '1px solid var(--border)' : 'none',
       }}
     >
       <div style={{ 
@@ -54,97 +42,70 @@ export default function Navbar() {
         justifyContent: 'space-between', 
         alignItems: 'center',
         margin: '0 auto',
+        maxWidth: '1280px',
         width: '100%'
       }}>
         {/* Logo */}
         <Link href="/" style={{ 
-          fontSize: '20px', 
-          fontWeight: 800, 
-          color: 'var(--text-primary)', 
-          fontFamily: 'var(--font-heading)',
-          letterSpacing: '-0.03em',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '10px',
           textDecoration: 'none'
         }}>
-          <img src="/logo.png" alt="AppTechno Software Logo" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
-          <span style={{ lineHeight: 1 }}>AppTechno <span style={{ fontWeight: 600, color: 'var(--primary)' }}>Software</span></span>
+          <img src="/logo.png" alt="AppTechno Logo" style={{ height: '32px', width: 'auto' }} />
+          <span style={{ 
+            fontSize: '20px', 
+            fontWeight: 800, 
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+            fontFamily: 'var(--font-heading)'
+          }}>AppTechno</span>
         </Link>
 
-        {/* Links (Desktop) */}
-        <div className="desktop-only" style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
+        {/* Links (Centered) */}
+        <div className="desktop-only" style={{ display: 'flex', gap: '32px', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               href={link.href} 
               style={{ 
                 fontSize: '14px', 
-                fontWeight: 600, 
+                fontWeight: 500, 
                 color: 'var(--text-secondary)',
-                letterSpacing: '-0.01em',
-                transition: 'all 0.3s ease'
+                transition: 'color 0.2s'
               }}
-              onMouseOver={(e) => { e.currentTarget.style.color = 'var(--primary)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
             >
               {link.name}
             </Link>
           ))}
-          
-          <div style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 4px' }}></div>
-          
-          {/* Theme Toggle */}
-          <button 
-            onClick={toggleTheme}
-            style={{ 
-              background: 'var(--bg-tertiary)', 
-              border: 'none', 
-              width: '36px', 
-              height: '36px', 
-              borderRadius: '10px', 
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              transition: 'all 0.3s'
-            }}
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
+        </div>
 
+        {/* Auth Buttons */}
+        <div className="desktop-only" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           {isLoggedIn ? (
-            <Link href="/dashboard" className="btn btn-primary shadow-premium hover-lift" style={{ 
-              borderRadius: '12px',
-              padding: '10px 24px',
-              fontSize: '14px',
-              fontWeight: 600,
-              background: 'var(--primary)',
-              color: '#fff'
-            }}>
+            <Link href="/dashboard" className="btn btn-primary" style={{ borderRadius: '8px', padding: '10px 24px', fontSize: '14px' }}>
               Dashboard
             </Link>
           ) : (
             <>
-              <Link href="/login" style={{ 
-                fontSize: '14px', 
-                fontWeight: 600, 
-                color: 'var(--text-primary)',
-                marginRight: '8px'
-              }}>
-                Login
+              <Link href="/login" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Log in
               </Link>
-              <Link href="/register" className="btn btn-primary shadow-premium hover-lift" style={{ 
-                borderRadius: '12px',
+              <Link href="/register" style={{ 
+                border: '1px solid var(--text-primary)',
                 padding: '10px 24px',
+                borderRadius: '8px',
                 fontSize: '14px',
                 fontWeight: 600,
-                background: 'var(--primary)',
-                color: '#fff'
-              }}>
-                Join Now
+                color: 'var(--text-primary)',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--text-primary)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              >
+                Sign up
               </Link>
             </>
           )}
@@ -154,69 +115,40 @@ export default function Navbar() {
         <button 
           className="mobile-only" 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          style={{ 
-            background: 'var(--bg-tertiary)', 
-            border: 'none', 
-            cursor: 'pointer', 
-            padding: '10px',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '44px',
-            height: '44px'
-          }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px' }}
         >
-          <span style={{ fontSize: '20px' }}>{mobileMenuOpen ? '✕' : '☰'}</span>
+          {mobileMenuOpen ? '✕' : '☰'}
         </button>
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 'var(--space-4)',
-          right: 'var(--space-4)',
-          background: 'var(--bg-primary)',
-          zIndex: 999,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 'var(--space-10)',
-          gap: '24px',
-          borderRadius: '24px',
-          marginTop: '12px',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--border)'
+          position: 'absolute', top: '100%', left: 0, width: '100%', background: '#fff',
+          padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px',
+          borderBottom: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
         }}>
           {navLinks.map((link) => (
-            <Link 
-              key={link.name} 
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
-            >
-              {link.name}
-            </Link>
+            <Link key={link.name} href={link.href} onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '18px', fontWeight: 600 }}>{link.name}</Link>
           ))}
-          <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
+          <div style={{ height: '1px', background: 'var(--border)' }} />
           {isLoggedIn ? (
-            <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary btn-lg" style={{ borderRadius: '16px' }}>Dashboard</Link>
+            <Link href="/dashboard" className="btn btn-primary">Dashboard</Link>
           ) : (
             <>
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '20px', fontWeight: 600 }}>Login</Link>
-              <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary btn-lg" style={{ borderRadius: '16px', fontWeight: 600 }}>Enroll For Free</Link>
+              <Link href="/login" style={{ fontWeight: 600 }}>Log in</Link>
+              <Link href="/register" className="btn btn-primary">Sign up</Link>
             </>
           )}
         </div>
       )}
 
       <style jsx>{`
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
           .desktop-only { display: none !important; }
-          .mobile-only { display: flex !important; }
+          .mobile-only { display: block !important; }
         }
-        @media (min-width: 769px) {
+        @media (min-width: 901px) {
           .desktop-only { display: flex !important; }
           .mobile-only { display: none !important; }
         }

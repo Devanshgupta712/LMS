@@ -64,18 +64,54 @@ const StatCounter = ({ end, label, suffix = '', duration = 2000 }: { end: number
 
 export default function StatsSection() {
   return (
-    <section style={{ padding: '100px 0', background: 'var(--bg-primary)' }}>
+    <section style={{ 
+      padding: '100px 0', 
+      background: '#fff',
+      borderTop: '1px solid var(--border)',
+      borderBottom: '1px solid var(--border)'
+    }}>
       <div className="container-wide" style={{ 
-        maxWidth: '1100px', 
+        maxWidth: '1280px', 
+        padding: '0 40px',
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '40px'
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '40px',
+        textAlign: 'center'
       }}>
-        <StatCounter end={70000} label="Students Trained" suffix="+" />
-        <StatCounter end={14} label="Avg. Package" suffix=" LPA" />
-        <StatCounter end={500} label="Partner MNCs" suffix="+" />
-        <StatCounter end={100} label="Placement Record" suffix="%" />
+        <div>
+          <div style={{ fontSize: '56px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>70k+</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '12px' }}>Students Trained</div>
+        </div>
+        <div style={{ borderLeft: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '56px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>14L+</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '12px' }}>Avg. Salary Package</div>
+        </div>
+        <div style={{ borderLeft: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '56px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>500+</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '12px' }}>Partner MNCs</div>
+        </div>
+        <div style={{ borderLeft: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '56px', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.04em', lineHeight: 1 }}>100%</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '12px' }}>Placement Record</div>
+        </div>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 1024px) {
+          div[style*="gridTemplateColumns: repeat(4, 1fr)"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 60px !important;
+          }
+          div[style*="borderLeft: 1px solid var(--border)"] {
+            border-left: none !important;
+          }
+        }
+        @media (max-width: 640px) {
+          div[style*="gridTemplateColumns: repeat(4, 1fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

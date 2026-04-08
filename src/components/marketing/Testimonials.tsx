@@ -46,22 +46,84 @@ export default function Testimonials() {
   ];
 
   return (
-    <section style={{ padding: '120px 0', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden' }}>
-      {/* Background Glow */}
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '80%', height: '80%', background: 'radial-gradient(circle, hsla(var(--primary-h), 80%, 60%, 0.03) 0%, transparent 70%)', zIndex: 0 }} />
-      
-      <div className="container-wide" style={{ position: 'relative', zIndex: 1, maxWidth: '1280px', padding: '0 var(--space-8)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-          <h2 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.04em' }}>Loved by 70k+ Students</h2>
-          <p style={{ fontSize: '20px', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto' }}>Success stories that redefine technical education in India.</p>
+    <section style={{ padding: '100px 0', background: '#fff' }}>
+      <div className="container-wide" style={{ maxWidth: '1280px', padding: '0 40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+          <h2 style={{ 
+            fontSize: '32px', 
+            fontWeight: 800, 
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+            marginBottom: '20px'
+          }}>
+            Loved by 70k+ Students
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Success stories that redefine technical education.</p>
         </div>
 
-        <div className="grid-3">
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: '32px'
+        }}>
           {reviews.map((r, i) => (
-            <TestimonialCard key={i} {...r} />
+            <div 
+              key={i} 
+              style={{ 
+                padding: '40px',
+                borderRadius: '16px',
+                border: '1px solid var(--border)',
+                background: '#fff',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; e.currentTarget.style.borderColor = 'var(--primary-glow)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+            >
+              <div style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.6, flex: 1, fontWeight: 500 }}>
+                "{r.quote}"
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ 
+                  width: '44px', 
+                  height: '44px', 
+                  borderRadius: '50%', 
+                  background: 'var(--bg-secondary)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '20px',
+                  fontWeight: 800,
+                  color: 'var(--primary)'
+                }}>
+                  {r.author.charAt(0)}
+                </div>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>{r.author}</div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                    {r.role} @ <span style={{ color: 'var(--primary)' }}>{r.company}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 1024px) {
+          div[style*="gridTemplateColumns: repeat(3, 1fr)"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 768px) {
+          div[style*="gridTemplateColumns: repeat(3, 1fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

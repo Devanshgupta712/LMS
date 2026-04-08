@@ -33,46 +33,32 @@ export default function LandingWebsite() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: '#fff', color: 'var(--text-primary)', overflowX: 'hidden' }}>
       <Navbar />
       
       <main>
         {/* Phase 1: High Impact Entry */}
         <Hero />
         
-        <div className="reveal-on-scroll">
-          <TrustedBy />
-        </div>
+        <TrustedBy />
 
         {/* Phase 2: Value Discovery */}
-        <div className="reveal-on-scroll" style={{ background: 'var(--bg-secondary)', padding: '100px 0' }}>
-          <Features />
-        </div>
+        <Features />
 
         {/* Phase 3: Authority & Numbers */}
-        <div className="reveal-on-scroll">
-          <StatsSection />
-        </div>
+        <StatsSection />
 
         {/* Phase 4: Differentiation */}
-        <div className="reveal-on-scroll" style={{ background: 'var(--bg-secondary)', padding: '100px 0' }}>
-          <Comparison />
-        </div>
+        <Comparison />
 
         {/* Phase 5: Education Product */}
-        <div className="reveal-on-scroll" style={{ padding: '100px 0' }}>
-          <Courses />
-        </div>
+        <Courses />
 
         {/* Phase 6: Social Proof */}
-        <div className="reveal-on-scroll" style={{ background: 'var(--bg-secondary)', padding: '100px 0' }}>
-          <Testimonials />
-        </div>
+        <Testimonials />
 
         {/* Phase 7: Conversion */}
-        <div className="reveal-on-scroll">
-          <CTA />
-        </div>
+        <CTA />
       </main>
 
       <Footer />

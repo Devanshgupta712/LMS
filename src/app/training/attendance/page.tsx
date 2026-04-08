@@ -65,9 +65,26 @@ export default function AttendancePage() {
         }
     };
 
-    const downloadCSV = () => {
+    const downloadCSV = async () => {
         if (!selectedBatch || !startDate || !endDate) return;
-        window.open(`/api/training/attendance/export?batch_id=${selectedBatch}&start_date=${startDate}&end_date=${endDate}`, '_blank');
+        try {
+            const res = await apiFetch(`/api/training/attendance/export?batch_id=${selectedBatch}&start_date=${startDate}&end_date=${endDate}`);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to generate attendance report');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_${selectedBatch}_${startDate}_to_${endDate}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert(err.message || 'Connection error. Please try again.');
+        }
     };
 
     const generateQr = async () => {

@@ -62,17 +62,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Sidebar userRole={user.role} userName={user.name} userEmail={user.email} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             
             <main className="main-content">
-                <header className="glass-premium" style={{ 
-                    padding: '12px 24px', 
-                    borderRadius: '20px', 
+                <header style={{ 
+                    padding: '16px 24px', 
+                    background: '#fff',
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'space-between',
                     marginBottom: '32px',
                     position: 'sticky',
-                    top: '20px',
+                    top: '0',
                     zIndex: 900,
-                    border: '1px solid var(--border)'
+                    borderBottom: '1px solid var(--border)'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
                         <button 
@@ -105,41 +105,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 style={{ 
                                     width: '100%', 
                                     padding: '10px 14px 10px 42px', 
-                                    borderRadius: '12px', 
+                                    borderRadius: '8px', 
                                     border: '1px solid var(--border)', 
-                                    background: 'var(--bg-tertiary)', 
+                                    background: 'var(--bg-secondary)', 
                                     color: 'var(--text-primary)',
                                     fontSize: '14px',
                                     fontWeight: 500,
                                     outline: 'none',
                                     transition: 'all 0.2s ease'
                                 }} 
+                                onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                                onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
                             />
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* Theme Toggle */}
-                        <button 
-                            onClick={toggleTheme}
-                            className="hover-lift"
-                            style={{
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '12px',
-                                background: 'var(--bg-tertiary)',
-                                border: '1px solid var(--border)',
-                                color: 'var(--text-primary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                fontSize: '18px'
-                            }}
-                        >
-                            {theme === 'dark' ? '☀️' : '🌙'}
-                        </button>
-
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         {/* Notifications */}
                         <div style={{ position: 'relative' }}>
                             <button
@@ -151,19 +132,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                         apiPost('/api/auth/notifications/read-all', {}).catch(() => { });
                                     }
                                 }}
-                                className="hover-lift"
                                 style={{ 
                                     width: '40px',
                                     height: '40px',
-                                    borderRadius: '12px',
-                                    background: 'var(--bg-tertiary)', 
-                                    border: '1px solid var(--border)', 
+                                    borderRadius: '8px',
+                                    background: 'none', 
+                                    border: 'none', 
                                     cursor: 'pointer', 
                                     position: 'relative', 
-                                    fontSize: '18px',
+                                    fontSize: '20px',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    color: 'var(--text-secondary)'
                                 }}
                             >
                                 🔔
@@ -171,7 +152,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                     <span style={{
                                         position: 'absolute', top: '8px', right: '8px',
                                         width: '8px', height: '8px',
-                                        background: '#ef4444', borderRadius: '50%', border: '2px solid var(--bg-tertiary)'
+                                        background: 'var(--danger)', borderRadius: '50%', border: '2px solid #fff'
                                     }} />
                                 )}
                             </button>
@@ -179,22 +160,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             {showNotifs && (
                                 <div
                                     onMouseLeave={() => setShowNotifs(false)}
-                                    className="glass-premium"
                                     style={{
                                         position: 'absolute', top: 'calc(100% + 12px)', right: '0',
-                                        width: '320px', borderRadius: '16px', border: '1px solid var(--border)',
+                                        width: '320px', borderRadius: '12px', border: '1px solid var(--border)',
+                                        background: '#fff', boxShadow: 'var(--shadow-lg)',
                                         zIndex: 1000, overflow: 'hidden'
                                     }}
                                 >
                                     <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Notifications</h3>
-                                        {unreadCount > 0 && <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)' }}>{unreadCount} New</span>}
+                                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Notifications</h3>
                                     </div>
                                     <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
                                         {notifications.length === 0 ? (
                                             <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                                                <div style={{ fontSize: '24px', marginBottom: '12px' }}>📭</div>
-                                                <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '13px', fontWeight: 600 }}>All caught up!</p>
+                                                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No notifications</p>
                                             </div>
                                         ) : (
                                             notifications.slice(0, 5).map(n => (
@@ -204,52 +183,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                                         padding: '16px', 
                                                         borderBottom: '1px solid var(--border)',
                                                         background: n.read ? 'transparent' : 'var(--primary-glow)', 
-                                                        cursor: 'pointer',
-                                                        transition: 'background 0.2s'
-                                                    }}
-                                                    onClick={() => {
-                                                        const link = ['SUPER_ADMIN', 'ADMIN'].includes(user.role) ? '/notifications' : `/${user.role.toLowerCase()}/notifications`;
-                                                        window.location.href = link;
+                                                        cursor: 'pointer'
                                                     }}
                                                 >
-                                                    <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px', color: 'var(--text-primary)' }}>{n.title}</div>
-                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{n.message}</div>
-                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '8px', fontWeight: 600 }}>
-                                                        {new Date(n.created_at).toLocaleDateString()}
-                                                    </div>
+                                                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{n.title}</div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{n.message}</div>
                                                 </div>
                                             ))
                                         )}
-                                    </div>
-                                    <div style={{ padding: '12px', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
-                                        <a
-                                            href={['SUPER_ADMIN', 'ADMIN'].includes(user.role) ? '/notifications' : `/${user.role.toLowerCase()}/notifications`}
-                                            style={{ color: 'var(--primary)', fontSize: '12px', textDecoration: 'none', fontWeight: 700 }}
-                                        >
-                                            View All Activity
-                                        </a>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div style={{ width: '1px', height: '24px', background: 'var(--border)', margin: '0 4px' }} />
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 4px 4px 12px' }}>
-                            <div style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '12px', borderLeft: '1px solid var(--border)' }}>
+                            <div style={{ textAlign: 'right' }} className="desktop-only">
                                 <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</div>
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{user.role}</div>
                             </div>
                             <div style={{ 
                                 width: '36px', 
                                 height: '36px', 
-                                borderRadius: '10px', 
+                                borderRadius: '8px', 
                                 background: 'var(--primary)', 
                                 color: '#fff',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '24px'
+                                fontSize: '16px',
+                                fontWeight: 700
                             }}>
                                 {user.name.charAt(0)}
                             </div>

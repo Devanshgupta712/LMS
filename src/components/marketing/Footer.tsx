@@ -10,40 +10,43 @@ export default function Footer() {
       { name: 'About Us', href: '/about' },
       { name: 'Careers', href: '/careers' },
       { name: 'Blog', href: '/blog' },
-      { name: 'Press', href: '/press' },
     ],
     Learning: [
       { name: 'All Courses', href: '/courses' },
-      { name: 'Tutorials', href: '/tutorials' },
       { name: 'Certification', href: '/certifications' },
-      { name: 'Student Portal', href: '/dashboard' },
     ],
     Support: [
       { name: 'Contact', href: '/contact' },
-      { name: 'Help Center', href: '/help' },
       { name: 'FAQ', href: '/faq' },
       { name: 'Privacy', href: '/privacy' },
     ],
   };
 
   return (
-    <footer style={{ background: 'var(--bg-secondary)', padding: '80px 24px 40px', borderTop: '1px solid var(--border)' }}>
-      <div className="container-wide" style={{ maxWidth: '1200px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '48px', marginBottom: '80px' }}>
+    <footer style={{ background: '#fff', padding: '100px 40px 60px', borderTop: '1px solid var(--border)' }}>
+      <div className="container-wide" style={{ maxWidth: '1280px', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr repeat(3, 1fr)', gap: '60px', marginBottom: '80px' }}>
           {/* Logo & Info */}
-          <div style={{ flex: '1.5' }}>
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <img src="/logo.png" alt="AppTechno Software" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-              <span style={{ fontSize: '22px', fontWeight: 600, color: 'var(--text-primary)' }}>AppTechno <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Software</span></span>
+          <div>
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px', textDecoration: 'none' }}>
+              <img src="/logo.png" alt="AppTechno" style={{ height: '32px', width: 'auto' }} />
+              <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-heading)' }}>AppTechno</span>
             </Link>
-            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '24px', maxWidth: '300px' }}>
-              Realizing your IT dreams since 2000. We bridge the gap between classroom and boardroom.
+            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '32px', maxWidth: '320px', fontSize: '15px' }}>
+              Experience the future of IT training with real projects and MNC certificates.
             </p>
             <div style={{ display: 'flex', gap: '16px' }}>
-              {/* Simple icon placeholders */}
-              {['𝕏', 'in', 'f', 'ig'].map((icon, i) => (
-                <div key={i} style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.color = 'var(--primary)')} onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}>
-                  {icon}
+              {['Facebook', 'Twitter', 'LinkedIn', 'Instagram'].map((social, i) => (
+                <div key={i} style={{ 
+                  color: 'var(--text-muted)', 
+                  fontSize: '13px', 
+                  fontWeight: 600, 
+                  cursor: 'pointer', 
+                  transition: 'color 0.2s' 
+                }} 
+                onMouseOver={(e) => (e.currentTarget.style.color = 'var(--primary)')} 
+                onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}>
+                  {social}
                 </div>
               ))}
             </div>
@@ -52,11 +55,11 @@ export default function Footer() {
           {/* Links Sections */}
           {Object.entries(footerLinks).map(([title, links]) => (
             <div key={title}>
-              <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '24px', color: 'var(--text-primary)' }}>{title}</h4>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '24px', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</h4>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 {links.map((link) => (
-                  <li key={link.name} style={{ marginBottom: '12px' }}>
-                    <Link href={link.href} style={{ color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.2s', fontSize: '14px' }} onMouseOver={(e) => (e.currentTarget.style.color = 'var(--primary)')} onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}>
+                  <li key={link.name} style={{ marginBottom: '16px' }}>
+                    <Link href={link.href} style={{ color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.2s', fontSize: '14px', fontWeight: 500 }} onMouseOver={(e) => (e.currentTarget.style.color = 'var(--primary)')} onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}>
                       {link.name}
                     </Link>
                   </li>
@@ -66,14 +69,16 @@ export default function Footer() {
           ))}
         </div>
 
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-            © {currentYear} AppTechno Software Private Limited. All rights reserved.
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500 }}>
+            © {currentYear} AppTechno Software. All rights reserved.
           </p>
           <div style={{ display: 'flex', gap: '24px' }}>
-            <Link href="/terms" style={{ color: 'var(--text-muted)', fontSize: '14px', textDecoration: 'none' }}>Terms</Link>
-            <Link href="/privacy" style={{ color: 'var(--text-muted)', fontSize: '14px', textDecoration: 'none' }}>Privacy</Link>
-            <Link href="/cookies" style={{ color: 'var(--text-muted)', fontSize: '14px', textDecoration: 'none' }}>Cookies</Link>
+            {['Terms', 'Privacy', 'Cookies'].map(item => (
+              <Link key={item} href="#" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none', fontWeight: 500 }} onMouseOver={(e) => (e.currentTarget.style.color = 'var(--text-primary)')} onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}>
+                {item}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

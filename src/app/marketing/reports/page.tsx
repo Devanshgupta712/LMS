@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiFetch } from '@/lib/api';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function MarketingReportsPage() {
@@ -45,9 +45,26 @@ export default function MarketingReportsPage() {
         .map(([day, count]) => ({ day: parseInt(day), date: day, count }))
         .sort((a, b) => a.day - b.day);
 
-    const downloadCSV = () => {
+    const downloadCSV = async () => {
         if (!startDate || !endDate) return;
-        window.open(`/api/marketing/reports/export?start_date=${startDate}&end_date=${endDate}`, '_blank');
+        try {
+            const res = await apiFetch(`/api/marketing/reports/export?start_date=${startDate}&end_date=${endDate}`);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to generate report');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `leads_report_${startDate}_to_${endDate}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert(err.message || 'Connection error. Please try again.');
+        }
     };
 
     return (

@@ -6,92 +6,55 @@
 
 /* ─── CSS Custom Properties ─────────────────────────────── */
 :root {
-  /* Premium SaaS Theme (Indigo/Purple) */
-  --primary-h: 265;
-  --primary-s: 89%;
-  --primary-l: 66%;
+  /* Premium Design Theme (Navy / Indigo) */
+  --primary-h: 236;
+  --primary-s: 63%;
+  --primary-l: 27%; /* Dark Navy #1a1f71 */
   --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
-  --primary-light: hsl(var(--primary-h), var(--primary-s), 76%);
-  --primary-dark: hsl(var(--primary-h), var(--primary-s), 50%);
-  --primary-glow: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.12); 
+  --primary-light: hsl(var(--primary-h), var(--primary-s), 45%);
+  --primary-dark: hsl(var(--primary-h), var(--primary-s), 20%);
+  --primary-glow: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.08);
 
-  --accent-h: 285;
-  --accent-s: 85%;
-  --accent-l: 72%;
+  --accent-h: 271;
+  --accent-s: 81%;
+  --accent-l: 56%; /* Purple #9333ea */
   --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  --accent-light: hsl(var(--accent-h), var(--accent-s), 70%);
 
-  /* Light Slate Backgrounds - Professional, non-inverted Off-White */
-  --bg-primary: #f8fafc; 
-  --bg-secondary: #f1f5f9;
-  --bg-tertiary: #e2e8f0;
+  /* Backgrounds - Clean & Minimalist */
+  --bg-primary: #ffffff; 
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
   --bg-card: #ffffff;
   --bg-input: #ffffff;
-  --bg-hover: rgba(15, 23, 42, 0.04);
+  --bg-hover: rgba(0, 0, 0, 0.03);
   
-  /* Text */
-  --text-primary: #0f172a;  
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  /* Text - High Contrast */
+  --text-primary: #111827;  
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
   --text-inverse: #ffffff;
 
   /* Subtle Borders */
-  --border: rgba(15, 23, 42, 0.08); 
-  --border-light: rgba(15, 23, 42, 0.04);
-  --border-glow: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.2);
+  --border: rgba(0, 0, 0, 0.08); 
+  --border-light: rgba(0, 0, 0, 0.04);
+  --border-glow: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.15);
 
   /* Status Colors */
   --success: #10b981;
-  --success-light: #34d399;
   --danger: #ef4444;
-  --danger-light: #f87171;
   --warning: #f59e0b;
 
-  /* Shadows - Elevation & Depth */
-  --shadow-premium: inset 0 1px 0 0 rgba(255, 255, 255, 0.8), 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 12px 16px -4px rgba(0, 0, 0, 0.05);
+  /* Premium Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-premium: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
 
-  --sidebar-width: 280px;
-  --sidebar-margin: 20px;
+  --sidebar-width: 260px;
+  --border-radius: 12px;
+  --border-radius-lg: 20px;
   --border-radius-xl: 32px;
-  --border-radius-lg: 24px;
-
-  /* Spacing & Utilities */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-20: 80px;
-  --space-24: 96px;
-  --space-32: 128px;
-  --charcoal: #0D111A;
-}
-
-[data-theme='dark'] {
-  /* High-end Dark Navy Backgrounds */
-  --bg-primary: #0b0f19; 
-  --bg-secondary: #111827;
-  --bg-tertiary: #1f2937;
-  --bg-card: #111827;
-  --bg-input: rgba(255, 255, 255, 0.05);
-  --bg-hover: rgba(255, 255, 255, 0.05); 
-  
-  /* Text readability improvements */
-  --text-primary: #f1f5f9; 
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --text-inverse: #020617;
-
-  /* Glass Translucent Borders */
-  --border: rgba(255, 255, 255, 0.06); 
-  --border-light: rgba(255, 255, 255, 0.02);
-  --border-glow: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.2);
-
-  /* Inner Glow Shadows */
-  --shadow-premium: inset 0 1px 0 0 rgba(255, 255, 255, 0.02), 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 12px 16px -4px rgba(0, 0, 0, 0.15);
 }
 
 /* ─── Reset & Base ──────────────────────────────────────── */
@@ -110,8 +73,8 @@ html {
 }
 
 :root {
-  --font-heading: var(--font-inter), system-ui, sans-serif;
-  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
 }
 
 /* ─── Global Transition Engine ─── */
@@ -128,10 +91,10 @@ th,
 td,
 .modal,
 .form-input {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              color 0.15s ease,
-              box-shadow 0.3s ease;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.2s ease,
+              box-shadow 0.4s ease;
 }
 
 body {
@@ -143,7 +106,6 @@ body {
   font-weight: 400;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ─── Global SaaS Typography Scale ─────────────────────── */

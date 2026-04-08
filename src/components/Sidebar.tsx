@@ -142,57 +142,52 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
 
     return (
         <>
-            {/* Desktop Frosted Island Sidebar */}
-            <aside className={`desktop-sidebar glass-premium ${isOpen ? 'open' : ''}`} style={{
+            {/* Desktop Clean Sidebar */}
+            <aside className={`desktop-sidebar ${isOpen ? 'open' : ''}`} style={{
                 position: 'fixed',
-                top: '20px',
-                left: '20px',
-                bottom: '20px',
+                top: '0',
+                left: '0',
+                bottom: '0',
                 width: 'var(--sidebar-width)',
                 zIndex: 1000,
                 display: 'flex',
                 flexDirection: 'column',
-                borderRadius: '24px',
-                padding: '24px 12px',
-                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                border: '1px solid var(--border)',
+                background: '#fff',
+                padding: '32px 0 24px',
+                transition: 'all 0.4s ease',
+                borderRight: '1px solid var(--border)',
                 overflow: 'hidden'
             }}>
                 {/* Branding */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 12px 24px', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 24px 32px', marginBottom: '8px' }}>
                     <div style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        background: 'var(--bg-primary)', 
-                        borderRadius: '12px', 
+                        width: '32px', 
+                        height: '32px', 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',
-                        boxShadow: 'var(--shadow-premium)',
-                        overflow: 'hidden',
-                        padding: '4px'
+                        overflow: 'hidden'
                     }}>
                         <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </div>
                     <div>
-                        <h2 style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: '1.2' }}>AppTechno Software</h2>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Training Engine</span>
+                        <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-heading)' }}>AppTechno</h2>
                     </div>
                 </div>
 
                 {/* Navigation Scroll Area */}
-                <nav style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }} className="sidebar-nav">
+                <nav style={{ flex: 1, overflowY: 'auto', padding: '0 16px' }} className="sidebar-nav">
                     {navSections
                         .filter((section) => section.roles.includes(userRole))
                         .map((section) => (
-                            <div key={section.title} style={{ marginBottom: '24px' }}>
+                            <div key={section.title} style={{ marginBottom: '28px' }}>
                                 <div style={{ 
                                     padding: '0 12px', 
                                     fontSize: '11px', 
-                                    fontWeight: 600, 
+                                    fontWeight: 700, 
                                     color: 'var(--text-muted)', 
                                     textTransform: 'uppercase', 
-                                    letterSpacing: '0.1em',
+                                    letterSpacing: '0.05em',
                                     marginBottom: '12px'
                                 }}>
                                     {section.title}
@@ -205,24 +200,25 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
                                             <Link
                                                 key={item.href}
                                                 href={item.href}
-                                                className={`hover-lift ${isActive ? 'active' : ''}`}
+                                                className={isActive ? 'active' : ''}
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: '12px',
-                                                    padding: '10px 12px',
-                                                    borderRadius: '12px',
-                                                    color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
+                                                    padding: '12px 16px',
+                                                    borderRadius: '10px',
+                                                    color: isActive ? '#fff' : 'var(--text-secondary)',
                                                     background: isActive ? 'var(--primary)' : 'transparent',
                                                     fontWeight: isActive ? 700 : 500,
                                                     fontSize: '14px',
                                                     marginBottom: '4px',
-                                                    transition: 'all 0.2s ease',
-                                                    boxShadow: isActive ? '0 10px 20px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.2)' : 'none'
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    boxShadow: isActive ? 'var(--shadow-md)' : 'none',
+                                                    textDecoration: 'none'
                                                 }}
                                                 onClick={onClose}
                                             >
-                                                <span style={{ fontSize: '18px', filter: isActive ? 'none' : 'grayscale(100%) opacity(0.7)' }}>{item.icon}</span>
+                                                <span style={{ fontSize: '18px' }}>{item.icon}</span>
                                                 <span>{item.label}</span>
                                             </Link>
                                         );
@@ -232,40 +228,47 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
                 </nav>
 
                 {/* User Section */}
-                <div style={{ marginTop: '20px', padding: '16px', borderRadius: '20px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ marginTop: 'auto', padding: '24px 16px 0', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 12px 20px' }}>
                         <div style={{ 
-                            width: '40px', 
-                            height: '40px', 
-                            borderRadius: '10px', 
-                            background: 'var(--primary-glow)', 
+                            width: '36px', 
+                            height: '36px', 
+                            borderRadius: '8px', 
+                            background: 'var(--bg-tertiary)', 
                             color: 'var(--primary)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontWeight: 600,
-                            fontSize: '14px'
+                            fontWeight: 700,
+                            fontSize: '13px'
                         }}>
                             {getInitials(userName)}
                         </div>
                         <div style={{ overflow: 'hidden' }}>
-                            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{userName}</div>
-                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>{formatRole(userRole)}</div>
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{userName}</div>
+                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{userRole.toLowerCase()}</div>
                         </div>
                     </div>
-                    <button onClick={handleLogout} className="hover-lift" style={{
+                    <button onClick={handleLogout} style={{
                         width: '100%', 
-                        padding: '10px', 
+                        padding: '12px', 
                         borderRadius: '10px', 
-                        color: '#ef4444', 
+                        color: 'var(--text-secondary)', 
                         fontSize: '13px', 
-                        fontWeight: 700,
-                        border: '1px solid hsla(0, 80%, 60%, 0.1)',
-                        background: 'hsla(0, 80%, 60%, 0.05)',
+                        fontWeight: 600,
+                        border: '1px solid var(--border)',
+                        background: '#fff',
                         cursor: 'pointer', 
                         transition: 'all 0.2s',
-                    }}>
-                        Sign Out
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                    >
+                        <span>🚪</span> Sign Out
                     </button>
                 </div>
             </aside>

@@ -26,40 +26,82 @@ const ComparisonRow = ({ feature, traditional, apptechno }: { feature: string, t
 
 export default function Comparison() {
   const comparisons = [
-    { feature: 'Certification', traditional: 'Only Degree/Diploma', apptechno: '6-Month MNC Experience' },
-    { feature: 'Learning Method', traditional: 'Theory & Labs', apptechno: 'Production-Grade Projects' },
-    { feature: 'Placement Policy', traditional: 'Placement Assistance', apptechno: 'Unlimited Interview Calls' },
-    { feature: 'Soft Skills', traditional: 'None', apptechno: 'AI English Coach Included' },
-    { feature: 'MNC Standards', traditional: 'Not Covered', apptechno: 'Full Exposure to MNC Workflow' }
+    { feature: 'Certification', traditional: 'Only Certificate', apptechno: '6-Month IT Experience' },
+    { feature: 'Learning Method', traditional: 'Theory & Labs', apptechno: 'Job Immersion Program' },
+    { feature: 'Placement Policy', traditional: 'Assistance', apptechno: 'Placement Guarantee' },
+    { feature: 'Soft Skills', traditional: 'No Focus', apptechno: 'Soft Skill Mentorship' },
+    { feature: 'MNC Standards', traditional: 'Not Covered', apptechno: 'Full MNC Exposure' }
   ];
 
   return (
-    <section style={{ padding: '120px 0', background: 'var(--bg-primary)' }}>
-      <div className="container-wide" style={{ maxWidth: '1000px', padding: '0 var(--space-8)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-          <h2 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.04em' }}>Why AppTechno?</h2>
-          <p style={{ fontSize: '18px', color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>A new category of technical immersion that goes beyond bootcamps.</p>
+    <section style={{ padding: '100px 0', background: '#fff' }}>
+      <div className="container-wide" style={{ maxWidth: '1000px', padding: '0 40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+          <h2 style={{ 
+            fontSize: '32px', 
+            fontWeight: 800, 
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+            marginBottom: '20px'
+          }}>
+            Why AppTechno?
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>The difference between learning and being industry-ready.</p>
         </div>
 
-        <div className="glass-premium" style={{ padding: '40px 60px' }}>
+        <div style={{ 
+          background: '#fff', 
+          borderRadius: '20px', 
+          border: '1px solid var(--border)',
+          overflow: 'hidden',
+          boxShadow: 'var(--shadow-lg)'
+        }}>
+          {/* Header */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: '1fr 1fr 1fr', 
-            paddingBottom: '24px', 
-            borderBottom: '2px solid var(--border)',
+            gridTemplateColumns: 'minmax(200px, 1.5fr) 1fr 1fr', 
+            padding: '24px 32px', 
+            background: 'var(--bg-secondary)',
+            borderBottom: '1px solid var(--border)',
             fontSize: '14px',
-            fontWeight: 600,
+            fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.1em',
+            letterSpacing: '0.05em',
             color: 'var(--text-muted)'
           }}>
-            <div>Feature</div>
-            <div style={{ textAlign: 'center' }}>Traditional Bootcamps</div>
-            <div style={{ textAlign: 'center', color: 'var(--primary)' }}>AppTechno Software</div>
+            <div>Features</div>
+            <div style={{ textAlign: 'center' }}>Traditional</div>
+            <div style={{ textAlign: 'center', color: 'var(--primary)' }}>AppTechno</div>
           </div>
 
+          {/* Rows */}
           {comparisons.map((c, i) => (
-            <ComparisonRow key={i} {...c} />
+            <div key={i} style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'minmax(200px, 1.5fr) 1fr 1fr', 
+              padding: '24px 32px', 
+              borderBottom: i === comparisons.length - 1 ? 'none' : '1px solid var(--border)',
+              alignItems: 'center',
+              transition: 'background 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{c.feature}</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center' }}>{c.traditional}</div>
+              <div style={{ 
+                fontSize: '15px', 
+                fontWeight: 700, 
+                color: 'var(--primary)', 
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ color: 'var(--success)' }}>✓</span> {c.apptechno}
+              </div>
+            </div>
           ))}
         </div>
       </div>

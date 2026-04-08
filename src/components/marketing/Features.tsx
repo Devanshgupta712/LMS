@@ -3,102 +3,117 @@
 import { useEffect, useRef } from 'react';
 
 const features = [
-  { icon: '🚀', title: 'Live Project Experience', desc: 'Work on actual projects currently being developed in software companies.' },
-  { icon: '📜', title: 'IT Company Certificate', desc: 'Get a 6-month experience certificate that employers recognize globally.' },
-  { icon: '🤖', title: 'AI-Powered Support', desc: 'Use AI for placement, interview preparation, and real-time guidance.' },
-  { icon: '💼', title: '50% Fees After Placement', desc: 'Pay 50% of your course fees only after getting placed in a reputed company.' },
-  { icon: '🗓️', title: 'Flexible Batches', desc: 'Learn online or offline with evening and weekend schedules available.' },
-  { icon: '🌟', title: 'Industry Experts', desc: 'Training provided by working professionals from top IT firms.' }
+  { 
+    icon: '🏗️', 
+    title: 'Live Project Experience', 
+    desc: 'Experience on IT Training in project driven.',
+    items: ['Live Project Experience', 'Live Project Experience', 'Live Project Experience']
+  },
+  { 
+    icon: '🤖', 
+    title: 'AI-Powered Support', 
+    desc: 'Learn your AI-Admin and support around beginners.',
+    items: ['AI-Powered Support', 'AI-Powered Support', 'AI-Powered Support']
+  },
+  { 
+    icon: '📅', 
+    title: 'Flexible Batches', 
+    desc: 'Keep it video place w today context and for system.',
+    items: ['Flexible Batches', 'Flexible Batches Batches', 'Flexible Batches']
+  },
+  { 
+    icon: '🎓', 
+    title: 'IT Company Certificate', 
+    desc: 'Helps yes our customers certificate.',
+    items: ['IT Company Certificate', 'IT Ready Certificate', 'IT Company Certificate']
+  },
+  { 
+    icon: '🤝', 
+    title: '50% Fees After Placement', 
+    desc: 'Secure your business with placement yes.',
+    items: ['50% Fees After Placement', '50% Fees After Placement', '50% Fees After Placement']
+  },
+  { 
+    icon: '👨‍🏫', 
+    title: 'Industry Experts', 
+    desc: 'Meets new costs w industry experiences trop winnes.',
+    items: ['Industry Experts', 'Industry Expertisements', 'Industry Experts']
+  }
 ];
 
 export default function Features() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-        }
-      });
-    }, { threshold: 0.1 });
-
-    const elements = document.querySelectorAll('.feature-item');
-    elements.forEach(el => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <section className="section-padding" style={{ padding: 'var(--space-24) 0', background: 'var(--bg-primary)' }}>
-      <div className="container-wide" style={{ maxWidth: '1240px', padding: '0 var(--space-8)' }}>
-        <div style={{ textAlign: 'left', marginBottom: 'var(--space-20)', maxWidth: '800px' }}>
-          <div style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '14px', letterSpacing: '0.2em', marginBottom: 'var(--space-4)', textTransform: 'uppercase' }}>THE DIFFERENCE</div>
-          <h2 style={{ fontSize: 'clamp(36px, 5vw, 60px)', fontWeight: 700, marginBottom: 'var(--space-6)', color: 'var(--text-primary)', lineHeight: 1 }}>How AppTechno Prepares You for the Real World.</h2>
-          <p style={{ fontSize: '20px', color: 'var(--text-secondary)', maxWidth: '640px', lineHeight: 1.6 }}>
-            Traditional training stops at theory. We bridge the gap with an immersion program that feels like your first job.
-          </p>
+    <section style={{ padding: '100px 0', background: '#fff' }}>
+      <div className="container-wide" style={{ maxWidth: '1280px', padding: '0 40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+          <h2 style={{ 
+            fontSize: '32px', 
+            fontWeight: 800, 
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+            marginBottom: '40px'
+          }}>
+            The Difference: How AppTechno Prepares You for the Real World
+          </h2>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-24)' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: '24px'
+        }}>
           {features.map((feature, i) => (
             <div 
               key={i} 
-              className="reveal-on-scroll"
               style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-                gap: 'var(--space-12)', 
-                alignItems: 'center',
-                direction: i % 2 === 1 ? 'rtl' : 'ltr'
+                padding: '32px',
+                borderRadius: '16px',
+                border: '1px solid var(--border)',
+                background: '#fff',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+              onMouseOver={(e) => { 
+                e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; 
+                e.currentTarget.style.borderColor = 'var(--primary-glow)';
+              }}
+              onMouseOut={(e) => { 
+                e.currentTarget.style.boxShadow = 'none'; 
+                e.currentTarget.style.borderColor = 'var(--border)';
               }}
             >
-              {/* Image Side (Alternating) */}
-              <div style={{ direction: 'ltr' }}>
-                <div 
-                  className="hover-lift shadow-subtle"
-                  style={{
-                    width: '100%',
-                    height: '400px',
-                    background: i % 2 === 0 ? 'hsl(var(--primary-h), 80%, 98%)' : 'hsl(var(--accent-h), 80%, 98%)',
-                    borderRadius: i % 2 === 0 ? '40px 100px 40px 40px' : '100px 40px 40px 40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '120px',
-                    border: '1px solid var(--border-light)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '150px', height: '150px', background: 'var(--primary-glow)', borderRadius: '50%', filter: 'blur(40px)' }}></div>
-                  {feature.icon}
-                </div>
-              </div>
-
-              {/* Text Side */}
-              <div style={{ direction: 'ltr', padding: 'var(--space-8)' }}>
-                <div style={{ 
-                  width: '56px', 
-                  height: '56px', 
-                  background: 'var(--charcoal)', 
-                  color: '#fff', 
-                  borderRadius: '16px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontSize: '24px', 
-                  marginBottom: 'var(--space-6)',
-                  boxShadow: 'var(--shadow-md)'
+              <div style={{ fontSize: '32px' }}>{feature.icon}</div>
+              
+              <div>
+                <h3 style={{ 
+                  fontSize: '20px', 
+                  fontWeight: 700, 
+                  color: 'var(--text-primary)',
+                  marginBottom: '10px'
                 }}>
-                  {i + 1}
-                </div>
-                <h3 style={{ fontSize: '32px', fontWeight: 700, marginBottom: 'var(--space-4)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{feature.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '18px', maxWidth: '500px' }}>{feature.desc}</p>
-                <ul style={{ listStyle: 'none', marginTop: 'var(--space-8)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {['Industry Standard Tools', 'Live Feedback Loop', 'Production Ready Code'].map((item, idx) => (
-                    <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>
-                      <span style={{ color: 'var(--success)' }}>✔</span> {item}
+                  {feature.title}
+                </h3>
+                <p style={{ 
+                  color: 'var(--text-secondary)', 
+                  fontSize: '14px',
+                  lineHeight: 1.6,
+                  marginBottom: '20px'
+                }}>
+                  {feature.desc}
+                </p>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {feature.items.map((item, idx) => (
+                    <li key={idx} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 500
+                    }}>
+                      <span style={{ color: 'var(--text-primary)', fontSize: '10px' }}>•</span> {item}
                     </li>
                   ))}
                 </ul>
@@ -107,6 +122,19 @@ export default function Features() {
           ))}
         </div>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 1024px) {
+          div[style*="gridTemplateColumns: repeat(3, 1fr)"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 768px) {
+          div[style*="gridTemplateColumns: repeat(3, 1fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }
