@@ -48,7 +48,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }, [pathname, router]);
 
     if (PUBLIC_PATHS.includes(pathname)) {
-        return <>{children}</>;
+        return (
+            <>
+                {children}
+                <ChatbotFAQ />
+            </>
+        );
     }
 
     if (!user) {
