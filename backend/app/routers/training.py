@@ -24,6 +24,21 @@ from app.schemas.schemas import LeaveOut
 
 router = APIRouter(prefix="/api/training", tags=["Training"])
 
+# Helper to handle various date/time formats from frontend (simple dates or datetime-local ISO strings)
+def parse_dt(dt_str: str):
+    if not dt_str: return None
+    # Try common formats
+    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(dt_str, fmt)
+        except ValueError:
+            continue
+    # Fallback to ISO format if above fail
+    try:
+        return datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+    except:
+        return None
+
 @router.get("/qr-config")
 async def get_qr_config(
     db: AsyncSession = Depends(get_db),
@@ -175,7 +190,7 @@ async def get_attendance(
     if student_id:
         query = query.where(Attendance.student_id == student_id)
     if date:
-        day = datetime.strptime(date, "%Y-%m-%d")
+        day = parse_dt(date)
         query = query.where(func.date(Attendance.date) == day.date())
     result = await db.execute(query.order_by(Attendance.date.desc()).limit(100))
     records = result.scalars().all()
@@ -220,9 +235,9 @@ async def export_attendance(
         query = query.where(Attendance.batch_id == batch_id)
 
     if start_date:
-        query = query.where(Attendance.date >= datetime.strptime(start_date, "%Y-%m-%d"))
+        query = query.where(Attendance.date >= parse_dt(start_date))
     if end_date:
-        query = query.where(Attendance.date <= datetime.strptime(end_date, "%Y-%m-%d"))
+        query = query.where(Attendance.date <= parse_dt(end_date))
         
     result = await db.execute(query.order_by(Attendance.date.desc()))
     records = result.scalars().all()
@@ -341,7 +356,7 @@ async def mark_attendance(
 
     for item in data:
         # Check for existing record to avoid duplicates
-        day = datetime.strptime(item["date"], "%Y-%m-%d")
+        day = parse_dt(item["date"])
         existing_result = await db.execute(
             select(Attendance).where(
                 Attendance.student_id == item["student_id"],
@@ -382,8 +397,10 @@ async def submit_leave(
 ):
     # Parse dates
     try:
-        s_date = datetime.strptime(start_date, "%Y-%m-%d")
-        e_date = datetime.strptime(end_date, "%Y-%m-%d")
+        s_date = parse_dt(start_date)
+        e_date = parse_dt(end_date)
+        if not s_date or not e_date:
+             raise ValueError("Parsing failed")
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
     
@@ -592,11 +609,11 @@ async def create_project(
         max_team_size=body.get("max_team_size", 4),
     )
     if body.get("deadline"):
-        project.deadline = datetime.strptime(body["deadline"], "%Y-%m-%d")
+        project.deadline = parse_dt(body["deadline"])
     if body.get("start_date"):
-        project.start_date = datetime.strptime(body["start_date"], "%Y-%m-%d")
+        project.start_date = parse_dt(body["start_date"])
     if body.get("end_date"):
-        project.end_date = datetime.strptime(body["end_date"], "%Y-%m-%d")
+        project.end_date = parse_dt(body["end_date"])
     db.add(project)
     await db.flush()
 
@@ -606,7 +623,7 @@ async def create_project(
             description=ms.get("description"), order=idx,
         )
         if ms.get("due_date"):
-            milestone.due_date = datetime.strptime(ms["due_date"], "%Y-%m-%d")
+            milestone.due_date = parse_dt(ms["due_date"])
         db.add(milestone)
     await db.flush()
     return {"id": project.id, "status": "created"}
@@ -709,7 +726,7 @@ async def create_task(
         structured_content=body.get("structured_content")
     )
     if body.get("due_date"):
-        task.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
+        task.due_date = parse_dt(body["due_date"])
     db.add(task)
     await db.flush()
 
@@ -764,7 +781,7 @@ async def update_task(
     if "priority" in body:
         task.priority = body["priority"]
     if "due_date" in body and body["due_date"]:
-        task.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
+        task.due_date = parse_dt(body["due_date"])
     elif "due_date" in body and not body["due_date"]:
         task.due_date = None
     await db.flush()
@@ -863,11 +880,7 @@ async def create_assignment(
         structured_content=body.get("structured_content")
     )
     if body.get("due_date"):
-        try:
-            # Try parsing ISO format (with time) first, then fallback to date-only
-            assignment.due_date = datetime.fromisoformat(body["due_date"].replace('Z', '+00:00'))
-        except ValueError:
-            assignment.due_date = datetime.strptime(body["due_date"], "%Y-%m-%d")
+        assignment.due_date = parse_dt(body["due_date"])
     db.add(assignment)
     await db.flush()
 
@@ -1293,7 +1306,7 @@ async def get_time_tracking(
         query = query.where(TimeTracking.user_id == user_id)
         
     if date:
-        day = datetime.strptime(date, "%Y-%m-%d")
+        day = parse_dt(date)
         query = query.where(func.date(TimeTracking.date) == day.date())
         
     result = await db.execute(query.order_by(TimeTracking.login_time.desc()))
@@ -1387,8 +1400,10 @@ async def export_time_tracking(
     if not start_date or not end_date:
         raise HTTPException(status_code=400, detail="start_date and end_date are required (YYYY-MM-DD)")
     
-    s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-    e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    dt_start = parse_dt(start_date)
+    dt_end = parse_dt(end_date)
+    s_date = dt_start.date() if dt_start else None
+    e_date = dt_end.date() if dt_end else None
     
     # Fetch all records in range
     query = select(TimeTracking).where(

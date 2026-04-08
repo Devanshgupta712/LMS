@@ -81,6 +81,19 @@ import csv
 from fastapi.responses import StreamingResponse
 from datetime import datetime
 
+# Helper for flexible date parsing
+def parse_dt(dt_str: str):
+    if not dt_str: return None
+    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(dt_str, fmt)
+        except ValueError:
+            continue
+    try:
+        return datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+    except:
+        return None
+
 @router.get("/reports/export")
 async def export_marketing_report(
     start_date: str = "",
@@ -90,9 +103,9 @@ async def export_marketing_report(
 ):
     query = select(Lead)
     if start_date:
-        query = query.where(Lead.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
+        query = query.where(Lead.created_at >= parse_dt(start_date))
     if end_date:
-        query = query.where(Lead.created_at <= datetime.strptime(end_date, "%Y-%m-%d"))
+        query = query.where(Lead.created_at <= parse_dt(end_date))
         
     result = await db.execute(query.order_by(Lead.created_at.desc()))
     leads = result.scalars().all()
