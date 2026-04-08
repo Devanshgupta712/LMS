@@ -39,6 +39,16 @@ export default function ProctoringOverlay({ isActive, onViolation, onMetricsUpda
         await loadScript('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js');
       }
       
+      // Initialize TensorFlow WebGL backend to prevent wasm errors
+      if (window.faceapi && window.faceapi.tf) {
+        try {
+          await window.faceapi.tf.setBackend('webgl');
+        } catch (e) {
+          try { await window.faceapi.tf.setBackend('cpu'); } catch (e2) {}
+        }
+        await window.faceapi.tf.ready();
+      }
+
       // Load models
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
       await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
