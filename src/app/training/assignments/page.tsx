@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { apiGet, apiFetch, API_BASE } from '@/lib/api';
 
 interface AssignmentItem {
@@ -50,8 +51,18 @@ export default function AssignmentsPage() {
     const [viewSubmissions, setViewSubmissions] = useState<any>(null);
     const [submissionsData, setSubmissionsData] = useState<any[]>([]);
     const [subFilter, setSubFilter] = useState<'ALL' | 'SUBMITTED' | 'PENDING'>('ALL');
+    const searchParams = useSearchParams();
 
     useEffect(() => { loadAssignments(); loadBatches(); }, []);
+
+    // Check for deep-link from search
+    useEffect(() => {
+        const id = searchParams.get('id');
+        if (id && assignments.length > 0 && !viewSubmissions) {
+            const a = assignments.find(x => x.id === id);
+            if (a) handleViewSubmissions(a);
+        }
+    }, [searchParams, assignments]);
 
     const loadAssignments = async () => {
         try { setAssignments(await apiGet('/api/training/assignments')); } catch { } finally { setLoading(false); }

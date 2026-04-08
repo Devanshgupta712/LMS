@@ -2624,3 +2624,101 @@ async def chatbot_proxy(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chatbot error: {str(e)}")
+
+@router.get("/students/{user_id}/full-report")
+async def get_student_full_report(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER))
+):
+    student = await db.get(User, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # 1. Academic Performance
+    # Get all assignments from batches this student belongs to
+    batch_ids_res = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user_id))
+    batch_ids = batch_ids_res.scalars().all()
+    
+    # Also direct assignments
+    assignments_res = await db.execute(
+        select(Assignment).where((Assignment.batch_id.in_(batch_ids)) | (Assignment.student_id == user_id))
+    )
+    assignments = assignments_res.scalars().all()
+    assignment_ids = [a.id for a in assignments]
+    
+    submissions_res = await db.execute(
+        select(AssignmentSubmission).where((AssignmentSubmission.student_id == user_id) & (AssignmentSubmission.assignment_id.in_(assignment_ids)))
+    )
+    submissions_map = {sub.assignment_id: sub for sub in submissions_res.scalars().all()}
+    
+    academic_list = []
+    total_marks_earned = 0
+    total_marks_possible = 0
+    
+    for a in assignments:
+        sub = submissions_map.get(a.id)
+        academic_list.append({
+            "id": a.id, "title": a.title, "type": a.type.value,
+            "status": "SUBMITTED" if sub else "PENDING",
+            "marks": sub.marks if sub else 0,
+            "total_marks": a.total_marks,
+            "submitted_at": sub.submitted_at.isoformat() if sub and sub.submitted_at else None
+        })
+        if sub:
+            total_marks_earned += (sub.marks or 0)
+        total_marks_possible += a.total_marks
+
+    grade_percentage = (total_marks_earned / total_marks_possible * 100) if total_marks_possible > 0 else 0
+
+    # 2. Attendance Stats
+    attendance_res = await db.execute(select(Attendance).where(Attendance.student_id == user_id))
+    attendance_records = attendance_res.scalars().all()
+    total_days = len(attendance_records)
+    present_days = len([r for r in attendance_records if r.status == "PRESENT"])
+    late_days = len([r for r in attendance_records if r.status == "LATE"])
+    attendance_percentage = ((present_days + late_days) / total_days * 100) if total_days > 0 else 0
+
+    # 3. Proctoring & Violations
+    violations_res = await db.execute(select(Violation).where(Violation.student_id == user_id))
+    violations = violations_res.scalars().all()
+    violation_summary = {
+        "total": len(violations),
+        "TAB_SWITCH": len([v for v in violations if v.type == ViolationType.TAB_SWITCH]),
+        "FACE_LOSS": len([v for v in violations if v.type == ViolationType.FACE_LOSS]),
+        "MIC_OFF": len([v for v in violations if v.type == ViolationType.MIC_OFF]),
+        "FULLSCREEN_EXIT": len([v for v in violations if v.type == ViolationType.FULLSCREEN_EXIT])
+    }
+
+    # 4. Effort & Time Tracking
+    time_res = await db.execute(select(func.sum(TimeTracking.total_minutes)).where(TimeTracking.user_id == user_id))
+    total_minutes = time_res.scalar() or 0
+    
+    # 5. Leave History
+    leave_res = await db.execute(select(LeaveRequest).where(LeaveRequest.user_id == user_id))
+    leaves = leave_res.scalars().all()
+
+    return {
+        "student": {
+            "id": student.id,
+            "name": student.name,
+            "email": student.email,
+            "student_id": student.student_id,
+            "joined_at": student.createdAt.isoformat() if student.createdAt else None
+        },
+        "stats": {
+            "grade_percentage": round(grade_percentage, 1),
+            "attendance_percentage": round(attendance_percentage, 1),
+            "total_work_hours": round(total_minutes / 60, 1),
+            "total_violations": violation_summary["total"]
+        },
+        "academics": academic_list,
+        "violations_detail": violation_summary,
+        "attendance": {
+            "total": total_days,
+            "present": present_days,
+            "late": late_days,
+            "absent": total_days - present_days - late_days
+        },
+        "leaves": len(leaves)
+    }

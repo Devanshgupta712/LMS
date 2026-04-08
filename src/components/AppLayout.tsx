@@ -6,6 +6,7 @@ import Sidebar from './Sidebar';
 import { getStoredUser, clearToken, apiGet, apiPost } from '@/lib/api';
 import ChatbotFAQ from './ChatbotFAQ';
 import { useTheme } from '@/components/ThemeProvider';
+import Student360Report from './Student360Report';
 
 const PUBLIC_PATHS = [
     '/', '/login', '/register', '/unauthorized',
@@ -21,6 +22,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [showNotifs, setShowNotifs] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
     // Scroll reveal observer
     useEffect(() => {
@@ -46,6 +54,51 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             router.push('/');
         }
     }, [pathname, router]);
+
+    // Global Search Logic
+    useEffect(() => {
+        if (!searchQuery.trim() || searchQuery.length < 2) {
+            setSearchResults([]);
+            setShowSearchResults(false);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const results = await apiGet(`/api/admin/search/global?q=${encodeURIComponent(searchQuery)}`);
+                setSearchResults(results);
+                setShowSearchResults(true);
+            } catch (err) {
+                console.error("Search failed", err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    const handleResultClick = (result: any) => {
+        setShowSearchResults(false);
+        setSearchQuery('');
+        
+        if (result.type === 'STUDENT') {
+            setSelectedStudentId(result.id);
+        } else if (result.type === 'COURSE') {
+            router.push(`/courses/${result.id}`);
+        } else if (result.type === 'BATCH') {
+            router.push(`/admin/batches?id=${result.id}`);
+        } else if (result.type === 'ASSIGNMENT') {
+            if (user?.role === 'STUDENT') {
+                router.push(`/student/assessments?start=${result.id}`);
+            } else {
+                router.push(`/training/assignments?id=${result.id}`);
+            }
+        } else if (result.type === 'LEAD') {
+            router.push(`/marketing/leads?id=${result.id}`);
+        }
+    };
 
     if (PUBLIC_PATHS.includes(pathname)) {
         return (
@@ -103,10 +156,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             display: 'flex',
                             alignItems: 'center'
                         }}>
-                            <span style={{ position: 'absolute', left: '14px', color: 'var(--text-muted)' }}>🔍</span>
+                            <span style={{ position: 'absolute', left: '14px', color: 'var(--text-muted)', zIndex: 10 }}>{isSearching ? '⏳' : '🔍'}</span>
                             <input 
                                 type="text" 
-                                placeholder="Search everything..." 
+                                placeholder={user?.role === 'STUDENT' ? "Search courses or tasks..." : "Search students, batches, assignments..."}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
                                 style={{ 
                                     width: '100%', 
                                     padding: '10px 14px 10px 42px', 
@@ -119,9 +175,58 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                     outline: 'none',
                                     transition: 'all 0.2s ease'
                                 }} 
-                                onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
-                                onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+                                onFocusCapture={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                                onBlurCapture={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--border)';
+                                    // Delay hiding results so clicks can register
+                                    setTimeout(() => setShowSearchResults(false), 200);
+                                }}
                             />
+
+                            {/* Dropdown Results */}
+                            {showSearchResults && searchResults.length > 0 && (
+                                <div style={{
+                                    position: 'absolute', top: '100%', left: 0, right: 0,
+                                    marginTop: '8px', background: '#fff', borderRadius: '12px',
+                                    border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)',
+                                    zIndex: 1000, overflow: 'hidden'
+                                }}>
+                                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                        {searchResults.map((res: any, idx: number) => (
+                                            <div 
+                                                key={idx}
+                                                onClick={() => handleResultClick(res)}
+                                                className="search-result-item"
+                                                style={{
+                                                    padding: '12px 16px', borderBottom: idx < searchResults.length - 1 ? '1px solid var(--border)' : 'none',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
+                                                    transition: 'background 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <div style={{ fontSize: '20px' }}>{res.icon}</div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: '14px', fontWeight: 700 }}>{res.title}</div>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{res.subtitle}</div>
+                                                </div>
+                                                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary)', opacity: 0.6, textTransform: 'uppercase' }}>{res.type}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {showSearchResults && searchResults.length === 0 && searchQuery.length >= 2 && !isSearching && (
+                                <div style={{
+                                    position: 'absolute', top: '100%', left: 0, right: 0,
+                                    marginTop: '8px', background: '#fff', borderRadius: '12px',
+                                    border: '1px solid var(--border)', padding: '20px', textAlign: 'center',
+                                    fontSize: '13px', color: 'var(--text-muted)', zIndex: 1000
+                                }}>
+                                    No results found for "{searchQuery}"
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -235,6 +340,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
             </main>
             <ChatbotFAQ />
+            {selectedStudentId && (
+                <Student360Report 
+                    studentId={selectedStudentId} 
+                    onClose={() => setSelectedStudentId(null)} 
+                />
+            )}
         </div>
     );
 }

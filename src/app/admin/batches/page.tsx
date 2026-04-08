@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
 
 interface Batch {
@@ -27,11 +28,22 @@ export default function BatchesPage() {
     const [allStudents, setAllStudents] = useState<any[]>([]);
     const [enrollStudentId, setEnrollStudentId] = useState('');
 
+    const searchParams = useSearchParams();
+
     useEffect(() => { 
         loadData(); 
         const role = localStorage.getItem('auth_role') || '';
         setCurrentUserRole(role);
     }, []);
+
+    // Check for search param deep-link
+    useEffect(() => {
+        const batchId = searchParams.get('id');
+        if (batchId && batches.length > 0) {
+            const b = batches.find(x => x.id === batchId);
+            if (b) handleViewStudents(b.id, b.name);
+        }
+    }, [searchParams, batches]);
 
     const loadData = async () => {
         try {

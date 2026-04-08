@@ -919,8 +919,92 @@ async def delete_registration(
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Registration not found")
     
-    await db.flush()
-    return {"status": "success", "message": "Registration removed successfully"}
+@router.get("/search/global")
+async def global_search(
+    q: str = Query(..., min_length=1),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Role-based Intelligent Global Search.
+    Admin/Trainer: Search Students, Batches, Assignments.
+    Student: Search Courses, My Assignments.
+    """
+    results = []
+    query = q.lower()
+
+    # 1. ADMIN/TRAINER: Search Students & Batches
+    if current_user.role in [Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER]:
+        # Search Students
+        search_studs = await db.execute(
+            select(User).where(
+                (User.role == Role.STUDENT) &
+                ((User.name.ilike(f"%{q}%")) | (User.email.ilike(f"%{q}%")) | (User.student_id.ilike(f"%{q}%")))
+            ).limit(5)
+        )
+        for s in search_studs.scalars().all():
+            results.append({
+                "id": s.id, "title": s.name, "subtitle": f"StudentID: {s.student_id or 'N/A'}",
+                "type": "STUDENT", "icon": "👤", "email": s.email
+            })
+
+        # Search Batches
+        search_batches = await db.execute(
+            select(Batch).where(Batch.name.ilike(f"%{q}%")).limit(3)
+        )
+        for b in search_batches.scalars().all():
+            results.append({
+                "id": b.id, "title": b.name, "subtitle": "Batch Roster",
+                "type": "BATCH", "icon": "👥"
+            })
+
+    # 2. EVERYONE: Search Courses
+    search_courses = await db.execute(
+        select(Course).where((Course.name.ilike(f"%{q}%")) & (Course.is_active == True)).limit(3)
+    )
+    for c in search_courses.scalars().all():
+        results.append({
+            "id": c.id, "title": c.name, "subtitle": f"Course: {c.duration or ''}",
+            "type": "COURSE", "icon": "📚"
+        })
+
+    # 3. STUDENT Mode: Search Assignments
+    if current_user.role == Role.STUDENT:
+        # Search Assignments related to student
+        # Join via batch
+        search_assigns = await db.execute(
+            select(Assignment)
+            .join(BatchStudent, BatchStudent.batch_id == Assignment.batch_id)
+            .where((BatchStudent.student_id == current_user.id) & (Assignment.title.ilike(f"%{q}%")))
+            .limit(5)
+        )
+        for a in search_assigns.scalars().all():
+            results.append({
+                "id": a.id, "title": a.title, "subtitle": "Assignment Task",
+                "type": "ASSIGNMENT", "icon": "📝"
+            })
+    
+    # 4. ADMIN Mode: Search All Assignments
+    if current_user.role in [Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER]:
+        search_assigns_admin = await db.execute(
+            select(Assignment).where(Assignment.title.ilike(f"%{q}%")).limit(3)
+        )
+        for a in search_assigns_admin.scalars().all():
+            results.append({
+                "id": a.id, "title": a.title, "subtitle": "Assignment Management",
+                "type": "ASSIGNMENT", "icon": "⚙️"
+    # 5. ADMIN/MARKETING Mode: Search Leads
+    if current_user.role in [Role.SUPER_ADMIN, Role.ADMIN, Role.MARKETING]:
+        search_leads = await db.execute(
+            select(Lead).where((Lead.name.ilike(f"%{q}%")) | (Lead.phone.ilike(f"%{q}%"))).limit(3)
+        )
+        for l in search_leads.scalars().all():
+            results.append({
+                "id": l.id, "title": l.name, "subtitle": f"Lead Status: {l.status.value}",
+                "type": "LEAD", "icon": "🎯"
+            })
+
+    return results
 
 
 # ─── Leaves ───────────────────────────────────────────
