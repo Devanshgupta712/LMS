@@ -284,7 +284,19 @@ function StudentAssessmentsContent() {
                     {assignments.map(a => (
                         <div key={a.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <h3 style={{ margin: 0, fontWeight: 600 }}>{a.title}</h3>
+                                <div style={{ flex: 1 }}>
+                                    <h3 style={{ margin: 0, fontWeight: 600 }}>{a.title}</h3>
+                                    {a.my_submission && (
+                                        <div style={{ 
+                                            display: 'inline-block', marginTop: '6px',
+                                            background: 'var(--primary-glow)', color: 'var(--primary)', 
+                                            padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                                            border: '1px solid var(--primary)'
+                                        }}>
+                                            Score: {a.my_submission.marks ?? '—'} / {a.total_marks}
+                                        </div>
+                                    )}
+                                </div>
                                 <span className={`badge ${a.my_submission ? 'badge-success' : 'badge-warning'}`}>
                                     {a.my_submission ? 'Completed' : 'Pending'}
                                 </span>
