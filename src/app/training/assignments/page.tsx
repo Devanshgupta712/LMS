@@ -231,12 +231,36 @@ export default function AssignmentsPage() {
                                     <td><span className="badge" style={{ background: `${typeColors[a.type]}20`, color: typeColors[a.type] }}>{typeIcons[a.type]} {a.type}</span></td>
                                     <td style={{ fontWeight: 600 }}>{a.total_marks}</td>
                                     <td>{a.due_date ? <span style={{ color: isOverdue(a.due_date) ? '#ef4444' : 'var(--text-muted)' }}>{new Date(a.due_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}{isOverdue(a.due_date) && ' ⚠️'}</span> : '—'}</td>
-                                    <td><button className="badge badge-primary" onClick={() => handleViewSubmissions(a)} style={{ cursor: 'pointer', border: 'none' }}>{a.submission_count} submitted</button></td>
+                                    <td>
+                                        <button 
+                                            className="btn btn-sm" 
+                                            onClick={() => handleViewSubmissions(a)} 
+                                            style={{ 
+                                                background: 'var(--primary-glow)', 
+                                                color: 'var(--primary)', 
+                                                border: '1px solid var(--primary)',
+                                                borderRadius: '20px',
+                                                padding: '4px 12px',
+                                                fontSize: '12px',
+                                                fontWeight: 700,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                        >
+                                            👁️ {a.submission_count} Submitted
+                                        </button>
+                                    </td>
                                     <td><span className={`badge ${isOverdue(a.due_date) ? 'badge-danger' : 'badge-success'}`}>{isOverdue(a.due_date) ? 'Overdue' : 'Active'}</span></td>
                                     <td>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => handleDelete(a.id)} style={{ color: '#ef4444', padding: '4px 8px' }} title="Delete Assignment">
-                                            🗑️
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button className="btn btn-sm btn-ghost" onClick={() => handleViewSubmissions(a)} style={{ color: 'var(--primary)', padding: '4px 8px' }} title="View Submissions & Performance">
+                                                📊
+                                            </button>
+                                            <button className="btn btn-sm btn-ghost" onClick={() => handleDelete(a.id)} style={{ color: '#ef4444', padding: '4px 8px' }} title="Delete Assignment">
+                                                🗑️
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
