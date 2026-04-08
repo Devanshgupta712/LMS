@@ -324,7 +324,7 @@ export default function StudentAssessmentsPage() {
                                 <div style={{ flex: 1, minHeight: 0, marginBottom: '16px' }}>
                                     <WebDevEditor code={content} onChange={setContent} />
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', pt: '12px', borderTop: '1px solid var(--border)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                                     <button type="submit" className="btn btn-primary" disabled={submitLoading || content.length < 10}>
                                         {submitLoading ? 'Submitting...' : 'Complete & Submit'}
                                     </button>
