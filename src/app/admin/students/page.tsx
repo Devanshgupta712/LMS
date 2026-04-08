@@ -132,12 +132,7 @@ export default function StudentsPage() {
                                             </div>
                                         </td>
                                         <td style={{ padding: '20px 24px' }}>
-                                            <span style={{ 
-                                                padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600,
-                                                background: s.is_active ? 'var(--primary-glow)' : 'var(--bg-tertiary)',
-                                                color: s.is_active ? 'var(--primary)' : 'var(--text-muted)',
-                                                border: '1px solid currentColor'
-                                            }}>
+                                            <span className={`badge ${s.is_active ? 'badge-success' : 'badge-secondary'}`}>
                                                 {s.is_active ? 'ACTIVE' : 'INACTIVE'}
                                             </span>
                                         </td>
@@ -151,15 +146,7 @@ export default function StudentsPage() {
                                         </td>
                                         <td style={{ padding: '20px 24px', fontWeight: 700, fontSize: '14px' }}>{s.leaves_taken}</td>
                                         <td style={{ padding: '20px 24px' }}>
-                                            <button 
-                                                onClick={() => openReport(s.id)}
-                                                style={{ 
-                                                    padding: '8px 16px', borderRadius: '10px', border: '1px solid var(--border)',
-                                                    background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 700,
-                                                    fontSize: '12px', cursor: 'pointer'
-                                                }}
-                                                className="hover-lift"
-                                            >
+                                            <button onClick={() => openReport(s.id)} className="btn btn-sm btn-ghost">
                                                 View Performance
                                             </button>
                                         </td>
@@ -196,9 +183,9 @@ export default function StudentsPage() {
                                 </div>
                             </div>
                             <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, fontStyle: 'italic' }}>* Student ID will be generated upon confirmation.</p>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'transparent', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                                <button type="submit" style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-premium)' }}>Confirm Enrollment</button>
+                            <div className="modal-footer" style={{ borderTop: 'none', padding: 0 }}>
+                                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancel Enrollment</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Confirm Enrollment</button>
                             </div>
                         </form>
                     </div>

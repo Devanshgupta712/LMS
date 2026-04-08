@@ -118,63 +118,105 @@ export default function BatchesPage() {
                 {loading ? <p>Loading...</p> : batches.length === 0 ? (
                     <div className="empty-state"><div className="empty-icon">👥</div><h3>No batches yet</h3><p>Create courses first, then create batches.</p></div>
                 ) : (
-                    <div className="grid-3">{batches.map(b => (
-                        <div className="card" key={b.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            <h3 style={{ margin: '0 0 8px', fontSize: '16px' }}>{b.name}</h3>
-                            <p className="text-sm text-muted" style={{ margin: '0 0 12px' }}>{b.course_name || 'Independent Batch'}</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                <span>📅 {new Date(b.start_date).toLocaleDateString()}</span>
-                                <span>👥 {b.student_count} students</span>
-                                {b.schedule_time && <span>⏰ {b.schedule_time}</span>}
-                            </div>
-                            {b.trainer_name && <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#3399ff' }}>👨‍🏫 {b.trainer_name}</p>}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                                <span className={`badge ${b.is_active ? 'badge-success' : 'badge-danger'}`} style={{ display: 'inline-block' }}>{b.is_active ? 'Active' : 'Ended'}</span>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: '13px' }} onClick={() => openEdit(b)}>Edit</button>
-                                    <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '13px' }} onClick={() => handleDelete(b.id, b.name)}>Delete</button>
+            <div className="grid-3">
+                {batches.map(b => (
+                    <div className="card-glass" key={b.id} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <div style={{ flex: 1 }}>
+                            <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 700, color: 'var(--primary)' }}>{b.name}</h3>
+                            <p className="text-sm" style={{ margin: '0 0 16px', color: 'var(--text-secondary)', fontWeight: 600 }}>{b.course_name || 'Independent Batch'}</p>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '16px' }}>📅</span> 
+                                    <span>{new Date(b.start_date).toLocaleDateString()}</span>
                                 </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '16px' }}>👥</span> 
+                                    <span>{b.student_count} Students Enrolled</span>
+                                </div>
+                                {b.schedule_time && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '16px' }}>⏰</span> 
+                                        <span>{b.schedule_time}</span>
+                                    </div>
+                                )}
+                                {b.trainer_name && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--info-dark)', fontWeight: 600 }}>
+                                        <span style={{ fontSize: '16px' }}>👨‍🏫</span> 
+                                        <span>{b.trainer_name}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    ))}</div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
+                            <span className={`badge ${b.is_active ? 'badge-success' : 'badge-danger'}`}>{b.is_active ? 'Active' : 'Ended'}</span>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="btn btn-sm btn-ghost" onClick={() => openEdit(b)}>Edit</button>
+                                <button className="btn btn-sm btn-danger" onClick={() => handleDelete(b.id, b.name)}>Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
                 )}
             </div>
 
             {showModal && (
                 <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">Create New Batch</h2>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                        <h2 className="modal-title">{editingId ? 'Modify Training Batch' : 'Initialize New Batch'}</h2>
+                        <p style={{ margin: '-16px 0 24px', color: 'var(--text-secondary)', fontSize: '14px' }}>Configure session schedules and assign trainers for the new cohort.</p>
+
                         {error && (
-                            <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: '8px', padding: '10px', color: '#f87171', fontSize: '13px', marginBottom: '12px' }}>
+                            <div className="badge badge-danger" style={{ width: '100%', justifyContent: 'center', padding: '12px', marginBottom: '20px', borderRadius: '12px' }}>
                                 ⚠️ {error}
                             </div>
                         )}
-                        {courses.length === 0 && (
-                            <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', padding: '10px', color: '#fbbf24', fontSize: '13px', marginBottom: '12px' }}>
-                                ⚠️ No courses available. <a href="/admin/courses" style={{ color: '#60a5fa' }}>Create a course first →</a>
-                            </div>
-                        )}
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div className="form-group"><label>Course <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional)</span></label>
-                                <select className="form-input" value={form.course_id} onChange={e => setForm({ ...form, course_id: e.target.value })}>
-                                    <option value="">No course assigned (Independent Batch)</option>{courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div className="form-group">
+                                <label className="form-label">Associated Course Program</label>
+                                <select className="form-select" value={form.course_id} onChange={e => setForm({ ...form, course_id: e.target.value })}>
+                                    <option value="">Independent Training (No Course)</option>
+                                    {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </div>
-                            <div className="form-group"><label>Batch Name</label><input className="form-input" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div className="form-group"><label>Start Date</label><input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
-                                <div className="form-group"><label>End Date</label><input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
+
+                            <div className="form-group">
+                                <label className="form-label">Batch Identity Name</label>
+                                <input className="form-input" placeholder="e.g. FullStack-2024-B1" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                             </div>
-                            <div className="form-group"><label>Schedule Time</label><input className="form-input" placeholder="e.g. 10:00 - 12:00" value={form.schedule_time} onChange={e => setForm({ ...form, schedule_time: e.target.value })} /></div>
-                            <div className="form-group"><label>Trainer <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional)</span></label>
-                                <select className="form-input" value={form.trainer_id} onChange={e => setForm({ ...form, trainer_id: e.target.value })}>
-                                    <option value="">No trainer assigned</option>{trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">Commencement Date</label>
+                                    <input className="form-input" type="date" required value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Expected Completion</label>
+                                    <input className="form-input" type="date" required value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">Schedule Timeframe</label>
+                                    <input className="form-input" placeholder="e.g. 10:00 AM - 01:00 PM" value={form.schedule_time} onChange={e => setForm({ ...form, schedule_time: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Designated Lead Trainer</label>
+                                    <select className="form-select" value={form.trainer_id} onChange={e => setForm({ ...form, trainer_id: e.target.value })}>
+                                        <option value="">Unassigned (No Trainer)</option>
+                                        {trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer">
                                 <button type="button" className="btn btn-ghost" onClick={() => { setShowModal(false); setEditingId(null); }}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                                    {submitting ? 'Saving...' : (editingId ? 'Update Batch' : 'Create Batch')}
+                                    {submitting ? 'Processing Session...' : (editingId ? 'Commit Changes' : 'Launch Batch')}
                                 </button>
                             </div>
                         </form>

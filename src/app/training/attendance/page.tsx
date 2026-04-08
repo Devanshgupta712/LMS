@@ -163,10 +163,10 @@ export default function AttendancePage() {
     };
 
     const statusConfig: Record<string, { color: string; icon: string; btnClass: string }> = {
-        PRESENT: { color: '#4ade80', icon: '✅', btnClass: 'btn-success' },
-        ABSENT: { color: '#f87171', icon: '❌', btnClass: 'btn-danger' },
-        LATE: { color: '#fbbf24', icon: '⏰', btnClass: 'btn-warning' },
-        ON_LEAVE: { color: '#3399ff', icon: '🗓️', btnClass: 'btn-accent' },
+        PRESENT: { color: 'var(--success)', icon: '✅', btnClass: 'btn-success' },
+        ABSENT: { color: 'var(--danger)', icon: '❌', btnClass: 'btn-danger' },
+        LATE: { color: 'var(--warning)', icon: '⏰', btnClass: 'btn-warning' },
+        ON_LEAVE: { color: 'var(--info)', icon: '🗓️', btnClass: 'btn-info' },
     };
 
     const presentCount = Object.values(localStatus).filter(s => s === 'PRESENT').length;
@@ -234,20 +234,20 @@ export default function AttendancePage() {
                 <button className="btn btn-primary" onClick={generateQr} disabled={!selectedBatch} style={{ flex: '1 1 auto', minWidth: '160px' }}>📱 Generate QR Code</button>
             </div>
 
-            <div className="card mb-32" style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(148,163,184,0.15)', padding: '28px', borderRadius: '24px', backdropFilter: 'blur(8px)' }}>
-                <h3 style={{ fontSize: '17px', margin: '0 0 24px 0', display: 'flex', alignItems: 'center', gap: '12px', color: '#f8fafc', fontWeight: 600 }}>
+            <div className="glass-premium mb-32" style={{ padding: '28px', borderRadius: '24px' }}>
+                <h3 style={{ fontSize: '18px', margin: '0 0 24px 0', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--primary)', fontWeight: 700 }}>
                     <span style={{ fontSize: '24px' }}>📊</span> Export Detailed Attendance Report
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end' }}>
                     <div className="form-group mb-0" style={{ flex: '1 1 200px' }}>
-                        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: '10px', display: 'block' }}>Report Start Date</label>
-                        <input className="form-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', background: 'rgba(0,0,0,0.2)' }} />
+                        <label className="form-label">Report Start Date</label>
+                        <input className="form-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                     </div>
                     <div className="form-group mb-0" style={{ flex: '1 1 200px' }}>
-                        <label style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, marginBottom: '10px', display: 'block' }}>Report End Date</label>
-                        <input className="form-input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', background: 'rgba(0,0,0,0.2)' }} />
+                        <label className="form-label">Report End Date</label>
+                        <input className="form-input" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
                     </div>
-                    <button className="btn btn-primary" onClick={downloadCSV} disabled={!selectedBatch} style={{ height: '52px', padding: '0 32px', flex: '1 0 auto' }}>
+                    <button className="btn btn-primary" onClick={downloadCSV} disabled={!selectedBatch} style={{ height: '48px', padding: '0 32px', flex: '1 0 auto' }}>
                         📥 Download CSV Data
                     </button>
                 </div>
@@ -341,45 +341,47 @@ export default function AttendancePage() {
                 </div>
             )}
 
-            {/* Leave Modal */}
             {leaveModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}
-                    onClick={() => setLeaveModal(null)}>
-                    <div style={{ background: '#1a1a2e', borderRadius: '20px', padding: '32px', maxWidth: '440px', width: '100%', border: '1px solid rgba(255,255,255,0.1)' }}
-                        onClick={e => e.stopPropagation()}>
-                        <h3 style={{ margin: '0 0 4px', fontSize: '18px', color: '#e2e8f0' }}>Apply Leave — {leaveModal.studentName}</h3>
-                        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '13px' }}>Create a leave request for this student</p>
-
+                <div className="modal-overlay" onClick={() => setLeaveModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+                        <h2 className="modal-title">Apply Leave — {leaveModal.studentName}</h2>
+                        <p style={{ margin: '-16px 0 24px', color: 'var(--text-secondary)', fontSize: '14px' }}>Create an official leave record for this student session.</p>
+                        
                         {leaveMsg && (
-                            <div style={{
-                                padding: '10px 14px', borderRadius: '10px', marginBottom: '16px', fontSize: '13px',
-                                background: leaveMsg.includes('success') ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)',
-                                color: leaveMsg.includes('success') ? '#4ade80' : '#f87171',
-                                border: `1px solid ${leaveMsg.includes('success') ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}`
+                            <div className="badge" style={{ 
+                                width: '100%', 
+                                justifyContent: 'center', 
+                                padding: '12px', 
+                                marginBottom: '20px',
+                                background: leaveMsg.includes('success') ? 'var(--success-glow)' : 'var(--danger-glow)',
+                                color: leaveMsg.includes('success') ? 'var(--success-dark)' : 'var(--danger-dark)',
+                                borderRadius: '12px'
                             }}>
                                 {leaveMsg}
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Start Date</label>
-                                <input className="form-input" type="date" value={leaveForm.start_date}
-                                    onChange={e => setLeaveForm(prev => ({ ...prev, start_date: e.target.value }))} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div className="form-row">
+                                <div className="form-group mb-0">
+                                    <label className="form-label">Start Date</label>
+                                    <input className="form-input" type="date" value={leaveForm.start_date}
+                                        onChange={e => setLeaveForm(prev => ({ ...prev, start_date: e.target.value }))} />
+                                </div>
+                                <div className="form-group mb-0">
+                                    <label className="form-label">End Date</label>
+                                    <input className="form-input" type="date" value={leaveForm.end_date}
+                                        onChange={e => setLeaveForm(prev => ({ ...prev, end_date: e.target.value }))} />
+                                </div>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>End Date</label>
-                                <input className="form-input" type="date" value={leaveForm.end_date}
-                                    onChange={e => setLeaveForm(prev => ({ ...prev, end_date: e.target.value }))} />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Reason</label>
-                                <textarea className="form-input" rows={3} placeholder="Reason for leave..."
+                            <div className="form-group mb-0">
+                                <label className="form-label">Reason for Absence</label>
+                                <textarea className="form-textarea" rows={3} placeholder="Provide a brief explanation..."
                                     value={leaveForm.reason} onChange={e => setLeaveForm(prev => ({ ...prev, reason: e.target.value }))} />
                             </div>
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                                <button className="btn btn-primary" onClick={submitLeave} style={{ flex: 1 }}>Submit Leave Request</button>
+                            <div className="modal-footer">
                                 <button className="btn btn-ghost" onClick={() => setLeaveModal(null)}>Cancel</button>
+                                <button className="btn btn-primary" onClick={submitLeave}>Initialize Leave Request</button>
                             </div>
                         </div>
                     </div>

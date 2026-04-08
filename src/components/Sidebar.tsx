@@ -252,21 +252,29 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
                     <button onClick={handleLogout} style={{
                         width: '100%', 
                         padding: '12px', 
-                        borderRadius: '10px', 
+                        borderRadius: '12px', 
                         color: 'var(--text-secondary)', 
                         fontSize: '13px', 
                         fontWeight: 600,
                         border: '1px solid var(--border)',
-                        background: '#fff',
+                        background: 'var(--bg-secondary)',
                         cursor: 'pointer', 
-                        transition: 'all 0.2s',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px'
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--danger)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                    onMouseOver={(e) => { 
+                        e.currentTarget.style.borderColor = 'var(--danger-light)'; 
+                        e.currentTarget.style.color = 'var(--danger-dark)';
+                        e.currentTarget.style.background = 'var(--danger-glow)';
+                    }}
+                    onMouseOut={(e) => { 
+                        e.currentTarget.style.borderColor = 'var(--border)'; 
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                        e.currentTarget.style.background = 'var(--bg-secondary)';
+                    }}
                     >
                         <span>🚪</span> Sign Out
                     </button>

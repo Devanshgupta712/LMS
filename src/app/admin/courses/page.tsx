@@ -82,23 +82,7 @@ export default function CoursesPage() {
                     <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Design and deploy academy programs across the platform.</p>
                 </div>
                 {canEdit && (
-                    <button 
-                        onClick={openCreate}
-                        className="hover-lift"
-                        style={{
-                            padding: '12px 24px',
-                            background: 'var(--primary)',
-                            color: 'white',
-                            borderRadius: '12px',
-                            border: 'none',
-                            fontWeight: 600,
-                            fontSize: '14px',
-                            boxShadow: 'var(--shadow-premium)',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        + Create New Program
-                    </button>
+                    <button onClick={openCreate} className="btn btn-primary">+ Create New Program</button>
                 )}
             </div>
 
@@ -156,16 +140,8 @@ export default function CoursesPage() {
                                         <td style={{ padding: '20px 24px' }}>
                                             <span 
                                                 onClick={() => canEdit && handleToggleActive(c)}
-                                                style={{ 
-                                                    padding: '6px 12px', 
-                                                    borderRadius: '8px', 
-                                                    fontSize: '11px', 
-                                                    fontWeight: 600,
-                                                    background: c.is_active ? 'var(--primary-glow)' : 'var(--bg-tertiary)',
-                                                    color: c.is_active ? 'var(--primary)' : 'var(--text-muted)',
-                                                    cursor: canEdit ? 'pointer' : 'default',
-                                                    border: '1px solid currentColor'
-                                                }}
+                                                className={`badge ${c.is_active ? 'badge-success' : 'badge-secondary'}`}
+                                                style={{ cursor: canEdit ? 'pointer' : 'default' }}
                                             >
                                                 {c.is_active ? 'PROGRAM ACTIVE' : 'PROGRAM PAUSED'}
                                             </span>
@@ -173,8 +149,8 @@ export default function CoursesPage() {
                                         {canEdit && (
                                             <td style={{ padding: '20px 24px' }}>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button onClick={() => openEdit(c)} className="hover-lift" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', cursor: 'pointer' }}>✏️</button>
-                                                    <button onClick={() => handleDelete(c)} disabled={c.batch_count > 0} className="hover-lift" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', cursor: c.batch_count > 0 ? 'not-allowed' : 'pointer', opacity: c.batch_count > 0 ? 0.3 : 1 }}>🗑️</button>
+                                                    <button onClick={() => openEdit(c)} className="btn btn-sm btn-ghost" style={{ padding: '8px', width: '36px', height: '36px' }}>✏️</button>
+                                                    <button onClick={() => handleDelete(c)} disabled={c.batch_count > 0} className="btn btn-sm btn-ghost" style={{ padding: '8px', width: '36px', height: '36px' }}>🗑️</button>
                                                 </div>
                                             </td>
                                         )}
@@ -216,9 +192,9 @@ export default function CoursesPage() {
                                     <input type="number" value={form.fee} onChange={e => setForm({ ...form, fee: e.target.value })} style={{ padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 600 }} />
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'transparent', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                                <button type="submit" disabled={submitting} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-premium)' }}>
+                            <div className="modal-footer" style={{ borderTop: 'none', padding: 0 }}>
+                                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={submitting} style={{ flex: 1 }}>
                                     {submitting ? 'Syncing...' : editCourse ? 'Confirm Update' : 'Initialize Program'}
                                 </button>
                             </div>
