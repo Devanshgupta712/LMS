@@ -184,6 +184,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                             notifications.slice(0, 5).map(n => (
                                                 <div
                                                     key={n.id}
+                                                    onClick={() => {
+                                                        if (n.link) {
+                                                            router.push(n.link);
+                                                            setShowNotifs(false);
+                                                        }
+                                                    }}
                                                     style={{
                                                         padding: '16px', 
                                                         borderBottom: '1px solid var(--border)',

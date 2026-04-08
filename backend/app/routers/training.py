@@ -741,7 +741,7 @@ async def create_task(
             message=f"You have been assigned '{task.title}'.",
             type="TASK",
             reference_id=task.id,
-            link="/training/tasks"
+            link=f"/student/tasks?open={task.id}"
         )
         db.add(notif)
         await db.flush()
@@ -754,7 +754,7 @@ async def create_task(
                 message=f"A new task '{task.title}' has been assigned to your batch.",
                 type="TASK",
                 reference_id=task.id,
-                link="/training/tasks"
+                link=f"/student/tasks?open={task.id}"
             )
             db.add(notif)
         await db.flush()
@@ -897,7 +897,7 @@ async def create_assignment(
             message=f"You have been assigned '{assignment.title}'. Check the Assignments section for details.",
             type="ASSIGNMENT",
             reference_id=assignment.id,
-            link="/training/assignments"
+            link=f"/student/assessments?start={assignment.id}"
         )
         db.add(notif)
         await db.flush()
@@ -911,7 +911,7 @@ async def create_assignment(
                 message=f"A new assignment '{assignment.title}' has been added to your batch.",
                 type="ASSIGNMENT",
                 reference_id=assignment.id,
-                link="/training/assignments"
+                link=f"/student/assessments?start={assignment.id}"
             )
             db.add(notif)
         await db.flush()

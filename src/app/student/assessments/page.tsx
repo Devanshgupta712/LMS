@@ -1,17 +1,24 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiGet, apiFetch } from '@/lib/api';
 import WebDevEditor from '@/components/WebDevEditor';
 import ProctoringOverlay from '@/components/ProctoringOverlay';
 
-export default function StudentAssessmentsPage() {
+function StudentAssessmentsContent() {
     const [assignments, setAssignments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeSubmission, setActiveSubmission] = useState<any>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [submitLoading, setSubmitLoading] = useState(false);
+    
+    const router = useRouter();
+    // useSearchParams requires wrapping the page in Suspense strictly, but since it's a client component Next.js handles it mostly fine.
+    // To be perfectly safe across all Next.js versions we use a dummy fallback if useSearchParams issues a warning, but normally it's fine.
+    const searchParams = useSearchParams();
+    const startId = searchParams.get('start');
     const [submitDone, setSubmitDone] = useState(false);
     const [timeLeft, setTimeLeft] = useState<number | null>(null); // seconds remaining
 
@@ -139,9 +146,26 @@ export default function StudentAssessmentsPage() {
 
     const loadAssignments = async () => {
         try {
-            setAssignments(await apiGet('/api/training/assignments'));
-        } catch (e) { console.error(e); } finally { setLoading(false); }
+            const data = await apiGet('/api/training/assignments');
+            setAssignments(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    // Auto-start assignment from deep link
+    useEffect(() => {
+        if (!loading && assignments.length > 0 && startId && !activeSubmission) {
+            const target = assignments.find(a => a.id === startId);
+            if (target && !target.my_submission && !isOverdue(target.due_date)) {
+                startSession(target);
+                // Remove start param from URL so refresh doesn't replay it
+                router.replace('/student/assessments');
+            }
+        }
+    }, [loading, assignments, startId, activeSubmission, router]);
 
     const startSession = async (assignment: any) => {
         try {
@@ -371,5 +395,13 @@ export default function StudentAssessmentsPage() {
                 </div>, document.body
             )}
         </div>
+    );
+}
+
+export default function StudentAssessmentsPage() {
+    return (
+        <Suspense fallback={<p>Loading Workspace...</p>}>
+            <StudentAssessmentsContent />
+        </Suspense>
     );
 }
