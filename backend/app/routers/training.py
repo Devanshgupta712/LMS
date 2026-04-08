@@ -2262,7 +2262,12 @@ async def submit_assessment(
             AssignmentSubmission.assignment_id == session.reference_id,
             AssignmentSubmission.student_id == user.id
         ))
-        if not res_sub.scalars().first():
+        existing_sub = res_sub.scalars().first()
+        if existing_sub:
+            existing_sub.marks = score
+            if not is_pure_coding:
+                existing_sub.feedback = f"Automatically graded: {score}%"
+        else:
             raw_content = ""
             if is_pure_coding and student_answers:
                 # Merge student's coding answers into a single readable string for the legacy view
@@ -2274,7 +2279,7 @@ async def submit_assessment(
                 student_id=user.id,
                 content=raw_content or "Submitted via Proctored Session",
                 marks=score,
-                feedback="AI Grading Pending..." if is_pure_coding else ""
+                feedback="AI Grading Pending..." if is_pure_coding else f"Automatically graded: {score}%"
             )
             db.add(new_sub)
 

@@ -555,62 +555,81 @@ export default function AssignmentsPage() {
                                     <button className={`btn btn-sm ${subFilter === 'SUBMITTED' ? 'btn-success' : 'btn-ghost'}`} onClick={() => setSubFilter('SUBMITTED')}>Completed</button>
                                     <button className={`btn btn-sm ${subFilter === 'PENDING' ? 'btn-danger' : 'btn-ghost'}`} onClick={() => setSubFilter('PENDING')}>Missing</button>
                                 </div>
-                                {submissionsData.filter(s => subFilter === 'ALL' ? true : subFilter === 'SUBMITTED' ? s.status === 'SUBMITTED' : s.status !== 'SUBMITTED').map(sub => (
-                                    <div key={sub.id} className="card" style={{ padding: '16px', background: 'var(--bg-secondary)', border: sub.proctoring_report?.auto_submitted ? '1px solid #ef444430' : (sub.status !== 'SUBMITTED' ? '1px dashed #ef444450' : '1px solid var(--border)') }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                            <div>
-                                                <h3 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {sub.student_name}
-                                                    {sub.status !== 'SUBMITTED' && <span className="badge badge-warning" style={{ fontSize: '10px' }}>{sub.status}</span>}
-                                                </h3>
-                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                                    {sub.status === 'SUBMITTED' ? (sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : 'Processing') : 'Awaiting Submission'}
+                                {submissionsData.filter(s => subFilter === 'ALL' ? true : subFilter === 'SUBMITTED' ? s.status === 'SUBMITTED' : s.status !== 'SUBMITTED').map(sub => {
+                                    const hasViolation = (sub.proctoring_report?.tab_switches > 0) || 
+                                                       (sub.proctoring_report?.fullscreen_exits > 0) || 
+                                                       (sub.proctoring_report?.face_violations > 0) || 
+                                                       (sub.proctoring_report?.mic_violations > 0);
+                                    
+                                    return (
+                                        <div key={sub.id} className="card" style={{ 
+                                            padding: '16px', 
+                                            background: 'var(--bg-secondary)', 
+                                            border: hasViolation ? '2px solid #ef4444' : (sub.proctoring_report?.auto_submitted ? '1px solid #ef444430' : (sub.status !== 'SUBMITTED' ? '1px dashed #ef444450' : '1px solid var(--border)')),
+                                            boxShadow: hasViolation ? '0 0 15px rgba(239, 68, 68, 0.1)' : 'none'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                                <div>
+                                                    <h3 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {sub.student_name}
+                                                        {sub.status !== 'SUBMITTED' && <span className="badge badge-warning" style={{ fontSize: '10px' }}>{sub.status}</span>}
+                                                        {hasViolation && <span className="badge badge-danger" style={{ fontSize: '10px', animation: 'pulse 2s infinite' }}>⚠️ VIOLATION DETECTED</span>}
+                                                    </h3>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                        {sub.student_email} • {sub.status === 'SUBMITTED' ? (sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : 'Processing') : 'Awaiting Submission'}
+                                                    </div>
                                                 </div>
+                                                {(sub.status === 'SUBMITTED' || sub.status === 'IN_PROGRESS') && (
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontSize: '18px', fontWeight: 800, color: sub.marks !== null ? 'var(--primary)' : 'var(--text-muted)', marginBottom: '4px' }}>
+                                                            {sub.marks !== null ? `${sub.marks} / ${viewSubmissions?.total_marks || 100}` : 'Not Graded'}
+                                                        </div>
+                                                        {sub.proctoring_report?.auto_submitted && (
+                                                            <span className="badge badge-danger" style={{ marginBottom: '4px', display: 'inline-block', fontSize: '10px' }}>⛔ AUTO-SUBMITTED</span>
+                                                        )}
+                                                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                                            ⏱️ {Math.floor((sub.proctoring_report?.completion_time || 0) / 60)}m {(sub.proctoring_report?.completion_time || 0) % 60}s
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
+
+                                            {/* Proctoring Report Brief */}
                                             {(sub.status === 'SUBMITTED' || sub.status === 'IN_PROGRESS') && (
-                                                <div style={{ textAlign: 'right' }}>
-                                                    {sub.proctoring_report?.auto_submitted && (
-                                                        <span className="badge badge-danger" style={{ marginBottom: '4px', display: 'inline-block' }}>⚠️ AUTO-SUBMITTED</span>
-                                                    )}
-                                                    <div style={{ fontSize: '11px', fontWeight: 600 }}>
-                                                        ⏱️ {Math.floor((sub.proctoring_report?.completion_time || 0) / 60)}m {(sub.proctoring_report?.completion_time || 0) % 60}s
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <div style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Tab Switches</div>
+                                                        <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.tab_switches > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.tab_switches || 0}</div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <div style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>FS Exits</div>
+                                                        <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.fullscreen_exits > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.fullscreen_exits || 0}</div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <div style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Face Loss</div>
+                                                        <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.face_violations > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.face_violations || 0}</div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <div style={{ fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Mic Interrupts</div>
+                                                        <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.mic_violations > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.mic_violations || 0}</div>
                                                     </div>
                                                 </div>
                                             )}
+
+                                            {sub.content && sub.status === 'SUBMITTED' && (
+                                                <div style={{ marginTop: '8px' }}>
+                                                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Submission Content Summary:</p>
+                                                    <pre style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '12px', borderRadius: '8px', overflowX: 'auto', fontSize: '12px', border: '1px solid var(--border)' }}>
+                                                        {sub.content.slice(0, 400)}{sub.content.length > 400 ? '...' : ''}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                            {sub.file_url && sub.status === 'SUBMITTED' && (
+                                                <a href={sub.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>📥 Download PDF Attachment</a>
+                                            )}
                                         </div>
-
-                                        {/* Proctoring Report Brief */}
-                                        {(sub.status === 'SUBMITTED' || sub.status === 'IN_PROGRESS') && (
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tab Switches</div>
-                                                    <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.tab_switches > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.tab_switches || 0}</div>
-                                                </div>
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>FS Exits</div>
-                                                    <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.fullscreen_exits > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.fullscreen_exits || 0}</div>
-                                                </div>
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Face Violations</div>
-                                                    <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.face_violations > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.face_violations || 0}</div>
-                                                </div>
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Mic Interrupts</div>
-                                                    <div style={{ fontSize: '14px', fontWeight: 700, color: sub.proctoring_report?.mic_violations > 0 ? '#ef4444' : 'inherit' }}>{sub.proctoring_report?.mic_violations || 0}</div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {sub.content && sub.status === 'SUBMITTED' && (
-                                            <pre style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '12px', borderRadius: '8px', overflowX: 'auto', fontSize: '12px', border: '1px solid var(--border)', marginTop: '4px' }}>
-                                                {sub.content.slice(0, 400)}{sub.content.length > 400 ? '...' : ''}
-                                            </pre>
-                                        )}
-                                        {sub.file_url && sub.status === 'SUBMITTED' && (
-                                            <a href={sub.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>📥 Download PDF</a>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

@@ -20,6 +20,7 @@ function StudentAssessmentsContent() {
     const searchParams = useSearchParams();
     const startId = searchParams.get('start');
     const [submitDone, setSubmitDone] = useState(false);
+    const [finalScore, setFinalScore] = useState<number | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null); // seconds remaining
 
     const [content, setContent] = useState('');
@@ -239,14 +240,17 @@ function StudentAssessmentsContent() {
             const res = await apiFetch(url, fetchOptions);
 
             if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                setFinalScore(data.score !== undefined ? data.score : (data.marks !== undefined ? data.marks : null));
                 setSubmitDone(true);
                 if (document.fullscreenElement) document.exitFullscreen();
                 setTimeout(() => {
                     setActiveSubmission(null);
                     setSessionId(null);
                     setSubmitDone(false);
+                    setFinalScore(null);
                     loadAssignments();
-                }, 2000);
+                }, 5000);
             } else {
                 alert('Submission failed.');
             }
@@ -400,7 +404,25 @@ function StudentAssessmentsContent() {
 
                         {submitDone ? (
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                                <div><div style={{ fontSize: '64px', marginBottom: '16px' }}>✅</div><h3>Submitted Successfully</h3></div>
+                                <div className="animate-in" style={{ maxWidth: '400px' }}>
+                                    <div style={{ fontSize: '72px', marginBottom: '24px' }}>🏆</div>
+                                    <h2 style={{ fontSize: '32px', marginBottom: '8px' }}>Assessment Complete</h2>
+                                    <p className="text-muted" style={{ marginBottom: '32px' }}>Your submission has been securely recorded.</p>
+                                    
+                                    {finalScore !== null && (
+                                        <div style={{ 
+                                            background: 'var(--primary-glow)', 
+                                            border: '1px solid var(--primary)', 
+                                            padding: '24px', borderRadius: '16px',
+                                            marginBottom: '32px'
+                                        }}>
+                                            <div style={{ fontSize: '14px', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>Your Score</div>
+                                            <div style={{ fontSize: '48px', fontWeight: 800, color: 'var(--text-primary)' }}>{finalScore}%</div>
+                                        </div>
+                                    )}
+                                    
+                                    <p className="text-muted" style={{ fontSize: '14px' }}>Returning to dashboard in a moment...</p>
+                                </div>
                             </div>
                         ) : (
                             <form onSubmit={(e) => { e.preventDefault(); submitHandler(); }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
