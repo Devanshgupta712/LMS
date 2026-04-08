@@ -361,20 +361,30 @@ function StudentAssessmentsContent() {
                     )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', padding: '32px', overflow: 'hidden' }}>
-                        <div style={{ flexShrink: 0, marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                    <h2 className="modal-title" style={{ marginBottom: '12px', fontSize: '28px' }}>{activeSubmission.title}</h2>
-                                    <p className="text-muted" style={{ marginBottom: '16px', fontSize: '15px', lineHeight: '1.6', maxWidth: '800px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ flex: 1 }}>
+                                    <h2 className="modal-title" style={{ marginBottom: '8px', fontSize: '28px' }}>{activeSubmission.title}</h2>
+                                    <p className="text-muted" style={{ marginBottom: 0, fontSize: '15px', lineHeight: '1.6', maxWidth: '800px' }}>
                                         {activeSubmission.description || "Refer to the instructions to solve the challenges below."}
                                     </p>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <span className="badge badge-warning" style={{ fontSize: '13px', display: 'inline-block', marginBottom: '8px' }}>Proctoring Active</span>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Do not switch tabs, exit fullscreen, or mute mic.</div>
+                                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span className="badge badge-warning" style={{ fontSize: '12px', display: 'inline-block', marginBottom: '4px' }}>Proctoring Active</span>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Keep tab focused & stay in view.</div>
+                                    </div>
+                                    {!submitDone && (
+                                        <button 
+                                            onClick={() => submitHandler()} 
+                                            className="btn btn-primary btn-lg" 
+                                            disabled={submitLoading || (activeSubmission.type === 'CODING' && content.length < 10)}
+                                            style={{ height: '48px', padding: '0 32px', fontSize: '15px', fontWeight: 700, boxShadow: 'var(--shadow-premium)' }}
+                                        >
+                                            {submitLoading ? 'Submitting...' : 'Complete & Submit'}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
-                        </div>
 
                         {submitDone ? (
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
@@ -404,10 +414,16 @@ function StudentAssessmentsContent() {
                                                     const qs = struct.questions || [];
                                                     return qs.map((q: any, i: number) => (
                                                         <div key={i} className="card" style={{ padding: '24px', background: 'var(--bg-primary)' }}>
-                                                            <h4 style={{ margin: '0 0 16px', fontSize: '18px' }}>{i + 1}. {q.question}</h4>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                            <h4 style={{ margin: '0 0 20px', fontSize: '16px', lineHeight: 1.5 }}>{i + 1}. {q.question}</h4>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                                 {q.options.map((opt: string, oi: number) => (
-                                                                    <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', background: 'var(--bg-secondary)', cursor: 'pointer', border: mcqAnswers[i] === oi ? '2px solid var(--primary)' : '2px solid transparent' }}>
+                                                                    <label key={oi} style={{ 
+                                                                        display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', borderRadius: '12px', 
+                                                                        background: mcqAnswers[i] === oi ? 'var(--primary-glow)' : 'var(--bg-secondary)', 
+                                                                        cursor: 'pointer', transition: 'all 0.2s',
+                                                                        border: `1px solid ${mcqAnswers[i] === oi ? 'var(--primary)' : 'transparent'}`,
+                                                                        fontWeight: 500
+                                                                    }}>
                                                                         <input 
                                                                             type="radio" 
                                                                             name={`q-${i}`} 
@@ -417,8 +433,9 @@ function StudentAssessmentsContent() {
                                                                                 setMcqAnswers(newAns);
                                                                                 setContent(JSON.stringify(newAns));
                                                                             }}
+                                                                            style={{ accentColor: 'var(--primary)', transform: 'scale(1.1)' }}
                                                                         />
-                                                                        {opt}
+                                                                        <span>{String.fromCharCode(65 + oi)}. {opt}</span>
                                                                     </label>
                                                                 ))}
                                                             </div>
@@ -430,11 +447,6 @@ function StudentAssessmentsContent() {
                                             })()}
                                         </div>
                                     )}
-                                </div>
-                                <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '16px 0 0', borderTop: '1px solid var(--border)' }}>
-                                    <button type="submit" className="btn btn-primary btn-lg" disabled={submitLoading || (activeSubmission.type === 'CODING' && content.length < 10)}>
-                                        {submitLoading ? 'Submitting...' : 'Complete & Submit'}
-                                    </button>
                                 </div>
                             </form>
                         )}
