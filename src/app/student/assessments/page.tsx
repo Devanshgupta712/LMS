@@ -195,13 +195,20 @@ export default function StudentAssessmentsPage() {
             const formData = new FormData();
             if (content) formData.append('content', content);
             if (file) formData.append('file', file);
-            
-            const url = isAuto ? `/api/training/assessments/${sessionId}/submit` : `/api/training/assignments/${activeSubmission.id}/submit`;
+            let url = `/api/training/assignments/${activeSubmission.id}/submit`;
+            let fetchOptions: any = { method: 'POST', body: formData };
 
-            const res = await apiFetch(url, {
-                method: 'POST',
-                body: isAuto ? JSON.stringify({ answers: { content } }) : formData
-            });
+            // If we are in a proctored session, ALWAYS use the secure session route
+            if (sessionId) {
+                url = `/api/training/assessments/${sessionId}/submit`;
+                fetchOptions = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers: { content: content || " " } }) // Ensure content isn't completely empty
+                };
+            }
+
+            const res = await apiFetch(url, fetchOptions);
 
             if (res.ok) {
                 setSubmitDone(true);

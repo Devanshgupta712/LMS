@@ -2189,6 +2189,30 @@ async def submit_assessment(
     session.end_time = datetime.utcnow()
     session.completion_time_seconds = elapsed
     session.responses = json_lib.dumps({"answers": student_answers, "results": results, "ai_grading": "pending" if is_pure_coding else "n/a"})
+    
+    # ── Map to AssignmentSubmission for UI compatibility ──
+    if session.reference_type == "ASSIGNMENT":
+        from app.models.project import AssignmentSubmission
+        res_sub = await db.execute(select(AssignmentSubmission).where(
+            AssignmentSubmission.assignment_id == session.reference_id,
+            AssignmentSubmission.student_id == user.id
+        ))
+        if not res_sub.scalars().first():
+            raw_content = ""
+            if is_pure_coding and student_answers:
+                # Merge student's coding answers into a single readable string for the legacy view
+                raw_content = "\n\n".join([str(v) for v in student_answers.values() if str(v).strip()])
+            
+            new_sub = AssignmentSubmission(
+                id=str(uuid.uuid4()),
+                assignment_id=session.reference_id,
+                student_id=user.id,
+                content=raw_content or "Submitted via Proctored Session",
+                marks=score,
+                feedback="AI Grading Pending..." if is_pure_coding else ""
+            )
+            db.add(new_sub)
+
     await db.flush()
 
     # ── Kick off AI grading as a fire-and-forget background task ──
