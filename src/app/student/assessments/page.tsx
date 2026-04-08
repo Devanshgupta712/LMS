@@ -30,6 +30,7 @@ function StudentAssessmentsContent() {
     const [fullscreenExitCount, setFullscreenExitCount] = useState(0);
     const [faceViolationCount, setFaceViolationCount] = useState(0);
     const [micViolationCount, setMicViolationCount] = useState(0);
+    const [mcqAnswers, setMcqAnswers] = useState<Record<number, number>>({});
     const [isProctoringActive, setIsProctoringActive] = useState(false);
     const [graceCountdown, setGraceCountdown] = useState<number | null>(null);
     const [violationType, setViolationType] = useState<string | null>(null);
@@ -381,11 +382,57 @@ function StudentAssessmentsContent() {
                             </div>
                         ) : (
                             <form onSubmit={(e) => { e.preventDefault(); submitHandler(); }} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', borderRadius: '12px', border: '1px solid var(--border)', background: '#1e1e1e' }}>
-                                    <WebDevEditor code={content} onChange={setContent} />
+                                <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', borderRadius: '12px', border: '1px solid var(--border)', background: activeSubmission.type === 'CODING' ? '#1e1e1e' : 'var(--bg-secondary)', padding: activeSubmission.type === 'CODING' ? '0' : '24px' }}>
+                                    {activeSubmission.type === 'CODING' && (
+                                        <WebDevEditor code={content} onChange={setContent} />
+                                    )}
+                                    
+                                    {(activeSubmission.type === 'WRITTEN' || activeSubmission.type === 'PROJECT') && (
+                                        <textarea 
+                                            value={content} 
+                                            onChange={e => setContent(e.target.value)}
+                                            placeholder="Write your response here..."
+                                            style={{ width: '100%', height: '100%', background: 'transparent', color: 'inherit', border: 'none', outline: 'none', resize: 'none', fontSize: '16px', lineHeight: '1.6' }}
+                                        />
+                                    )}
+
+                                    {activeSubmission.type === 'MCQ' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                                            {(() => {
+                                                try {
+                                                    const struct = JSON.parse(activeSubmission.structured_content || activeSubmission.responses || '{}');
+                                                    const qs = struct.questions || [];
+                                                    return qs.map((q: any, i: number) => (
+                                                        <div key={i} className="card" style={{ padding: '24px', background: 'var(--bg-primary)' }}>
+                                                            <h4 style={{ margin: '0 0 16px', fontSize: '18px' }}>{i + 1}. {q.question}</h4>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                                {q.options.map((opt: string, oi: number) => (
+                                                                    <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', background: 'var(--bg-secondary)', cursor: 'pointer', border: mcqAnswers[i] === oi ? '2px solid var(--primary)' : '2px solid transparent' }}>
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name={`q-${i}`} 
+                                                                            checked={mcqAnswers[i] === oi}
+                                                                            onChange={() => {
+                                                                                const newAns = { ...mcqAnswers, [i]: oi };
+                                                                                setMcqAnswers(newAns);
+                                                                                setContent(JSON.stringify(newAns));
+                                                                            }}
+                                                                        />
+                                                                        {opt}
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ));
+                                                } catch (e) {
+                                                    return <p className="text-danger">Error loading questions. Please contact support.</p>;
+                                                }
+                                            })()}
+                                        </div>
+                                    )}
                                 </div>
                                 <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '16px 0 0', borderTop: '1px solid var(--border)' }}>
-                                    <button type="submit" className="btn btn-primary btn-lg" disabled={submitLoading || content.length < 10}>
+                                    <button type="submit" className="btn btn-primary btn-lg" disabled={submitLoading || (activeSubmission.type === 'CODING' && content.length < 10)}>
                                         {submitLoading ? 'Submitting...' : 'Complete & Submit'}
                                     </button>
                                 </div>

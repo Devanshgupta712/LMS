@@ -142,7 +142,14 @@ async def get_batch_students(
 ):
     from app.models.course import BatchStudent
     from app.models.user import User
+    from app.models.project import Assignment, AssignmentSubmission
     
+    # 1. Total assignments assigned to this batch
+    batch_assignments = await db.execute(select(Assignment.id).where(Assignment.batch_id == batch_id))
+    b_assignment_ids = [r[0] for r in batch_assignments.all()]
+    total_activities = len(b_assignment_ids)
+
+    # 2. Get students
     result = await db.execute(
         select(User).join(BatchStudent, User.id == BatchStudent.student_id)
         .where(BatchStudent.batch_id == batch_id)
@@ -150,16 +157,29 @@ async def get_batch_students(
     )
     students = result.scalars().all()
     
-    return [
-        {
+    out = []
+    for s in students:
+        completed = 0
+        
+        # Check assignment submission
+        if b_assignment_ids:
+            ca = await db.execute(select(func.count(AssignmentSubmission.id)).where(AssignmentSubmission.assignment_id.in_(b_assignment_ids), AssignmentSubmission.student_id == s.id))
+            completed += ca.scalar() or 0
+
+        progress = int((completed / total_activities) * 100) if total_activities > 0 else 100
+        
+        out.append({
             "id": s.id,
             "name": s.name,
             "email": s.email,
             "student_id": s.student_id,
-            "is_active": s.is_active
-        }
-        for s in students
-    ]
+            "is_active": s.is_active,
+            "progress_percentage": progress,
+            "completed": completed,
+            "total_activities": total_activities
+        })
+        
+    return out
 
 @router.get("/attendance")
 async def get_attendance(
@@ -963,33 +983,77 @@ async def list_assignment_submissions(
     if not assignment:
         raise HTTPException(404, "Assignment not found")
         
-    result = await db.execute(
-        select(AssignmentSubmission).where(AssignmentSubmission.assignment_id == assignment_id)
-    )
-    submissions = result.scalars().all()
-    out = []
-    for sub in submissions:
-        student = await db.get(User, sub.student_id)
-        
-        # Get session metrics
-        sess_res = await db.execute(
-            select(AssessmentSession).where(
-                AssessmentSession.student_id == sub.student_id,
-                AssessmentSession.reference_id == assignment_id,
-                AssessmentSession.reference_type == "ASSIGNMENT"
-            )
+    from app.models.project import BatchStudent
+    assigned_students = []
+    
+    if assignment.student_id:
+        student = await db.get(User, assignment.student_id)
+        if student:
+            assigned_students.append(student)
+    elif assignment.batch_id:
+        batch_students = await db.execute(select(BatchStudent).where(BatchStudent.batch_id == assignment.batch_id))
+        student_ids = [bs.student_id for bs in batch_students.scalars().all()]
+        if student_ids:
+            res_users = await db.execute(select(User).where(User.id.in_(student_ids)))
+            assigned_students = list(res_users.scalars().all())
+
+    # Get Submissions
+    result = await db.execute(select(AssignmentSubmission).where(AssignmentSubmission.assignment_id == assignment_id))
+    submissions_map = {sub.student_id: sub for sub in result.scalars().all()}
+    
+    # Get all sessions attached to this assignment
+    sess_res = await db.execute(
+        select(AssessmentSession).where(
+            AssessmentSession.reference_id == assignment_id,
+            AssessmentSession.reference_type == "ASSIGNMENT"
         )
-        session = sess_res.scalars().first()
+    )
+    sessions_map = {sess.student_id: sess for sess in sess_res.scalars().all()}
+
+    out = []
+    for s in assigned_students:
+        sub = submissions_map.get(s.id)
+        sess = sessions_map.get(s.id)
         
-        out.append({
-            "id": sub.id,
-            "student_name": student.name if student else "Unknown",
-            "content": sub.content,
-            "file_url": sub.file_url,
-            "marks": sub.marks,
-            "feedback": sub.feedback,
-            "submitted_at": sub.submitted_at.isoformat() if sub.submitted_at else None
-        })
+        proc_report = None
+        if sess:
+            proc_report = {
+                "fullscreen_exits": sess.fullscreen_exit_count or 0,
+                "tab_switches": sess.tab_switch_count or 0,
+                "face_violations": sess.face_violation_count or 0,
+                "mic_violations": getattr(sess, "mic_violation_count", 0),
+                "completion_time": sess.completion_time_seconds or 0,
+            }
+
+        if sub:
+            out.append({
+                "id": sub.id,
+                "student_id": s.id,
+                "student_name": s.name,
+                "student_email": s.email,
+                "status": "SUBMITTED",
+                "content": sub.content,
+                "file_url": sub.file_url,
+                "marks": sub.marks,
+                "feedback": sub.feedback,
+                "submitted_at": sub.submitted_at.isoformat() if sub.submitted_at else None,
+                "proctoring_report": proc_report
+            })
+        else:
+            out.append({
+                "id": f"pending-{s.id}",
+                "student_id": s.id,
+                "student_name": s.name,
+                "student_email": s.email,
+                "status": "IN_PROGRESS" if (sess and not sess.is_completed) else "PENDING",
+                "content": None,
+                "file_url": None,
+                "marks": 0,
+                "feedback": None,
+                "submitted_at": None,
+                "proctoring_report": proc_report
+            })
+
     return out
 
 @router.post("/assignments/{assignment_id}/submit", status_code=201)

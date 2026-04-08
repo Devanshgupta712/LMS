@@ -18,8 +18,20 @@ export default function BatchesPage() {
     const [form, setForm] = useState({ course_id: '', name: '', start_date: '', end_date: '', schedule_time: '', trainer_id: '' });
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [currentUserRole, setCurrentUserRole] = useState<string>('');
 
-    useEffect(() => { loadData(); }, []);
+    // Roster Modal State
+    const [viewStudentsId, setViewStudentsId] = useState<string | null>(null);
+    const [viewStudentsName, setViewStudentsName] = useState<string>('');
+    const [studentsList, setStudentsList] = useState<any[]>([]);
+    const [allStudents, setAllStudents] = useState<any[]>([]);
+    const [enrollStudentId, setEnrollStudentId] = useState('');
+
+    useEffect(() => { 
+        loadData(); 
+        const role = localStorage.getItem('auth_role') || '';
+        setCurrentUserRole(role);
+    }, []);
 
     const loadData = async () => {
         try {
@@ -101,11 +113,45 @@ export default function BatchesPage() {
         }
     };
 
+    const handleViewStudents = async (id: string, name: string) => {
+        setViewStudentsId(id);
+        setViewStudentsName(name);
+        setStudentsList([]);
+        try {
+            const [batchStudents, allStuds] = await Promise.all([
+                apiGet(`/api/training/batches/${id}/students`),
+                apiGet(`/api/admin/students?role=STUDENT`)
+            ]);
+            setStudentsList(batchStudents);
+            setAllStudents(allStuds);
+        } catch {}
+    };
+
+    const handleEnrollStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!enrollStudentId || !viewStudentsId) return;
+        try {
+            await apiPost(`/api/admin/users/${enrollStudentId}/assign-batch`, { batch_id: viewStudentsId });
+            setEnrollStudentId('');
+            handleViewStudents(viewStudentsId, viewStudentsName); // Reload
+        } catch { alert("Failed to enroll student."); }
+    };
+
+    const handleRemoveStudent = async (studentId: string) => {
+        if (!viewStudentsId || !confirm("Remove this student from the batch?")) return;
+        try {
+            await apiDelete(`/api/admin/users/${studentId}/batches/${viewStudentsId}`);
+            setStudentsList(studentsList.filter(s => s.id !== studentId));
+        } catch { alert("Failed to remove student."); }
+    };
+
     return (
         <div className="animate-in">
             <div className="page-header">
                 <div><h1 className="page-title">Batches</h1><p className="page-subtitle">Manage training batches</p></div>
-                <button className="btn btn-primary" onClick={() => { setError(''); setShowModal(true); }}>+ New Batch</button>
+                {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole) && (
+                    <button className="btn btn-primary" onClick={() => { setError(''); setShowModal(true); }}>+ New Batch</button>
+                )}
             </div>
 
             {error && (
@@ -152,8 +198,13 @@ export default function BatchesPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
                             <span className={`badge ${b.is_active ? 'badge-success' : 'badge-danger'}`}>{b.is_active ? 'Active' : 'Ended'}</span>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn btn-sm btn-ghost" onClick={() => openEdit(b)}>Edit</button>
-                                <button className="btn btn-sm btn-danger" onClick={() => handleDelete(b.id, b.name)}>Delete</button>
+                                <button className="btn btn-sm btn-primary" onClick={() => handleViewStudents(b.id, b.name)}>Roster</button>
+                                {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole) && (
+                                    <>
+                                        <button className="btn btn-sm btn-ghost" onClick={() => openEdit(b)}>Edit</button>
+                                        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(b.id, b.name)}>Delete</button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -220,6 +271,70 @@ export default function BatchesPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Roster Modal */}
+            {viewStudentsId && (
+                <div className="modal-overlay" onClick={() => setViewStudentsId(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h2 className="modal-title" style={{ margin: 0 }}>Roster: {viewStudentsName}</h2>
+                            <button className="btn btn-sm btn-ghost" onClick={() => setViewStudentsId(null)}>✕ Close</button>
+                        </div>
+
+                        {/* Add Student Form */}
+                        {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole) && (
+                            <div className="card" style={{ padding: '16px', marginBottom: '24px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                                <h4 style={{ margin: '0 0 12px' }}>➕ Enroll Student</h4>
+                                <form onSubmit={handleEnrollStudent} style={{ display: 'flex', gap: '12px' }}>
+                                    <select className="form-select" style={{ flex: 1 }} value={enrollStudentId} onChange={e => setEnrollStudentId(e.target.value)} required>
+                                        <option value="">— Select a Student —</option>
+                                        {allStudents.filter(u => !studentsList.some(s => s.id === u.id)).map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
+                                        ))}
+                                    </select>
+                                    <button type="submit" className="btn btn-primary" disabled={!enrollStudentId}>Add</button>
+                                </form>
+                            </div>
+                        )}
+
+                        {studentsList.length === 0 ? (
+                            <div className="empty-state"><div className="empty-icon">👥</div><p className="text-muted">No students enrolled in this batch.</p></div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {studentsList.map(s => (
+                                    <div key={s.id} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                <h3 style={{ margin: 0, fontSize: '15px' }}>{s.name}</h3>
+                                                <span className="badge" style={{ fontSize: '10px', background: 'var(--bg-secondary)' }}>{s.student_id}</span>
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>{s.email}</p>
+                                        </div>
+                                        
+                                        <div style={{ flex: 1, padding: '0 24px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px', fontWeight: 600 }}>
+                                                <span>Assignments Progress</span>
+                                                <span style={{ color: s.progress_percentage === 100 ? 'var(--success)' : 'var(--text-primary)' }}>
+                                                    {s.progress_percentage || 0}% ({s.completed || 0}/{s.total_activities || 0})
+                                                </span>
+                                            </div>
+                                            <div style={{ height: '6px', background: 'var(--bg-secondary)', borderRadius: '4px', overflow: 'hidden' }}>
+                                                <div style={{ width: `${s.progress_percentage || 0}%`, height: '100%', background: s.progress_percentage === 100 ? 'var(--success)' : 'var(--primary)', transition: 'width 0.3s ease' }} />
+                                            </div>
+                                        </div>
+
+                                        {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole) && (
+                                            <div>
+                                                <button className="btn btn-sm btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => handleRemoveStudent(s.id)}>Remove</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

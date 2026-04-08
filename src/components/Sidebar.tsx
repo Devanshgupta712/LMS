@@ -48,7 +48,7 @@ const navSections: NavSection[] = [
         roles: ['SUPER_ADMIN', 'ADMIN', 'TRAINER'],
         items: [
             { label: 'Courses', href: '/admin/courses', icon: '📚', roles: ['SUPER_ADMIN', 'ADMIN'] },
-            { label: 'Batches', href: '/admin/batches', icon: '👥', roles: ['SUPER_ADMIN', 'ADMIN'] },
+            { label: 'Batches', href: '/admin/batches', icon: '👥', roles: ['SUPER_ADMIN', 'ADMIN', 'TRAINER'] },
             { label: 'Registrations', href: '/admin/registrations', icon: '📝', roles: ['SUPER_ADMIN', 'ADMIN'] },
             { label: 'Students', href: '/admin/students', icon: '🎓' },
             { label: 'Leaves', href: '/admin/leaves', icon: '🗓️' },
