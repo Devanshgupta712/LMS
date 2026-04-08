@@ -198,8 +198,8 @@ export default function BatchesPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
                             <span className={`badge ${b.is_active ? 'badge-success' : 'badge-danger'}`}>{b.is_active ? 'Active' : 'Ended'}</span>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn btn-sm btn-primary" onClick={() => handleViewStudents(b.id, b.name)}>Roster</button>
-                                {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole) && (
+                                <button className="btn btn-sm btn-primary" onClick={() => handleViewStudents(b.id, b.name)}>Student</button>
+                                {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole.toUpperCase()) && (
                                     <>
                                         <button className="btn btn-sm btn-ghost" onClick={() => openEdit(b)}>Edit</button>
                                         <button className="btn btn-sm btn-danger" onClick={() => handleDelete(b.id, b.name)}>Delete</button>

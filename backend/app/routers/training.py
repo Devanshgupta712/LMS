@@ -830,7 +830,6 @@ async def list_assignments(
     
     # If Student, only show their batch assignments OR assignments mapped directly to them
     if user.role == Role.STUDENT:
-        from app.models.project import BatchStudent
         batch_result = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
         student_batches = batch_result.scalars().all()
         
@@ -983,7 +982,6 @@ async def list_assignment_submissions(
     if not assignment:
         raise HTTPException(404, "Assignment not found")
         
-    from app.models.project import BatchStudent
     assigned_students = []
     
     if assignment.student_id:
