@@ -984,18 +984,28 @@ async def list_assignment_submissions(
     if not assignment:
         raise HTTPException(404, "Assignment not found")
         
-    assigned_students = []
+    # 1. Discover all student IDs involved (Assigned + Interacted)
+    involved_student_ids = set()
     
     if assignment.student_id:
-        student = await db.get(User, assignment.student_id)
-        if student:
-            assigned_students.append(student)
+        involved_student_ids.add(assignment.student_id)
     elif assignment.batch_id:
-        batch_students = await db.execute(select(BatchStudent).where(BatchStudent.batch_id == assignment.batch_id))
-        student_ids = [bs.student_id for bs in batch_students.scalars().all()]
-        if student_ids:
-            res_users = await db.execute(select(User).where(User.id.in_(student_ids)))
-            assigned_students = list(res_users.scalars().all())
+        bs_res = await db.execute(select(BatchStudent.student_id).where(BatchStudent.batch_id == assignment.batch_id))
+        involved_student_ids.update(bs_res.scalars().all())
+        
+    # Also include anyone who has a submission or session even if they are not "formally" in the batch roster currently
+    sub_list_res = await db.execute(select(AssignmentSubmission.student_id).where(AssignmentSubmission.assignment_id == assignment_id))
+    involved_student_ids.update(sub_list_res.scalars().all())
+    
+    sess_list_res = await db.execute(select(AssessmentSession.student_id).where(AssessmentSession.reference_id == assignment_id, AssessmentSession.reference_type == "ASSIGNMENT"))
+    involved_student_ids.update(sess_list_res.scalars().all())
+
+    if not involved_student_ids:
+        return []
+
+    # 2. Fetch all unique student profiles
+    all_studs_res = await db.execute(select(User).where(User.id.in_(list(involved_student_ids))))
+    involved_students = all_studs_res.scalars().all()
 
     # Get Submissions
     result = await db.execute(select(AssignmentSubmission).where(AssignmentSubmission.assignment_id == assignment_id))
@@ -1011,7 +1021,7 @@ async def list_assignment_submissions(
     sessions_map = {sess.student_id: sess for sess in sess_res.scalars().all()}
 
     out = []
-    for s in assigned_students:
+    for s in involved_students:
         sub = submissions_map.get(s.id)
         sess = sessions_map.get(s.id)
         
@@ -1023,6 +1033,7 @@ async def list_assignment_submissions(
                 "face_violations": sess.face_violation_count or 0,
                 "mic_violations": getattr(sess, "mic_violation_count", 0),
                 "completion_time": sess.completion_time_seconds or 0,
+                "auto_submitted": sess.auto_submitted
             }
 
         if sub:
