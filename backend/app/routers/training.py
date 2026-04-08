@@ -1809,13 +1809,18 @@ async def start_assessment_session(
     from app.models.project import AssessmentSession
     import json as json_lib
 
-    # Check if already started and not completed
+    # Check for any existing sessions to enforce strict one-attempt policy
     existing = await db.execute(select(AssessmentSession).where(
         AssessmentSession.student_id == user.id,
-        AssessmentSession.reference_id == ref_id,
-        AssessmentSession.is_completed == False
+        AssessmentSession.reference_id == ref_id
     ))
-    session = existing.scalar_one_or_none()
+    sessions = existing.scalars().all()
+    for s in sessions:
+        if s.is_completed:
+            raise HTTPException(status_code=400, detail="You have already completed or abandoned this assessment. Retakes are not permitted.")
+            
+    # If a session exists but is not completed, resume it
+    session = sessions[0] if sessions else None
     if session:
         return {"session_id": session.id, "start_time": session.start_time.isoformat(), "resumed": True}
 

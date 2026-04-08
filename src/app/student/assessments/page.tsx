@@ -54,25 +54,34 @@ export default function StudentAssessmentsPage() {
             }
         };
 
-        const preventCopyPaste = (e: ClipboardEvent | KeyboardEvent) => {
+        const preventSecurityRisks = (e: any) => {
             if (e.type === 'copy' || e.type === 'paste') {
                 e.preventDefault();
                 alert('Copying & Pasting is strictly disabled during assessments.');
             }
+            if (e.type === 'contextmenu') {
+                e.preventDefault();
+                triggerGracePeriod("Right-click disabled");
+            }
             if (e.type === 'keydown') {
                 const keyEvent = e as KeyboardEvent;
-                if ((keyEvent.ctrlKey || keyEvent.metaKey) && (keyEvent.key === 'c' || keyEvent.key === 'v')) {
-                    e.preventDefault();
+                if ((keyEvent.ctrlKey || keyEvent.metaKey) && (keyEvent.key.toLowerCase() === 'c' || keyEvent.key.toLowerCase() === 'v')) {
+                    keyEvent.preventDefault();
                     alert('Copying & Pasting is strictly disabled during assessments.');
+                }
+                // Block Alt, Tab, Escape, and Meta/Windows Keys
+                if (keyEvent.key === 'Alt' || keyEvent.key === 'Tab' || keyEvent.key === 'Escape' || keyEvent.metaKey) {
+                    keyEvent.preventDefault();
                 }
             }
         };
 
         document.addEventListener('visibilitychange', onVisibilityChange);
         document.addEventListener('fullscreenchange', onFullscreenChange);
-        document.addEventListener('copy', preventCopyPaste, { capture: true });
-        document.addEventListener('paste', preventCopyPaste, { capture: true });
-        document.addEventListener('keydown', preventCopyPaste, { capture: true });
+        document.addEventListener('copy', preventSecurityRisks, { capture: true });
+        document.addEventListener('paste', preventSecurityRisks, { capture: true });
+        document.addEventListener('keydown', preventSecurityRisks, { capture: true });
+        document.addEventListener('contextmenu', preventSecurityRisks, { capture: true });
 
         // Start Heartbeat
         heartbeatRef.current = setInterval(sendHeartbeat, 30000);
@@ -83,9 +92,10 @@ export default function StudentAssessmentsPage() {
         return () => {
             document.removeEventListener('visibilitychange', onVisibilityChange);
             document.removeEventListener('fullscreenchange', onFullscreenChange);
-            document.removeEventListener('copy', preventCopyPaste, { capture: true });
-            document.removeEventListener('paste', preventCopyPaste, { capture: true });
-            document.removeEventListener('keydown', preventCopyPaste, { capture: true });
+            document.removeEventListener('copy', preventSecurityRisks, { capture: true });
+            document.removeEventListener('paste', preventSecurityRisks, { capture: true });
+            document.removeEventListener('keydown', preventSecurityRisks, { capture: true });
+            document.removeEventListener('contextmenu', preventSecurityRisks, { capture: true });
             if (heartbeatRef.current) clearInterval(heartbeatRef.current);
             document.body.style.overflow = 'unset';
         };
@@ -114,6 +124,9 @@ export default function StudentAssessmentsPage() {
         if (containerRef.current) {
             try {
                 await containerRef.current.requestFullscreen();
+                if ('keyboard' in navigator && (navigator as any).keyboard && (navigator as any).keyboard.lock) {
+                    try { await (navigator as any).keyboard.lock(); } catch (e) { console.warn('Keyboard lock not fully supported', e); }
+                }
                 setGraceCountdown(null);
                 setViolationType(null);
             } catch (e) {
