@@ -100,39 +100,22 @@ export default function AssignmentsPage() {
             const result = await resp.json();
             setAiPreview(result);
 
-            // Format description based on task type and returned structure
+            // Keep the description concise for a cleaner student UI
             let generatedDescription = result.description || '';
             
-            if (result.questions && result.questions.length > 0) {
-                const qList = result.questions.map((q: any, i: number) => {
-                    if (form.type === 'MCQ') {
-                        const opts = q.options?.map((opt: string, idx: number) => `${String.fromCharCode(65 + idx)}) ${opt}`).join('\n') || '';
-                        return `Question ${i + 1}: ${q.question}\n${opts}\n(Correct Answer: Option ${String.fromCharCode(65 + (q.answer || 0))})\n${q.explanation ? `Explanation: ${q.explanation}\n` : ''}`;
-                    } else if (form.type === 'CODING') {
-                        return `Problem ${i+1}: ${q.question}\n\nStarter Code:\n\`\`\`\n${q.initial_code || ''}\n\`\`\`\n\nConstraints:\n${q.constraints?.map((c: string) => `- ${c}`).join('\n') || 'None'}`;
-                    }
-                    return `Item ${i+1}: ${q.question || q.text || ''}`;
-                }).join('\n\n---\n\n');
-                generatedDescription += `\n\n${qList}`;
-            }
-
-            if (result.requirements && result.requirements.length > 0) {
-                generatedDescription += '\n\nRequirements:\n' + result.requirements.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n');
-            }
-
-            if (result.hints && result.hints.length > 0) {
-                generatedDescription += '\n\nHints:\n' + result.hints.map((h: string) => `• ${h}`).join('\n');
-            }
-
-            if (result.estimated_hours) {
-                generatedDescription += `\n\nEstimated Time: ${result.estimated_hours} hours`;
+            // If it's a coding task, we might want some detail in description, 
+            // but for MCQ the structured UI handles it better.
+            if (form.type === 'CODING' && result.questions?.[0]) {
+                const q = result.questions[0];
+                generatedDescription += `\n\nProblem: ${q.question}`;
             }
 
             setForm(f => ({
                 ...f,
                 title: result.title || f.title,
                 description: generatedDescription,
-                time_limit: (aiTimeLimit || 0).toString()
+                time_limit: (aiTimeLimit || 0).toString(),
+                total_marks: (result.total_marks || f.total_marks).toString()
             }));
             setStep('ai_review');
         } catch (e: any) { setAiError(e?.message || 'AI generation failed.'); }
@@ -161,8 +144,10 @@ export default function AssignmentsPage() {
                 total_marks: parseInt(form.total_marks) || 100,
                 time_limit: parseInt(form.time_limit) || 0,
                 batch_id: selectedBatch || null,
+                is_randomized: aiRandomize,
                 ...(selectedStudent ? { student_id: selectedStudent } : {}),
-                ...(pdfUrl ? { pdf_url: pdfUrl } : {})
+                ...(pdfUrl ? { pdf_url: pdfUrl } : {}),
+                ...(aiPreview ? { structured_content: JSON.stringify(aiPreview) } : {})
             };
 
             const resp = await apiFetch('/api/training/assignments', { method: 'POST', body: JSON.stringify(body) });
