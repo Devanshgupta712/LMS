@@ -56,27 +56,46 @@ export default function CoursesPage() {
         <div className="section-divider"></div>
 
         {/* Benefits for Students Section */}
-        <section className="section-padding" style={{ background: 'var(--bg-secondary)', padding: 'var(--space-20) 0' }}>
+        <section className="section-padding" style={{ background: 'var(--bg-secondary)', padding: 'var(--space-12) 0' }}>
           <div className="container-wide" style={{ maxWidth: '1200px', padding: '0 var(--space-8)' }}>
-            <h2 style={{ fontSize: '36px', fontWeight: 700, textAlign: 'center', marginBottom: 'var(--space-16)', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>What You Get With Each Course</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-8)' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, textAlign: 'center', marginBottom: 'var(--space-12)', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>What You Get With Each Course</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-6)' }}>
               {[
-                { title: 'Certification', desc: 'Industry-recognized certificate from AppTechno Software.', icon: '📜' },
-                { title: 'Project Training', desc: 'Work on 3+ live projects with source code and deployment.', icon: '💻' },
-                { title: 'Job Placement', desc: 'Guaranteed 10+ interview calls from top IT companies.', icon: '🤝' },
-                { title: 'Mentor Support', desc: '1-on-1 doubt clearing sessions with senior developers.', icon: '👨‍🏫' }
+                { 
+                  title: 'Certification', 
+                  desc: 'Industry-recognized certificate from AppTechno Software.', 
+                  icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> 
+                },
+                { 
+                  title: 'Project Training', 
+                  desc: 'Work on 3+ live projects with source code and deployment.', 
+                  icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> 
+                },
+                { 
+                  title: 'Job Placement', 
+                  desc: 'Guaranteed 10+ interview calls from top IT companies.', 
+                  icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M7 22v-8.11b"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 
+                },
+                { 
+                  title: 'Mentor Support', 
+                  desc: '1-on-1 doubt clearing sessions with senior developers.', 
+                  icon: <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> 
+                }
               ].map((benefit, i) => (
-                <div key={i} className="hover-lift hover-glow" style={{ 
-                  padding: 'var(--space-10)', 
+                <div key={i} className="hover-lift hover-glow shadow-sm" style={{ 
+                  padding: 'var(--space-8)', 
                   borderRadius: 'var(--border-radius-lg)', 
                   textAlign: 'center',
                   background: 'var(--bg-primary)',
                   border: '1px solid var(--border)',
-                  boxShadow: 'var(--shadow-sm)'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--space-4)'
                 }}>
-                  <div style={{ fontSize: '48px', marginBottom: 'var(--space-6)' }}>{benefit.icon}</div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 750, marginBottom: 'var(--space-3)', color: 'var(--text-primary)' }}>{benefit.title}</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.6 }}>{benefit.desc}</p>
+                  <div style={{ color: 'var(--primary)', opacity: 0.9 }}>{benefit.icon}</div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '2px', color: 'var(--text-primary)' }}>{benefit.title}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.5 }}>{benefit.desc}</p>
                 </div>
               ))}
             </div>

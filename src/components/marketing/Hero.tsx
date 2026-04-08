@@ -101,24 +101,26 @@ export default function Hero() {
             position: 'absolute',
             top: '40px',
             right: '-30px',
-            padding: '20px 24px',
+            padding: '16px 20px',
             borderRadius: '16px',
             background: 'var(--primary)',
             color: '#fff',
             display: 'flex',
-            gap: '16px',
+            gap: '12px',
             alignItems: 'center',
             boxShadow: 'var(--shadow-lg)',
             zIndex: 2
           }}>
             <div style={{ 
-              width: '40px', height: '40px', borderRadius: '10px', 
+              width: '36px', height: '36px', borderRadius: '10px', 
               background: 'rgba(255,255,255,0.2)', display: 'flex', 
-              alignItems: 'center', justifyContent: 'center', fontSize: '20px' 
-            }}>📊</div>
+              alignItems: 'center', justifyContent: 'center'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+            </div>
             <div>
-              <div style={{ fontSize: '22px', fontWeight: 800 }}>14L+</div>
-              <div style={{ fontSize: '12px', fontWeight: 500, opacity: 0.9 }}>Avg. Salary</div>
+              <div style={{ fontSize: '20px', fontWeight: 800 }}>14L+</div>
+              <div style={{ fontSize: '11px', fontWeight: 500, opacity: 0.9 }}>Avg. Salary</div>
             </div>
           </div>
         </div>
