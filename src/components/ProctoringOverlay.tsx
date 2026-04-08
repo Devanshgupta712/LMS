@@ -19,7 +19,7 @@ export default function ProctoringOverlay({ isActive, onViolation, onMetricsUpda
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isActive) {
