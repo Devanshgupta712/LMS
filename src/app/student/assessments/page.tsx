@@ -605,18 +605,24 @@ function StudentAssessmentsContent() {
                                                                                 <span style={{ 
                                                                                     background: isCorrectAnswer ? '#10b981' : '#ef4444', 
                                                                                     color: '#fff', padding: '5px 10px', borderRadius: '8px', 
-                                                                        padding: '16px', borderRadius: '12px', background: bg, border: border, 
-                                                                        fontSize: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
-                                                                    }}>
-                                                                        <span>{String.fromCharCode(65 + oi)}. {opt}</span>
-                                                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                                                            {isCorrectAnswer && <span style={{ color: '#10b981', fontWeight: 800, fontSize: '12px' }}>✓ CORRECT ANSWER</span>}
-                                                                            {isStudentSelected && !isCorrectAnswer && <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '12px' }}>✕ YOUR SELECTION</span>}
+                                                                                    fontSize: '10px', fontWeight: 900, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                                                                }}>
+                                                                                    {isCorrectAnswer ? '✓ YOUR SELECTION' : '✕ YOUR SELECTION'}
+                                                                                </span>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 );
                                                             })}
                                                         </div>
+                                                        {(q.explanation || (res && res.explanation)) && (
+                                                            <div style={{ 
+                                                                marginTop: '24px', padding: '16px 20px', 
+                                                                background: 'var(--bg-secondary)', borderRadius: '14px', 
+                                                                fontSize: '13px', lineHeight: '1.7', borderLeft: '4px solid var(--primary)',
+                                                                color: 'var(--text-muted)'
+                                                            }}>
+                                                                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '6px', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>💡 Educational Explanation</strong>
                                                                 {q.explanation || res.explanation}
                                                             </div>
                                                         )}
