@@ -855,6 +855,14 @@ async def list_assignments(
             sub_res = await db.execute(select(AssignmentSubmission).where(AssignmentSubmission.assignment_id == a.id, AssignmentSubmission.student_id == user.id))
             sub = sub_res.scalars().first()
             if sub:
+                # Try to find the associated assessment session for detailed reports
+                sess_res = await db.execute(select(AssessmentSession).where(
+                    AssessmentSession.reference_id == a.id,
+                    AssessmentSession.student_id == user.id,
+                    AssessmentSession.reference_type == "ASSIGNMENT"
+                ).order_by(AssessmentSession.created_at.desc()))
+                sess = sess_res.scalars().first()
+                
                 student_sub = {
                     "id": sub.id,
                     "marks": sub.marks,
@@ -999,6 +1007,9 @@ async def list_assignment_submissions(
     
     sess_list_res = await db.execute(select(AssessmentSession.student_id).where(AssessmentSession.reference_id == assignment_id, AssessmentSession.reference_type == "ASSIGNMENT"))
     involved_student_ids.update(sess_list_res.scalars().all())
+
+    # Filter out None values just in case
+    involved_student_ids = {sid for sid in involved_student_ids if sid}
 
     if not involved_student_ids:
         return []

@@ -50,6 +50,7 @@ export default function AssignmentsPage() {
     // Submissions
     const [viewSubmissions, setViewSubmissions] = useState<any>(null);
     const [submissionsData, setSubmissionsData] = useState<any[]>([]);
+    const [loadingSubmissions, setLoadingSubmissions] = useState(false);
     const [subFilter, setSubFilter] = useState<'ALL' | 'SUBMITTED' | 'PENDING'>('ALL');
     const searchParams = useSearchParams();
 
@@ -168,8 +169,15 @@ export default function AssignmentsPage() {
     };
 
     const handleViewSubmissions = async (assignment: any) => {
-        setViewSubmissions(assignment); setSubmissionsData([]);
-        try { setSubmissionsData(await apiGet(`/api/training/assignments/${assignment.id}/submissions`)); } catch { }
+        setViewSubmissions(assignment); setSubmissionsData([]); setLoadingSubmissions(true);
+        try { 
+            const data = await apiGet(`/api/training/assignments/${assignment.id}/submissions`);
+            setSubmissionsData(data); 
+        } catch (e) {
+            console.error("Failed to load submissions", e);
+        } finally {
+            setLoadingSubmissions(false);
+        }
     };
 
     const isOverdue = (d: string | null) => !!d && new Date(d) < new Date();
@@ -581,8 +589,13 @@ export default function AssignmentsPage() {
                             <h2 className="modal-title" style={{ margin: 0 }}>Submissions: {viewSubmissions.title}</h2>
                             <button className="btn btn-sm btn-ghost" onClick={() => { setViewSubmissions(null); setSubmissionsData([]); }}>✕ Close</button>
                         </div>
-                        {submissionsData.length === 0 ? (
-                            <div className="empty-state"><div className="empty-icon">📭</div><p className="text-muted">No submissions yet.</p></div>
+                        {loadingSubmissions ? (
+                            <div style={{ padding: '40px', textAlign: 'center' }}>
+                                <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+                                <p className="text-muted">Loading submissions...</p>
+                            </div>
+                        ) : submissionsData.length === 0 ? (
+                            <div className="empty-state"><div className="empty-icon">📭</div><p className="text-muted">No submissions found for this assignment.</p></div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>

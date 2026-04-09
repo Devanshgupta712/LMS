@@ -25,6 +25,7 @@ function StudentAssessmentsContent() {
 
     const [content, setContent] = useState('');
     const [file, setFile] = useState<File | null>(null);
+    const [reportData, setReportData] = useState<any>(null);
 
     // Proctoring & Lock State
     const [tabSwitchCount, setTabSwitchCount] = useState(0);
@@ -306,14 +307,24 @@ function StudentAssessmentsContent() {
                                 </span>
                             </div>
                             <p className="text-muted text-sm">{a.description?.slice(0, 100)}...</p>
-                            <button
-                                className="btn btn-primary"
-                                style={{ width: '100%', marginTop: 'auto' }}
-                                onClick={() => startSession(a)}
-                                disabled={a.my_submission || isOverdue(a.due_date)}
-                            >
-                                {a.my_submission ? 'Already Attempted' : 'Start Secure Assessment'}
-                            </button>
+                                {a.my_submission ? (
+                                    <button
+                                        className="btn btn-secondary"
+                                        style={{ width: '100%', marginTop: 'auto', background: 'var(--bg-secondary)', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 700 }}
+                                        onClick={() => setReportData(a)}
+                                    >
+                                        🔍 View Assessment Report
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="btn btn-primary"
+                                        style={{ width: '100%', marginTop: 'auto' }}
+                                        onClick={() => startSession(a)}
+                                        disabled={isOverdue(a.due_date)}
+                                    >
+                                        Start Secure Assessment
+                                    </button>
+                                )}
                         </div>
                     ))}
                 </div>
@@ -486,6 +497,110 @@ function StudentAssessmentsContent() {
                         )}
                     </div>
                 </div>, document.body
+            )}
+
+            {/* Assessment Report Modal */}
+            {reportData && (
+                <div className="modal-overlay" onClick={() => setReportData(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '0', borderRadius: '24px', overflow: 'hidden' }}>
+                        <div style={{ background: 'var(--primary-glow)', padding: '32px', borderBottom: '1px solid var(--primary)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }}>{reportData.title}</h2>
+                                    <p style={{ margin: '8px 0 0', opacity: 0.7 }}>{reportData.type} Performance Report</p>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--primary)' }}>{reportData.my_submission.marks}%</div>
+                                    <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.6 }}>Final Score</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ padding: '32px' }}>
+                            {reportData.type === 'MCQ' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    {(() => {
+                                        try {
+                                            const struct = JSON.parse(reportData.structured_content || '{}');
+                                            const questions = struct.questions || [];
+                                            const sessionResRaw = reportData.my_submission.session_responses;
+                                            const results = sessionResRaw ? JSON.parse(sessionResRaw).results : [];
+                                            
+                                            return questions.map((q: any, i: number) => {
+                                                const res = results.find((r: any) => r.index === i);
+                                                const studentChoice = res ? res.selected : null;
+                                                const isCorrect = res ? res.is_correct : false;
+
+                                                return (
+                                                    <div key={i} style={{ padding: '20px', background: 'var(--bg-secondary)', borderRadius: '16px', border: `1px solid ${isCorrect ? '#10b98140' : '#ef444440'}` }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+                                                            <h4 style={{ margin: 0, flex: 1 }}>{i + 1}. {q.question}</h4>
+                                                            <span className={`badge ${isCorrect ? 'badge-success' : 'badge-danger'}`} style={{ height: 'fit-content' }}>
+                                                                {isCorrect ? 'Correct' : 'Incorrect'}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                            {q.options.map((opt: string, oi: number) => {
+                                                                const isStudentSelected = studentChoice !== null && Number(studentChoice) === oi;
+                                                                const isCorrectAnswer = Number(q.answer) === oi;
+                                                                
+                                                                let bg = 'var(--bg-primary)';
+                                                                let border = '1px solid var(--border)';
+                                                                let color = 'inherit';
+
+                                                                if (isCorrectAnswer) {
+                                                                    bg = '#10b98120';
+                                                                    border = '1px solid #10b981';
+                                                                } else if (isStudentSelected && !isCorrectAnswer) {
+                                                                    bg = '#ef444420';
+                                                                    border = '1px solid #ef4444';
+                                                                }
+
+                                                                return (
+                                                                    <div key={oi} style={{ padding: '12px 16px', borderRadius: '10px', background: bg, border: border, fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                        <span>{String.fromCharCode(65 + oi)}. {opt}</span>
+                                                                        {isCorrectAnswer && <span style={{ color: '#10b981', fontWeight: 800 }}>✓ Correct Answer</span>}
+                                                                        {isStudentSelected && !isCorrectAnswer && <span style={{ color: '#ef4444', fontWeight: 800 }}>✕ Your Choice</span>}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        {(q.explanation || (res && res.explanation)) && (
+                                                            <div style={{ marginTop: '16px', padding: '12px', background: 'var(--primary-glow)', borderRadius: '8px', fontSize: '13px' }}>
+                                                                <strong>💡 Explanation:</strong> {q.explanation || res.explanation}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            });
+                                        } catch (e) {
+                                            return <p>Could not parse report data.</p>;
+                                        }
+                                    })()}
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div>
+                                        <h4 style={{ marginBottom: '12px', fontSize: '14px', textTransform: 'uppercase', opacity: 0.6 }}>Your Submission</h4>
+                                        <div style={{ padding: '20px', background: '#1e1e1e', color: '#fff', borderRadius: '12px', fontFamily: 'monospace', fontSize: '14px', whiteSpace: 'pre-wrap', border: '1px solid var(--border)' }}>
+                                            {reportData.my_submission.content || "Empty submission"}
+                                        </div>
+                                    </div>
+                                    {reportData.my_submission.feedback && (
+                                        <div>
+                                            <h4 style={{ marginBottom: '12px', fontSize: '14px', textTransform: 'uppercase', opacity: 0.6 }}>AI Instructor Feedback</h4>
+                                            <div style={{ padding: '20px', background: 'var(--primary-glow)', border: '1px solid var(--primary)', borderRadius: '12px', fontSize: '15px', lineHeight: '1.6' }}>
+                                                {reportData.my_submission.feedback}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
+                            <button className="btn btn-primary" onClick={() => setReportData(null)} style={{ marginTop: '32px', width: '100%', padding: '16px' }}>Close Report</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
