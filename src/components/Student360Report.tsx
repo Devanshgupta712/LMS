@@ -49,7 +49,7 @@ export default function Student360Report({ studentId, onClose }: Props) {
                         </div>
                         <div>
                             <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 800 }}>{student.name}</h2>
-                            <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>{student.email} • Student ID: {student.student_id or 'N/A'}</p>
+                            <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '14px' }}>{student.email} • Student ID: {student.student_id || 'N/A'}</p>
                             <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
                                 <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>📅 Joined {new Date(student.joined_at).toLocaleDateString()}</span>
                                 <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>🏆 Batch Student</span>

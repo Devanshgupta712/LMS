@@ -993,6 +993,8 @@ async def global_search(
             results.append({
                 "id": a.id, "title": a.title, "subtitle": "Assignment Management",
                 "type": "ASSIGNMENT", "icon": "⚙️"
+            })
+            
     # 5. ADMIN/MARKETING Mode: Search Leads
     if current_user.role in [Role.SUPER_ADMIN, Role.ADMIN, Role.MARKETING]:
         search_leads = await db.execute(

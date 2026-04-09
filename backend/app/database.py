@@ -24,15 +24,20 @@ connect_args = {"timeout": 10}
 if "neon.tech" in db_url:
     connect_args["ssl"] = True
 
-engine = create_async_engine(
-    db_url,
-    echo=False,
-    pool_size=3,
-    max_overflow=5,
-    pool_timeout=10,
-    pool_recycle=1800,
-    connect_args=connect_args,
-)
+kw = {
+    "echo": False,
+    "connect_args": connect_args,
+}
+
+if "sqlite" not in db_url:
+    kw.update({
+        "pool_size": 3,
+        "max_overflow": 5,
+        "pool_timeout": 10,
+        "pool_recycle": 1800,
+    })
+
+engine = create_async_engine(db_url, **kw)
     
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
