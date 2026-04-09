@@ -15,6 +15,7 @@ from app.models.project import (
     Task, TaskStatus, TaskPriority,
     Assignment, AssignmentType, AssignmentSubmission,
     Violation, ViolationType, ViolationSeverity, ViolationStatus,
+    AssessmentSession,
 )
 from app.models.notification import Video, Feedback
 
@@ -868,7 +869,8 @@ async def list_assignments(
                     "marks": sub.marks,
                     "feedback": sub.feedback,
                     "file_url": sub.file_url,
-                    "content": sub.content
+                    "content": sub.content,
+                    "session_responses": sess.responses if sess else None
                 }
 
         out.append({
