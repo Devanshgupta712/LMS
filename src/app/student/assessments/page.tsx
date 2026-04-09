@@ -523,10 +523,13 @@ function StudentAssessmentsContent() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     {(() => {
                                         try {
-                                            const struct = JSON.parse(reportData.structured_content || '{}');
-                                            const questions = struct.questions || [];
                                             const sessionResRaw = reportData.my_submission.session_responses;
-                                            const results = sessionResRaw ? JSON.parse(sessionResRaw).results : [];
+                                            const sessionContent = sessionResRaw ? JSON.parse(sessionResRaw) : {};
+                                            const results = sessionContent.results || [];
+                                            
+                                            // PRIORITIZE QUESTIONS FROM SESSION (fixes randomization mismatch)
+                                            const struct = JSON.parse(reportData.structured_content || '{}');
+                                            const questions = sessionContent.questions || struct.questions || [];
                                             
                                             return questions.map((q: any, i: number) => {
                                                 const res = results.find((r: any) => r.index === i);
@@ -534,41 +537,57 @@ function StudentAssessmentsContent() {
                                                 const isCorrect = res ? res.is_correct : false;
 
                                                 return (
-                                                    <div key={i} style={{ padding: '20px', background: 'var(--bg-secondary)', borderRadius: '16px', border: `1px solid ${isCorrect ? '#10b98140' : '#ef444440'}` }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
-                                                            <h4 style={{ margin: 0, flex: 1 }}>{i + 1}. {q.question}</h4>
-                                                            <span className={`badge ${isCorrect ? 'badge-success' : 'badge-danger'}`} style={{ height: 'fit-content' }}>
-                                                                {isCorrect ? 'Correct' : 'Incorrect'}
+                                                    <div key={i} style={{ padding: '24px', background: 'var(--bg-secondary)', borderRadius: '20px', border: `1px solid ${isCorrect ? '#10b98130' : '#ef444430'}`, boxShadow: 'var(--shadow-sm)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '20px' }}>
+                                                            <h4 style={{ margin: 0, flex: 1, fontSize: '17px', fontWeight: 700 }}>{i + 1}. {q.question}</h4>
+                                                            <span className={`badge ${isCorrect ? 'badge-success' : 'badge-danger'}`} style={{ height: 'fit-content', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
+                                                                {isCorrect ? '✓ CORRECT' : '✕ INCORRECT'}
                                                             </span>
                                                         </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                             {q.options.map((opt: string, oi: number) => {
                                                                 const isStudentSelected = studentChoice !== null && Number(studentChoice) === oi;
                                                                 const isCorrectAnswer = Number(q.answer) === oi;
                                                                 
                                                                 let bg = 'var(--bg-primary)';
                                                                 let border = '1px solid var(--border)';
-                                                                let color = 'inherit';
+                                                                let opacity = 1;
 
                                                                 if (isCorrectAnswer) {
-                                                                    bg = '#10b98120';
+                                                                    bg = '#10b98115';
                                                                     border = '1px solid #10b981';
                                                                 } else if (isStudentSelected && !isCorrectAnswer) {
-                                                                    bg = '#ef444420';
+                                                                    bg = '#ef444415';
                                                                     border = '1px solid #ef4444';
+                                                                } else if (studentChoice !== null) {
+                                                                    opacity = 0.6; // Dim non-selected, non-correct options
                                                                 }
 
                                                                 return (
-                                                                    <div key={oi} style={{ padding: '12px 16px', borderRadius: '10px', background: bg, border: border, fontSize: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                        <span>{String.fromCharCode(65 + oi)}. {opt}</span>
-                                                                        {isCorrectAnswer && <span style={{ color: '#10b981', fontWeight: 800 }}>✓ Correct Answer</span>}
-                                                                        {isStudentSelected && !isCorrectAnswer && <span style={{ color: '#ef4444', fontWeight: 800 }}>✕ Your Choice</span>}
+                                                                    <div key={oi} style={{ 
+                                                                        padding: '14px 18px', borderRadius: '12px', background: bg, border: border, 
+                                                                        fontSize: '14px', display: 'flex', justifyContent: 'space-between', 
+                                                                        alignItems: 'center', opacity: opacity, transition: 'all 0.2s' 
+                                                                    }}>
+                                                                        <span style={{ fontWeight: isStudentSelected || isCorrectAnswer ? 600 : 400 }}>{String.fromCharCode(65 + oi)}. {opt}</span>
+                                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                            {isCorrectAnswer && <span style={{ color: '#10b981', fontWeight: 800, fontSize: '12px' }}>✓ Correct Answer</span>}
+                                                                            {isStudentSelected && (
+                                                                                <span style={{ 
+                                                                                    background: isCorrectAnswer ? '#10b981' : '#ef4444', 
+                                                                                    color: '#fff', padding: '4px 8px', borderRadius: '6px', 
+                                                                                    fontSize: '10px', fontWeight: 800 
+                                                                                }}>
+                                                                                    YOUR CHOICE
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 );
                                                             })}
                                                         </div>
                                                         {(q.explanation || (res && res.explanation)) && (
-                                                            <div style={{ marginTop: '16px', padding: '12px', background: 'var(--primary-glow)', borderRadius: '8px', fontSize: '13px' }}>
+                                                            <div style={{ marginTop: '20px', padding: '16px', background: 'var(--primary-glow)', borderRadius: '12px', fontSize: '13.5px', lineHeight: '1.6', borderLeft: '4px solid var(--primary)' }}>
                                                                 <strong>💡 Explanation:</strong> {q.explanation || res.explanation}
                                                             </div>
                                                         )}
@@ -576,7 +595,8 @@ function StudentAssessmentsContent() {
                                                 );
                                             });
                                         } catch (e) {
-                                            return <p>Could not parse report data.</p>;
+                                            console.error("Report error:", e);
+                                            return <p className="text-danger">Error rendering report. Please check if submission data is complete.</p>;
                                         }
                                     })()}
                                 </div>

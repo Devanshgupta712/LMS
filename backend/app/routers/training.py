@@ -2287,7 +2287,23 @@ async def submit_assessment(
     session.is_completed = True
     session.end_time = datetime.utcnow()
     session.completion_time_seconds = elapsed
-    session.responses = json_lib.dumps({"answers": student_answers, "results": results, "ai_grading": "pending" if is_pure_coding else "n/a"})
+    # Store results in session.responses
+    # NEW: Merge results into existing session.responses (which may hold randomized questions)
+    existing_responses = {}
+    if session.responses and session.responses.strip().startswith('{'):
+        try:
+            existing_responses = json_lib.loads(session.responses)
+        except:
+            pass
+            
+    existing_responses.update({
+        "answers": student_answers,
+        "results": results,
+        "final_score": score,
+        "total_questions": len(questions_source) if questions_source else 0,
+        "ai_grading": "pending" if is_pure_coding else "n/a"
+    })
+    session.responses = json_lib.dumps(existing_responses)
     
     # ── Map to AssignmentSubmission for UI compatibility ──
     if session.reference_type == "ASSIGNMENT":
