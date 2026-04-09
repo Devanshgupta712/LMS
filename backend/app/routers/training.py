@@ -2203,6 +2203,16 @@ async def submit_assessment(
         item = await db.get(Assignment, session.reference_id)
 
     student_answers = body.get("answers", {})  # {question_index: selected_option_index}
+    
+    # NEW: If student_answers has a 'content' key that looks like JSON, parse it.
+    # This handles the frontend's current behavior of stringifying mcqAnswers into 'content'.
+    if isinstance(student_answers, dict) and "content" in student_answers:
+        content_val = student_answers["content"]
+        if isinstance(content_val, str) and content_val.strip().startswith('{'):
+            try:
+                student_answers = json_lib.loads(content_val)
+            except:
+                pass
     score = 0.0
     results = []
 

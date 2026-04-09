@@ -234,7 +234,9 @@ function StudentAssessmentsContent() {
                 fetchOptions = {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: { content: content || " " } }) // Ensure content isn't completely empty
+                    body: JSON.stringify({ 
+                        answers: activeSubmission.type === 'MCQ' ? mcqAnswers : { content: content || " " } 
+                    })
                 };
             }
 
@@ -502,7 +504,7 @@ function StudentAssessmentsContent() {
             {/* Assessment Report Modal */}
             {reportData && (
                 <div className="modal-overlay" onClick={() => setReportData(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '0', borderRadius: '24px', overflow: 'hidden' }}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '0', borderRadius: '24px' }}>
                         <div style={{ background: 'var(--primary-glow)', padding: '32px', borderBottom: '1px solid var(--primary)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
