@@ -176,19 +176,34 @@ function StudentAssessmentsContent() {
             const data = await res.json();
             if (res.ok) {
                 setSessionId(data.session_id);
-                // Store randomized questions if provided, otherwise fallback to assignment content
+                // Store randomized questions and RESUME partial answers if found
                 const sessionContent = data.responses ? JSON.parse(data.responses) : null;
                 const activeQs = sessionContent?.questions;
                 
+                // LOAD PREVIOUS PROGRESS (if any)
+                let savedAnsMap = {};
+                if (sessionContent?.saved_answers) {
+                    const saved = sessionContent.saved_answers;
+                    // If backend saved it as { content: stringified_json }
+                    if (saved.content) {
+                        try {
+                            savedAnsMap = JSON.parse(saved.content);
+                        } catch(err) { console.error("Could not parse saved answers", err); }
+                    } else {
+                        savedAnsMap = saved;
+                    }
+                }
+
                 setActiveSubmission({
                     ...assignment,
                     activeQuestions: activeQs || null
                 });
                 
+                setMcqAnswers(savedAnsMap);
+                setContent(JSON.stringify(savedAnsMap));
+                
                 setIsProctoringActive(true);
                 setSubmitDone(false);
-                setContent('');
-                setMcqAnswers({}); // Reset answers for new session
                 setFile(null);
                 
                 // Trigger auto-fullscreen
@@ -469,35 +484,60 @@ function StudentAssessmentsContent() {
                                                     // Use ACTIVE randomized questions if available, else original struct
                                                     const struct = JSON.parse(activeSubmission.structured_content || '{}');
                                                     const qs = activeSubmission.activeQuestions || struct.questions || [];
-                                                    return qs.map((q: any, i: number) => (
-                                                        <div key={i} className="card" style={{ padding: '24px', background: 'var(--bg-primary)' }}>
-                                                            <h4 style={{ margin: '0 0 20px', fontSize: '16px', lineHeight: 1.5 }}>{i + 1}. {q.question}</h4>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                                {q.options.map((opt: string, oi: number) => (
-                                                                    <label key={oi} style={{ 
-                                                                        display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', borderRadius: '12px', 
-                                                                        background: mcqAnswers[i] === oi ? 'var(--primary-glow)' : 'var(--bg-secondary)', 
-                                                                        cursor: 'pointer', transition: 'all 0.2s',
-                                                                        border: `1px solid ${mcqAnswers[i] === oi ? 'var(--primary)' : 'transparent'}`,
-                                                                        fontWeight: 500
-                                                                    }}>
-                                                                        <input 
-                                                                            type="radio" 
-                                                                            name={`q-${i}`} 
-                                                                            checked={mcqAnswers[i] === oi}
-                                                                            onChange={() => {
-                                                                                const newAns = { ...mcqAnswers, [i]: oi };
-                                                                                setMcqAnswers(newAns);
-                                                                                setContent(JSON.stringify(newAns));
-                                                                            }}
-                                                                            style={{ accentColor: 'var(--primary)', transform: 'scale(1.1)' }}
-                                                                        />
-                                                                        <span>{String.fromCharCode(65 + oi)}. {opt}</span>
-                                                                    </label>
-                                                                ))}
+                                                    return qs.map((q: any, i: number) => {
+                                                        const isSaved = mcqAnswers[i] !== undefined;
+                                                        return (
+                                                            <div key={i} className="card shadow-sm" style={{ padding: '28px', background: 'var(--bg-primary)', borderRadius: '20px', border: '1px solid var(--border)', position: 'relative' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px' }}>
+                                                                    <h4 style={{ margin: 0, fontSize: '18px', lineHeight: 1.5, fontWeight: 700, flex: 1 }}>{i + 1}. {q.question}</h4>
+                                                                    {isSaved && <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 900, background: '#10b98115', padding: '4px 10px', borderRadius: '20px', whiteSpace: 'nowrap', marginLeft: '12px' }}>✓ PROGRESS SAVED</span>}
+                                                                </div>
+                                                                
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                                                                    {q.options.map((opt: string, oi: number) => (
+                                                                        <label key={oi} style={{ 
+                                                                            display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderRadius: '14px', 
+                                                                            background: mcqAnswers[i] === oi ? 'var(--primary-glow)' : 'var(--bg-secondary)', 
+                                                                            cursor: 'pointer', transition: 'all 0.2s',
+                                                                            border: `2px solid ${mcqAnswers[i] === oi ? 'var(--primary)' : 'transparent'}`,
+                                                                            boxShadow: mcqAnswers[i] === oi ? 'var(--shadow-sm)' : 'none'
+                                                                        }}>
+                                                                            <input 
+                                                                                type="radio" 
+                                                                                name={`q-${i}`} 
+                                                                                checked={mcqAnswers[i] === oi}
+                                                                                onChange={() => {
+                                                                                    const newAns = { ...mcqAnswers, [i]: oi };
+                                                                                    setMcqAnswers(newAns);
+                                                                                    const contentStr = JSON.stringify(newAns);
+                                                                                    setContent(contentStr);
+                                                                                    // AUTO-SAVE on every click
+                                                                                    setTimeout(() => sendHeartbeat(), 100);
+                                                                                }}
+                                                                                style={{ accentColor: 'var(--primary)', transform: 'scale(1.2)' }}
+                                                                            />
+                                                                            <span style={{ fontSize: '15.5px', fontWeight: mcqAnswers[i] === oi ? 600 : 400 }}>{String.fromCharCode(65 + oi)}. {opt}</span>
+                                                                        </label>
+                                                                    ))}
+                                                                </div>
+
+                                                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => sendHeartbeat()}
+                                                                        className="btn btn-secondary btn-sm"
+                                                                        style={{ 
+                                                                            fontSize: '11px', padding: '8px 16px', borderRadius: '10px',
+                                                                            background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)',
+                                                                            fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em'
+                                                                        }}
+                                                                    >
+                                                                        📥 Save This Question
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ));
+                                                        );
+                                                    });
                                                 } catch (e) {
                                                     return <p className="text-danger">Error loading questions. Please contact support.</p>;
                                                 }

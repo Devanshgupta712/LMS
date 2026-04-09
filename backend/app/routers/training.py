@@ -1911,7 +1911,7 @@ async def start_assessment_session(
     # If a session exists but is not completed, resume it
     session = sessions[0] if sessions else None
     if session:
-        return {"session_id": session.id, "start_time": session.start_time.isoformat(), "resumed": True}
+        return {"session_id": session.id, "start_time": session.start_time.isoformat(), "resumed": True, "responses": session.responses}
 
     # Load the task/assignment for structured content
     if ref_type.upper() == "TASK":
@@ -1921,8 +1921,8 @@ async def start_assessment_session(
     if not item:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
-    # Prepare shuffled questions if MCQ with randomization
-    question_order = None
+    # Prepare frozen question list (shuffled if randomization is ON)
+    questions = []
     if item.structured_content:
         content = json_lib.loads(item.structured_content)
         if "questions" in content and getattr(item, 'is_randomized', False):
