@@ -176,10 +176,19 @@ function StudentAssessmentsContent() {
             const data = await res.json();
             if (res.ok) {
                 setSessionId(data.session_id);
-                setActiveSubmission(assignment);
+                // Store randomized questions if provided, otherwise fallback to assignment content
+                const sessionContent = data.responses ? JSON.parse(data.responses) : null;
+                const activeQs = sessionContent?.questions;
+                
+                setActiveSubmission({
+                    ...assignment,
+                    activeQuestions: activeQs || null
+                });
+                
                 setIsProctoringActive(true);
                 setSubmitDone(false);
                 setContent('');
+                setMcqAnswers({}); // Reset answers for new session
                 setFile(null);
                 
                 // Trigger auto-fullscreen
@@ -457,8 +466,9 @@ function StudentAssessmentsContent() {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                                             {(() => {
                                                 try {
-                                                    const struct = JSON.parse(activeSubmission.structured_content || activeSubmission.responses || '{}');
-                                                    const qs = struct.questions || [];
+                                                    // Use ACTIVE randomized questions if available, else original struct
+                                                    const struct = JSON.parse(activeSubmission.structured_content || '{}');
+                                                    const qs = activeSubmission.activeQuestions || struct.questions || [];
                                                     return qs.map((q: any, i: number) => (
                                                         <div key={i} className="card" style={{ padding: '24px', background: 'var(--bg-primary)' }}>
                                                             <h4 style={{ margin: '0 0 20px', fontSize: '16px', lineHeight: 1.5 }}>{i + 1}. {q.question}</h4>
@@ -595,24 +605,18 @@ function StudentAssessmentsContent() {
                                                                                 <span style={{ 
                                                                                     background: isCorrectAnswer ? '#10b981' : '#ef4444', 
                                                                                     color: '#fff', padding: '5px 10px', borderRadius: '8px', 
-                                                                                    fontSize: '10px', fontWeight: 900, boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                                                                }}>
-                                                                                    {isCorrectAnswer ? '✓ YOUR SELECTION' : '✕ YOUR SELECTION'}
-                                                                                </span>
-                                                                            )}
+                                                                        padding: '16px', borderRadius: '12px', background: bg, border: border, 
+                                                                        fontSize: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
+                                                                    }}>
+                                                                        <span>{String.fromCharCode(65 + oi)}. {opt}</span>
+                                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                                            {isCorrectAnswer && <span style={{ color: '#10b981', fontWeight: 800, fontSize: '12px' }}>✓ CORRECT ANSWER</span>}
+                                                                            {isStudentSelected && !isCorrectAnswer && <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '12px' }}>✕ YOUR SELECTION</span>}
                                                                         </div>
                                                                     </div>
                                                                 );
                                                             })}
                                                         </div>
-                                                        {(q.explanation || (res && res.explanation)) && (
-                                                            <div style={{ 
-                                                                marginTop: '24px', padding: '16px 20px', 
-                                                                background: 'var(--bg-secondary)', borderRadius: '14px', 
-                                                                fontSize: '13px', lineHeight: '1.7', borderLeft: '4px solid var(--primary)',
-                                                                color: 'var(--text-muted)'
-                                                            }}>
-                                                                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '6px', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>💡 Educational Explanation</strong>
                                                                 {q.explanation || res.explanation}
                                                             </div>
                                                         )}
