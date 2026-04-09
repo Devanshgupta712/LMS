@@ -5,7 +5,7 @@ from datetime import datetime, timezone, date
 import json
 
 from app.database import get_db
-from app.middleware.auth import get_current_user, require_roles
+from app.middleware.auth import get_current_user, require_roles, get_optional_user
 from app.models.user import User, Role
 from app.models.attendance import Attendance, LeaveRequest, LeaveStatus, LeaveType
 from app.utils.cloudinary import upload_to_cloudinary
@@ -2602,14 +2602,67 @@ Guidelines:
 @router.post("/chatbot")
 async def chatbot_proxy(
     body: ChatRequest,
-    _current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user)
 ):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="Chatbot not configured. Please contact support.")
 
+    # Base context
+    system_prompt = SYSTEM_CONTEXT
+    
+    # Add User Context if logged in
+    if user:
+        # 1. Fetch Batches
+        batch_res = await db.execute(
+            select(Batch.name).join(BatchStudent, BatchStudent.batch_id == Batch.id).where(BatchStudent.student_id == user.id)
+        )
+        batches = batch_res.scalars().all()
+        batch_str = ", ".join(batches) if batches else "None"
+        
+        # 2. Fetch Attendance
+        att_res = await db.execute(select(Attendance.status).where(Attendance.student_id == user.id))
+        all_att = att_res.scalars().all()
+        present = len([s for s in all_att if (s.value if hasattr(s, 'value') else s) in ('PRESENT', 'LATE')])
+        total_att = len(all_att)
+        att_pct = int((present / total_att) * 100) if total_att > 0 else 0
+        
+        # 3. Fetch Assignments
+        # Assigned to batch or user
+        batch_ids_res = await db.execute(select(BatchStudent.batch_id).where(BatchStudent.student_id == user.id))
+        batch_ids = batch_ids_res.scalars().all()
+        
+        assign_query = select(func.count(Assignment.id))
+        if batch_ids:
+            assign_query = assign_query.where(or_(Assignment.batch_id.in_(batch_ids), Assignment.student_id == user.id))
+        else:
+            assign_query = assign_query.where(Assignment.student_id == user.id)
+        
+        total_assign_res = await db.execute(assign_query)
+        total_assign = total_assign_res.scalar() or 0
+        
+        done_assign_res = await db.execute(select(func.count(AssignmentSubmission.id)).where(AssignmentSubmission.student_id == user.id))
+        done_assign = done_assign_res.scalar() or 0
+        
+        avg_marks_res = await db.execute(select(func.avg(AssignmentSubmission.marks)).where(AssignmentSubmission.student_id == user.id))
+        avg_marks = avg_marks_res.scalar() or 0
+        
+        context_block = f"""
+[PERSONALIZED CONTEXT FOR AI ASSISTANT]
+You are now speaking with: {user.name} ({user.role.value if hasattr(user.role, 'value') else user.role})
+Email: {user.email}
+Active Batches: {batch_str}
+Attendance: {att_pct}% ({present}/{total_att} days)
+Assignment Progress: {done_assign} completed out of {total_assign} assigned.
+Average Score: {avg_marks:.1f}%
+
+INSTRUCTIONS: Use this data to provide personalized mentorship. If attendance is low, encourage them. If assignments are pending, gently remind them. Act as their personal LMS mentor while maintaining the AppTechno AI persona.
+"""
+        system_prompt += context_block
+
     # Build OpenAI-compatible messages array (Groq uses OpenAI format)
-    messages = [{"role": "system", "content": SYSTEM_CONTEXT}]
+    messages = [{"role": "system", "content": system_prompt}]
 
     # Add conversation history
     for msg in body.history:

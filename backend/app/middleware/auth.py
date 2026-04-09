@@ -11,6 +11,7 @@ from app.database import get_db
 from app.models.user import User, Role, AdminPermission
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 def create_access_token(data: dict) -> str:
@@ -41,6 +42,27 @@ async def get_current_user(
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+
+async def get_optional_user(
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
+) -> User | None:
+    """Like get_current_user, but returns None if no valid token is provided."""
+    if not credentials:
+        return None
+        
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        user_id: str = payload.get("sub")
+        if not user_id:
+            return None
+            
+        result = await db.execute(select(User).where(User.id == user_id))
+        return result.scalars().first()
+    except:
+        return None
 
 
 def require_roles(*roles: Role):
