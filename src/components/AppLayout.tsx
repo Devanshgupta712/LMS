@@ -28,9 +28,43 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // Search State
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [isSearching, setIsSearching] = useState(false);
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+    // WebSocket Integration
+    // For simplicity, we'll try to join a batch room if the user is a trainer or student
+    const batchId = user?.batch_id || (user?.role === 'STUDENT' ? 'GLOBAL_STUDENT' : 'GLOBAL_TRAINER');
+
+    const handleViolation = (data: any) => {
+        setNotifications(prev => [{
+            id: `ws-${Date.now()}`,
+            title: `🚨 Violation: ${data.student_name}`,
+            message: `${data.type} detected during assessment.`,
+            read: false,
+            created_at: data.timestamp,
+            link: `/training/reports?student_id=${data.student_id}`
+        }, ...prev]);
+        
+        // Browser Notification fallback
+        if (typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission === 'granted') {
+            new window.Notification(`Violation: ${data.student_name}`, { body: `${data.type} detected.` });
+        }
+    };
+
+    const handleUnlock = (data: any) => {
+        setNotifications(prev => [{
+            id: `ws-${Date.now()}`,
+            title: `✨ New ${data.type} Live!`,
+            message: `'${data.title}' is now available to start.`,
+            read: false,
+            created_at: new Date().toISOString(),
+            link: data.type === 'TASK' ? '/student/tasks' : '/student/assessments'
+        }, ...prev]);
+    };
+
+    // Initialize Socket at top level
+    useSocket(user?.id ? batchId : null, handleViolation, handleUnlock);
+
 
     // Scroll reveal observer
     useEffect(() => {
@@ -114,42 +148,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!user) {
         return null;
     }
-
-    // WebSocket Integration
-    // For simplicity, we'll try to join a batch room if the user is a trainer or student
-    // In a real app, we'd fetch the specific batch IDs first.
-    // Here we'll check if the user object has batch_id or if we can infer it.
-    const batchId = user.batch_id || (user.role === 'STUDENT' ? 'GLOBAL_STUDENT' : 'GLOBAL_TRAINER');
-
-    const handleViolation = (data: any) => {
-        setNotifications(prev => [{
-            id: `ws-${Date.now()}`,
-            title: `🚨 Violation: ${data.student_name}`,
-            message: `${data.type} detected during assessment.`,
-            read: false,
-            created_at: data.timestamp,
-            link: `/training/reports?student_id=${data.student_id}`
-        }, ...prev]);
-        
-        // Browser Notification fallback
-        if (Notification.permission === 'granted') {
-            new Notification(`Violation: ${data.student_name}`, { body: `${data.type} detected.` });
-        }
-    };
-
-    const handleUnlock = (data: any) => {
-        setNotifications(prev => [{
-            id: `ws-${Date.now()}`,
-            title: `✨ New ${data.type} Live!`,
-            message: `'${data.title}' is now available to start.`,
-            read: false,
-            created_at: new Date().toISOString(),
-            link: data.type === 'TASK' ? '/student/tasks' : '/student/assessments'
-        }, ...prev]);
-    };
-
-    // Initialize Socket
-    useSocket(user?.id ? batchId : null, handleViolation, handleUnlock);
 
 
     const unreadCount = notifications.filter(n => !n.read).length;
