@@ -16,6 +16,9 @@ const PUBLIC_PATHS = [
     '/about', '/features', '/courses', '/contact'
 ];
 
+// Added comment to ensure git detects change for re-push
+
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
