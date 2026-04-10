@@ -2782,7 +2782,7 @@ async def get_student_full_report(
     violations = violations_res.scalars().all()
     violation_summary = {
         "total": len(violations),
-        "TAB_SWITCH": len([v for v in violations if v.type == ViolationType.TAB_SWITCH]),
+        "TAB_SWITCH": len([v for v in violations if v.type == ViolationType.TAB_SWITCHING]),
         "FACE_LOSS": len([v for v in violations if v.type == ViolationType.FACE_LOSS]),
         "MIC_OFF": len([v for v in violations if v.type == ViolationType.MIC_OFF]),
         "FULLSCREEN_EXIT": len([v for v in violations if v.type == ViolationType.FULLSCREEN_EXIT])
@@ -2802,7 +2802,7 @@ async def get_student_full_report(
             "name": student.name,
             "email": student.email,
             "student_id": student.student_id,
-            "joined_at": student.createdAt.isoformat() if student.createdAt else None
+            "joined_at": student.created_at.isoformat() if student.created_at else None
         },
         "stats": {
             "grade_percentage": round(grade_percentage, 1),
