@@ -1895,8 +1895,11 @@ async def start_assessment_session(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    from app.models.project import AssessmentSession
+    from app.models.project import AssessmentSession, Task, Assignment
     import json as json_lib
+    import random
+    import uuid
+    from datetime import datetime
 
     # Check for any existing sessions to enforce strict one-attempt policy
     existing = await db.execute(select(AssessmentSession).where(
@@ -1921,48 +1924,53 @@ async def start_assessment_session(
     if not item:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
-    # Prepare frozen question list (shuffled if randomization is ON)
+    # Prepare frozen question list (Snapshot)
     questions = []
     if item.structured_content:
         content = json_lib.loads(item.structured_content)
-        if "questions" in content and getattr(item, 'is_randomized', False):
-            try:
-                qs = content["questions"]
-                random.shuffle(qs)
-                for q in qs:
-                    opts = list(enumerate(q["options"]))
-                    random.shuffle(opts)
-                    
-                    # Robust type conversion for AI edge-cases
-                    orig_answer_raw = q.get("answer", 0)
-                    try:
-                        orig_answer = int(orig_answer_raw)
-                    except (ValueError, TypeError):
-                        orig_answer = 0
+        if "questions" in content:
+            questions = content["questions"]
+            # Shuffle ONLY if randomization is enabled in the assignment/task
+            if getattr(item, 'is_randomized', False):
+                try:
+                    random.shuffle(questions)
+                    for q in questions:
+                        opts = list(enumerate(q["options"]))
+                        random.shuffle(opts)
                         
-                    # find the new index
-                    matches = [i for i, (orig_i, _) in enumerate(opts) if orig_i == orig_answer]
-                    new_index = matches[0] if matches else 0
-                    
-                    q["options"] = [opt for _, opt in opts]
-                    q["answer"] = new_index
-                content["questions"] = qs
-                question_order = json_lib.dumps(content)
-            except Exception as e:
-                print(f"Warning: Failed to randomize questions: {e}")
-                pass # Fallback to un-randomized content
+                        # Re-map the correct answer index to its new shuffled position
+                        orig_answer_raw = q.get("answer", 0)
+                        try:
+                            orig_answer = int(orig_answer_raw)
+                        except (ValueError, TypeError):
+                            orig_answer = 0
+                        
+                        for new_idx, (old_idx, opt_text) in enumerate(opts):
+                            if old_idx == orig_answer:
+                                q["answer"] = new_idx
+                        q["options"] = [opt_text for old_idx, opt_text in opts]
+                except Exception as ex:
+                    print(f"Randomization error: {ex}")
 
+    # Create the session and store the FROZEN question snapshot immediately
     session = AssessmentSession(
         id=str(uuid.uuid4()),
         student_id=user.id,
         reference_id=ref_id,
         reference_type=ref_type.upper(),
-        responses=question_order or item.structured_content,
+        responses=json_lib.dumps({"questions": questions}),
         start_time=datetime.utcnow()
     )
     db.add(session)
-    await db.flush()
-    return {"session_id": session.id, "start_time": session.start_time.isoformat(), "resumed": False}
+    await db.commit() # Commit fully to ensure session.responses is persisted
+    await db.refresh(session)
+
+    return {
+        "session_id": session.id, 
+        "start_time": session.start_time.isoformat(), 
+        "resumed": False,
+        "responses": session.responses
+    }
 
 
 @router.get("/assessments/{session_id}/questions")
@@ -2120,9 +2128,8 @@ async def session_heartbeat(
     elapsed = (datetime.utcnow() - session.start_time).total_seconds()
     remaining_seconds = max(0, time_limit * 60 - int(elapsed)) if time_limit > 0 else 9999
 
-    # Save answers WITHOUT overwriting the question data
+    # Save answers WITHOUT overwriting the question data (CRITICAL STABILITY FIX)
     if "answers" in body:
-        # Store saved answers separately - do NOT overwrite 'responses' (which holds question data)
         existing_resp = session.responses or "{}"
         try:
             import json as json_lib
@@ -2217,22 +2224,21 @@ async def submit_assessment(
     results = []
 
     # Grade MCQ answers if structured content available
-    # ALWAYS read questions from the original item.structured_content (not session.responses which may hold saved_answers)
-    # But if session has randomized questions embedded, use those.
+    # CRITICAL: Prefer session snapshot questions to maintain order stability
     questions_source = None
-    if item and item.structured_content:
-        try:
-            item_content = json_lib.loads(item.structured_content)
-            questions_source = item_content.get("questions", [])
-        except Exception:
-            pass
-
-    # If session.responses has randomized questions, prefer those
     if session.responses and session.responses.strip().startswith('{'):
         try:
             sess_content = json_lib.loads(session.responses)
             if "questions" in sess_content:
                 questions_source = sess_content["questions"]
+        except Exception:
+            pass
+            
+    # Fallback to original structured content only if session snapshot is missing
+    if questions_source is None and item and item.structured_content:
+        try:
+            item_content = json_lib.loads(item.structured_content)
+            questions_source = item_content.get("questions", [])
         except Exception:
             pass
 

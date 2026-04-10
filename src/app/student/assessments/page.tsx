@@ -216,13 +216,16 @@ function StudentAssessmentsContent() {
         }
     };
 
-    const sendHeartbeat = async () => {
+    const sendHeartbeat = async (customAnswers?: any) => {
         if (!sessionId || submitDone) return;
         try {
+            // Priority: Use customAnswers if passed (forced save), otherwise use current state
+            const answersToSave = customAnswers ? { content: JSON.stringify(customAnswers) } : { content };
+            
             await apiFetch(`/api/training/assessments/${sessionId}/heartbeat`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    answers: { content }, // Save progress
+                    answers: answersToSave,
                     fullscreen_exited: fullscreenExitCount > 0,
                     face_violation: faceViolationCount > 0,
                     tab_switched: tabSwitchCount > 0,
@@ -506,14 +509,14 @@ function StudentAssessmentsContent() {
                                                                                 type="radio" 
                                                                                 name={`q-${i}`} 
                                                                                 checked={mcqAnswers[i] === oi}
-                                                                                onChange={() => {
-                                                                                    const newAns = { ...mcqAnswers, [i]: oi };
-                                                                                    setMcqAnswers(newAns);
-                                                                                    const contentStr = JSON.stringify(newAns);
-                                                                                    setContent(contentStr);
-                                                                                    // AUTO-SAVE on every click
-                                                                                    setTimeout(() => sendHeartbeat(), 100);
-                                                                                }}
+                                                                                    onChange={() => {
+                                                                                        const newAns = { ...mcqAnswers, [i]: oi };
+                                                                                        setMcqAnswers(newAns);
+                                                                                        const contentStr = JSON.stringify(newAns);
+                                                                                        setContent(contentStr);
+                                                                                        // FORCE-SAVE immediately with the new answers to avoid stale state
+                                                                                        sendHeartbeat(newAns);
+                                                                                    }}
                                                                                 style={{ accentColor: 'var(--primary)', transform: 'scale(1.2)' }}
                                                                             />
                                                                             <span style={{ fontSize: '15.5px', fontWeight: mcqAnswers[i] === oi ? 600 : 400 }}>{String.fromCharCode(65 + oi)}. {opt}</span>
@@ -524,7 +527,7 @@ function StudentAssessmentsContent() {
                                                                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                                                     <button 
                                                                         type="button"
-                                                                        onClick={() => sendHeartbeat()}
+                                                                        onClick={() => sendHeartbeat(mcqAnswers)}
                                                                         className="btn btn-secondary btn-sm"
                                                                         style={{ 
                                                                             fontSize: '11px', padding: '8px 16px', borderRadius: '10px',
