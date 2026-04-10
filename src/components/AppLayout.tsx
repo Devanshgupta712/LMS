@@ -31,6 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // Search State
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
