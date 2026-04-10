@@ -123,6 +123,8 @@ class Task(Base):
     time_limit: Mapped[int] = mapped_column(Integer, default=0) # 0 = no limit
     is_randomized: Mapped[bool] = mapped_column(Boolean, default=False)
     structured_content: Mapped[str | None] = mapped_column(Text, nullable=True) # JSON question bank
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -148,6 +150,8 @@ class Assignment(Base):
     time_limit: Mapped[int] = mapped_column(Integer, default=0)
     is_randomized: Mapped[bool] = mapped_column(Boolean, default=False)
     structured_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
 
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

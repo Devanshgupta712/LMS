@@ -42,7 +42,9 @@ export default function TasksPage() {
     const [aiQuestionCount, setAiQuestionCount] = useState(5);
     const [aiTimeLimit, setAiTimeLimit] = useState(0);
     const [aiRandomize, setAiRandomize] = useState(true);
+    const [aiScheduledAt, setAiScheduledAt] = useState('');
     const [generating, setGenerating] = useState(false);
+
     const [aiPreview, setAiPreview] = useState<any>(null);
     const [aiError, setAiError] = useState('');
 
@@ -72,7 +74,9 @@ export default function TasksPage() {
         setStep('method');
         setForm({ title: '', description: '', priority: 'MEDIUM', due_date: '' });
         setAiTopic(''); setAiDifficulty('Intermediate');
+        setAiScheduledAt('');
         setAiPreview(null); setAiError('');
+
         setPdfFile(null);
         setSelectedBatch(''); setSelectedStudent('');
         setAssignTarget('batch'); setBatchStudents([]);
@@ -100,7 +104,8 @@ export default function TasksPage() {
                 body: JSON.stringify({ 
                     topic: aiTopic, task_type: aiTaskType, 
                     difficulty: aiDifficulty, question_count: Number(aiQuestionCount),
-                    time_limit: Number(aiTimeLimit), is_randomized: aiRandomize
+                    time_limit: Number(aiTimeLimit), is_randomized: aiRandomize,
+                    scheduled_at: aiScheduledAt
                 })
             });
             if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.detail || 'Failed'); }
@@ -356,6 +361,12 @@ export default function TasksPage() {
                                         <input className="form-input" value={aiTopic} onChange={e => { setAiTopic(e.target.value); setAiError(''); }} placeholder="e.g. Set up a PostgreSQL Database..." />
                                         {aiError && <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '6px' }}>⚠️ {aiError}</p>}
                                     </div>
+                                    <div className="form-group" style={{ margin: 0 }}>
+                                        <label className="form-label">Schedule Deployment (Optional)</label>
+                                        <input type="datetime-local" className="form-input" value={aiScheduledAt} onChange={e => setAiScheduledAt(e.target.value)} />
+                                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Leave blank to deploy immediately.</p>
+                                    </div>
+
                                     <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                                         <button type="button" className="btn btn-ghost" onClick={() => setStep('method')}>← Back</button>
                                         <button type="button" className="btn btn-primary" onClick={handleGenerate} disabled={generating}>

@@ -12,6 +12,12 @@ from app.database import engine, Base, AsyncSessionLocal
 from app.models import *  # noqa: F401, F403
 
 from app.routers import auth, admin, marketing, training, placement
+from app.ws.socket_manager import sio_app
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+# Initialize Scheduler
+scheduler = AsyncIOScheduler()
+
 
 
 @asynccontextmanager
@@ -62,9 +68,11 @@ async def lifespan(app: FastAPI):
                     ("fullscreen_exit_count", "INTEGER DEFAULT 0"),
                     ("face_violation_count", "INTEGER DEFAULT 0"),
                     ("mic_violation_count", "INTEGER DEFAULT 0"),
-                    ("last_heartbeat", "DATETIME")
+                    ("last_heartbeat", "DATETIME"),
+                    ("scheduled_at", "DATETIME")
                 ]
                 for col_name, col_type in session_migrations:
+
                     if col_name not in session_cols:
                         print(f"Adding column {col_name} to assessment_sessions...")
                         await conn.execute(text(f"ALTER TABLE assessment_sessions ADD COLUMN {col_name} {col_type}"))
@@ -98,7 +106,10 @@ async def lifespan(app: FastAPI):
                     "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS time_limit INTEGER DEFAULT 0",
                     "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS is_randomized BOOLEAN DEFAULT FALSE",
                     "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS structured_content TEXT",
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP",
+                    "ALTER TABLE assignments ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP",
                     # Assessment Sessions
+
                     """CREATE TABLE IF NOT EXISTS assessment_sessions (
                         id VARCHAR PRIMARY KEY,
                         student_id VARCHAR REFERENCES users(id),
@@ -137,10 +148,16 @@ async def lifespan(app: FastAPI):
         # even if the startup check fails (e.g. brief network blip at boot time).
         print(f"WARNING - Startup DB check failed (non-fatal): {e}")
 
+    # Start Scheduler
+    scheduler.start()
+    print("APScheduler started.")
+    
     yield
     # Shutdown: clean up connection pool
+    scheduler.shutdown()
     await engine.dispose()
     print("LMS API shut down.")
+
 
 
 app = FastAPI(
@@ -165,6 +182,10 @@ app.include_router(admin.router)
 app.include_router(marketing.router)
 app.include_router(training.router)
 app.include_router(placement.router)
+
+# Mount Socket.io app
+app.mount("/socket.io", sio_app)
+
 
 
 

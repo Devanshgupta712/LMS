@@ -669,6 +669,10 @@ async def list_tasks(
         else:
             query = query.where(Task.student_id == user.id)
             
+        # Hide tasks that are scheduled for the future
+        query = query.where(or_(Task.scheduled_at == None, Task.scheduled_at <= datetime.utcnow()))
+
+            
     result = await db.execute(query.order_by(Task.created_at.desc()))
     tasks = result.scalars().all()
     out = []
@@ -744,12 +748,25 @@ async def create_task(
         pdf_url=body.get("pdf_url"),
         time_limit=body.get("time_limit", 0),
         is_randomized=body.get("is_randomized", False),
-        structured_content=body.get("structured_content")
+        structured_content=body.get("structured_content"),
+        scheduled_at=parse_dt(body.get("scheduled_at"))
     )
     if body.get("due_date"):
         task.due_date = parse_dt(body["due_date"])
     db.add(task)
     await db.flush()
+
+    # If scheduled for future, setup a background job to notify batch
+    if task.scheduled_at and task.scheduled_at > datetime.utcnow() and task.batch_id:
+        from app.main import scheduler
+        from app.ws.socket_manager import emit_task_unlock
+        scheduler.add_job(
+            emit_task_unlock, 
+            'date', 
+            run_date=task.scheduled_at, 
+            args=[task.batch_id, {"id": task.id, "title": task.title, "type": "TASK"}]
+        )
+
 
     # Notify students
     from app.models.notification import Notification
@@ -839,6 +856,10 @@ async def list_assignments(
             query = query.where(or_(Assignment.batch_id.in_(student_batches), Assignment.student_id == user.id))
         else:
             query = query.where(Assignment.student_id == user.id)
+            
+        # Hide assignments scheduled for future
+        query = query.where(or_(Assignment.scheduled_at == None, Assignment.scheduled_at <= datetime.utcnow()))
+
     
     result = await db.execute(query.order_by(Assignment.created_at.desc()))
     assignments = result.scalars().all()
@@ -909,12 +930,25 @@ async def create_assignment(
         assigned_by=user.id, total_marks=body.get("total_marks", 100),
         time_limit=body.get("time_limit", 0),
         is_randomized=body.get("is_randomized", False),
-        structured_content=body.get("structured_content")
+        structured_content=body.get("structured_content"),
+        scheduled_at=parse_dt(body.get("scheduled_at"))
     )
     if body.get("due_date"):
         assignment.due_date = parse_dt(body["due_date"])
     db.add(assignment)
     await db.flush()
+
+    # If scheduled for future, setup notification job
+    if assignment.scheduled_at and assignment.scheduled_at > datetime.utcnow() and assignment.batch_id:
+        from app.main import scheduler
+        from app.ws.socket_manager import emit_task_unlock
+        scheduler.add_job(
+            emit_task_unlock, 
+            'date', 
+            run_date=assignment.scheduled_at, 
+            args=[assignment.batch_id, {"id": assignment.id, "title": assignment.title, "type": "ASSIGNMENT"}]
+        )
+
 
     from app.models.notification import Notification
     student_id = body.get("student_id")  # Optional: assign to specific student
@@ -1781,6 +1815,8 @@ import os
 import httpx
 from pydantic import BaseModel as PydanticBaseModel
 from typing import List as TypingList
+from app.ws.socket_manager import emit_violation_alert
+
 
 class GenerateTaskRequest(PydanticBaseModel):
     topic: str
@@ -2106,6 +2142,7 @@ async def get_session_questions(
 async def session_heartbeat(
     session_id: str,
     body: dict,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -2145,14 +2182,36 @@ async def session_heartbeat(
             pass
 
     # Log proctoring violations
+    violation_sent = False
+    
     if body.get("tab_switched"):
         session.tab_switch_count = (session.tab_switch_count or 0) + 1
+        violation_sent = "TAB_SWITCHING"
     if body.get("fullscreen_exited"):
         session.fullscreen_exit_count = (session.fullscreen_exit_count or 0) + 1
+        violation_sent = "FULLSCREEN_EXIT"
     if body.get("face_violation"):
         session.face_violation_count = (session.face_violation_count or 0) + 1
+        violation_sent = "FACE_LOSS"
     if body.get("mic_violation"):
         session.mic_violation_count = (session.mic_violation_count or 0) + 1
+        violation_sent = "MIC_OFF"
+
+    # Emit real-time alert if a violation occurred
+    if violation_sent and item and item.batch_id:
+        background_tasks.add_task(
+            emit_violation_alert, 
+            item.batch_id, 
+            {
+                "student_id": user.id,
+                "student_name": user.name,
+                "type": violation_sent,
+                "timestamp": datetime.utcnow().isoformat(),
+                "reference_id": session.reference_id,
+                "reference_type": session.reference_type
+            }
+        )
+
 
     # Inactivity check (10-minute rule)
     # If the student resume a session after being 'gone' for > 10 mins

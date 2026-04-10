@@ -7,6 +7,8 @@ import { getStoredUser, clearToken, apiGet, apiPost } from '@/lib/api';
 import ChatbotFAQ from './ChatbotFAQ';
 import { useTheme } from '@/components/ThemeProvider';
 import Student360Report from './Student360Report';
+import { useSocket } from '@/hooks/useSocket';
+
 
 const PUBLIC_PATHS = [
     '/', '/login', '/register', '/unauthorized',
@@ -112,6 +114,43 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!user) {
         return null;
     }
+
+    // WebSocket Integration
+    // For simplicity, we'll try to join a batch room if the user is a trainer or student
+    // In a real app, we'd fetch the specific batch IDs first.
+    // Here we'll check if the user object has batch_id or if we can infer it.
+    const batchId = user.batch_id || (user.role === 'STUDENT' ? 'GLOBAL_STUDENT' : 'GLOBAL_TRAINER');
+
+    const handleViolation = (data: any) => {
+        setNotifications(prev => [{
+            id: `ws-${Date.now()}`,
+            title: `🚨 Violation: ${data.student_name}`,
+            message: `${data.type} detected during assessment.`,
+            read: false,
+            created_at: data.timestamp,
+            link: `/training/reports?student_id=${data.student_id}`
+        }, ...prev]);
+        
+        // Browser Notification fallback
+        if (Notification.permission === 'granted') {
+            new Notification(`Violation: ${data.student_name}`, { body: `${data.type} detected.` });
+        }
+    };
+
+    const handleUnlock = (data: any) => {
+        setNotifications(prev => [{
+            id: `ws-${Date.now()}`,
+            title: `✨ New ${data.type} Live!`,
+            message: `'${data.title}' is now available to start.`,
+            read: false,
+            created_at: new Date().toISOString(),
+            link: data.type === 'TASK' ? '/student/tasks' : '/student/assessments'
+        }, ...prev]);
+    };
+
+    // Initialize Socket
+    useSocket(user?.id ? batchId : null, handleViolation, handleUnlock);
+
 
     const unreadCount = notifications.filter(n => !n.read).length;
 

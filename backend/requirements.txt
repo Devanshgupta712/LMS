@@ -14,4 +14,6 @@ greenlet
 cloudinary
 PyPDF2
 google-generativeai
+python-socketio==5.11.0
+apscheduler==3.10.4
 httpx
