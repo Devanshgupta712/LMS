@@ -325,7 +325,13 @@ export default function TasksPage() {
                                         <div className="form-group" style={{ margin: 0 }}>
                                             <label className="form-label">Difficulty</label>
                                             <select className="form-input" value={aiDifficulty} onChange={e => setAiDifficulty(e.target.value)}>
-                                                <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+                                                <option>Introductory</option>
+                                                <option>Beginner</option>
+                                                <option>Intermediate</option>
+                                                <option>Advanced</option>
+                                                <option>Professional</option>
+                                                <option>Expert</option>
+                                                <option>Master</option>
                                             </select>
                                         </div>
                                         <div className="form-group" style={{ margin: 0 }}>

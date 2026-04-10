@@ -1785,7 +1785,7 @@ from typing import List as TypingList
 class GenerateTaskRequest(PydanticBaseModel):
     topic: str
     task_type: str = "CODING"   # CODING, WRITTEN, PROJECT, MCQ
-    difficulty: str = "Intermediate"  # Beginner, Intermediate, Advanced
+    difficulty: str = "Intermediate"  # Introductory, Beginner, Intermediate, Advanced, Professional, Expert, Master
     question_count: int = 5
     time_limit: int = 0  # 0 = no limit
     is_randomized: bool = True
