@@ -48,6 +48,9 @@ class ViolationType(str, enum.Enum):
     DISRUPTIVE_BEHAVIOR = "DISRUPTIVE_BEHAVIOR"
     PLAGIARISM = "PLAGIARISM"
     TAB_SWITCHING = "TAB_SWITCHING"
+    FACE_LOSS = "FACE_LOSS"
+    FULLSCREEN_EXIT = "FULLSCREEN_EXIT"
+    MIC_OFF = "MIC_OFF"
 
 
 class ViolationSeverity(str, enum.Enum):

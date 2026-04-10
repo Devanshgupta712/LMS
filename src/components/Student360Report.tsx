@@ -11,10 +11,17 @@ interface Props {
 export default function Student360Report({ studentId, onClose }: Props) {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        setLoading(true);
+        setError(null);
         apiGet(`/api/training/students/${studentId}/full-report`)
             .then(setData)
+            .catch(err => {
+                console.error("360 Report Error:", err);
+                setError("Failed to load student report. Please try again later.");
+            })
             .finally(() => setLoading(false));
     }, [studentId]);
 
@@ -33,7 +40,18 @@ export default function Student360Report({ studentId, onClose }: Props) {
         </div>
     );
 
-    if (!data) return null;
+    if (error) return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal" style={{ maxWidth: '400px', textAlign: 'center', padding: '40px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '20px' }}>⚠️</div>
+                <h3 style={{ marginBottom: '10px' }}>Connection Error</h3>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>{error}</p>
+                <button onClick={onClose} className="btn btn-primary" style={{ width: '100%' }}>Close</button>
+            </div>
+        </div>
+    );
+
+    if (!data && !loading) return null;
 
     const { student, stats, academics, violations_detail, attendance } = data;
 
