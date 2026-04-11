@@ -10,6 +10,7 @@ interface AttendanceRecord {
     status: string;
     remarks: string | null;
     batch_name?: string;
+    batch_id?: string;
 }
 
 interface TimeLog {
@@ -22,6 +23,8 @@ interface TimeLog {
 
 export default function StudentAttendancePage() {
     const [records, setRecords] = useState<AttendanceRecord[]>([]);
+    const [courses, setCourses] = useState<any[]>([]);
+    const [selectedBatch, setSelectedBatch] = useState<string>('ALL');
     const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [showScanner, setShowScanner] = useState(false);
@@ -43,12 +46,14 @@ export default function StudentAttendancePage() {
     const loadAttendance = async () => {
         try {
             setLoading(true);
-            const [attData, timeData] = await Promise.all([
+            const [attData, timeData, coursesData] = await Promise.all([
                 apiGet(`/api/training/attendance?student_id=${user.id}`),
-                apiGet(`/api/training/time-tracking`)
+                apiGet(`/api/training/time-tracking`),
+                apiGet(`/api/auth/my-courses`).catch(() => [])
             ]);
             setRecords(attData);
             setTimeLogs(timeData.logs || []);
+            setCourses(coursesData || []);
         } catch (err) {
             console.error('Failed to load attendance:', err);
         } finally {
@@ -229,8 +234,23 @@ export default function StudentAttendancePage() {
         document.body.removeChild(link);
     };
 
-    const presentDays = records.filter(r => r.status === 'PRESENT').length;
-    const statsPercentage = records.length > 0 ? Math.round((presentDays / records.length) * 100) : 0;
+    // Mapping function to retrieve batch name from my-courses if batch_id exists but batch_name is missing
+    const getBatchName = (r: AttendanceRecord) => {
+        if (r.batch_name) return r.batch_name;
+        if (r.batch_id && courses.length > 0) {
+            const course = courses.find((c: any) => c.batch_id === r.batch_id);
+            if (course) return course.batch_name || course.course_name;
+        }
+        return 'N/A (Global)';
+    };
+
+    const filteredRecords = records.filter(r => {
+        if (selectedBatch === 'ALL') return true;
+        return r.batch_id === selectedBatch || getBatchName(r) === selectedBatch;
+    });
+
+    const presentDays = filteredRecords.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+    const statsPercentage = filteredRecords.length > 0 ? Math.round((presentDays / filteredRecords.length) * 100) : 0;
 
     return (
         <div className="animate-in">
@@ -281,14 +301,30 @@ export default function StudentAttendancePage() {
 
             <div className="grid-4 mb-24 reveal-on-scroll active">
                 <div className="stat-card primary"><div className="stat-icon primary">✅</div><div className="stat-info"><h3>Present</h3><div className="stat-value">{presentDays}</div></div></div>
-                <div className="stat-card danger"><div className="stat-icon danger">❌</div><div className="stat-info"><h3>Absent</h3><div className="stat-value">{records.filter(r => r.status === 'ABSENT').length}</div></div></div>
+                <div className="stat-card danger"><div className="stat-icon danger">❌</div><div className="stat-info"><h3>Absent</h3><div className="stat-value">{filteredRecords.filter(r => r.status === 'ABSENT').length}</div></div></div>
                 <div className="stat-card success"><div className="stat-icon success">📊</div><div className="stat-info"><h3>Percentage</h3><div className="stat-value">{statsPercentage}%</div></div></div>
-                <div className="stat-card accent"><div className="stat-icon accent">📅</div><div className="stat-info"><h3>Total Sessions</h3><div className="stat-value">{records.length}</div></div></div>
+                <div className="stat-card accent"><div className="stat-icon accent">📅</div><div className="stat-info"><h3>Total Sessions</h3><div className="stat-value">{filteredRecords.length}</div></div></div>
             </div>
 
             <div className="glass-premium reveal-on-scroll active">
-                <h3 className="font-semibold mb-16">Attendance History</h3>
-                {loading ? <p>Loading attendance...</p> : records.length === 0 ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
+                    <h3 className="font-semibold" style={{ margin: 0 }}>Attendance History</h3>
+                    <select 
+                        className="form-input" 
+                        value={selectedBatch} 
+                        onChange={(e) => setSelectedBatch(e.target.value)}
+                        style={{ maxWidth: '240px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px' }}
+                    >
+                        <option value="ALL">All Batches</option>
+                        {courses.map((c: any, idx) => (
+                            <option key={idx} value={c.batch_id || c.batch_name || c.course_name}>
+                                {c.batch_name || c.course_name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                
+                {loading ? <p>Loading attendance...</p> : filteredRecords.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">📅</div>
                         <h3>No attendance records</h3>
@@ -306,10 +342,10 @@ export default function StudentAttendancePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {records.map(r => (
+                                {filteredRecords.map(r => (
                                     <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
                                         <td style={{ padding: '16px' }}>{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                                        <td style={{ padding: '16px', fontWeight: 600, color: 'var(--primary)' }}>{r.batch_name || 'N/A'}</td>
+                                        <td style={{ padding: '16px', fontWeight: 600, color: 'var(--primary)' }}>{getBatchName(r)}</td>
                                         <td style={{ padding: '16px' }}>
                                             <span className={`badge ${r.status === 'PRESENT' || r.status === 'LATE' ? 'badge-success' : r.status === 'ABSENT' ? 'badge-danger' : 'badge-warning'}`}>
                                                 {r.status}
