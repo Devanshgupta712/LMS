@@ -229,6 +229,7 @@ async def get_attendance(
 
 import io
 import csv
+from datetime import date, timedelta
 from fastapi.responses import StreamingResponse
 
 @router.get("/attendance/export")
@@ -239,51 +240,92 @@ async def export_attendance(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.TRAINER)),
 ):
-    query = select(Attendance)
-    
-    # Restrict Trainees (Trainers) to only export their own batch attendance
+    if not batch_id:
+        raise HTTPException(status_code=400, detail="batch_id is required for export.")
+
+    # --- Authorization ---
     if _user.role == Role.TRAINER:
         batch_ids_result = await db.execute(select(Batch.id).where(Batch.trainer_id == _user.id))
         owned_batch_ids = [r[0] for r in batch_ids_result.all()]
-        
-        if batch_id:
-            if batch_id not in owned_batch_ids:
-                raise HTTPException(status_code=403, detail="You do not have permission to export attendance for this batch.")
-            query = query.where(Attendance.batch_id == batch_id)
-        else:
-            query = query.where(Attendance.batch_id.in_(owned_batch_ids))
-    elif batch_id:
-        query = query.where(Attendance.batch_id == batch_id)
+        if batch_id not in owned_batch_ids:
+            raise HTTPException(status_code=403, detail="You do not have permission to export this batch.")
 
-    if start_date:
-        s = parse_dt(start_date)
-        if s:
-            query = query.where(func.date(Attendance.date) >= s.date())
-    if end_date:
-        e = parse_dt(end_date)
-        if e:
-            query = query.where(func.date(Attendance.date) <= e.date())
-        
-    result = await db.execute(query.order_by(Attendance.date.desc()))
-    records = result.scalars().all()
-    
+    # --- Resolve batch name ---
+    batch_obj = await db.get(Batch, batch_id)
+    batch_name = batch_obj.name if batch_obj else batch_id
+
+    # --- Parse date range ---
+    s_dt = parse_dt(start_date)
+    e_dt = parse_dt(end_date)
+    if not s_dt or not e_dt:
+        raise HTTPException(status_code=400, detail="start_date and end_date are required (YYYY-MM-DD).")
+    start_d = s_dt.date()
+    end_d = e_dt.date()
+    if start_d > end_d:
+        raise HTTPException(status_code=400, detail="start_date must be on or before end_date.")
+
+    # --- Fetch all students in this batch (single query) ---
+    students_result = await db.execute(
+        select(User)
+        .join(BatchStudent, User.id == BatchStudent.student_id)
+        .where(BatchStudent.batch_id == batch_id)
+        .where(User.role == Role.STUDENT)
+        .order_by(User.name)
+    )
+    students = students_result.scalars().all()
+
+    if not students:
+        # Return empty CSV with header
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Batch", "Date", "Student ID", "Student Name", "Status", "Remarks"])
+        output.seek(0)
+        response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
+        response.headers["Content-Disposition"] = f"attachment; filename=attendance_{batch_id}_{start_date}_to_{end_date}.csv"
+        return response
+
+    student_map = {s.id: s for s in students}
+
+    # --- Fetch all attendance records in range (single query) ---
+    records_result = await db.execute(
+        select(Attendance)
+        .where(Attendance.batch_id == batch_id)
+        .where(func.date(Attendance.date) >= start_d)
+        .where(func.date(Attendance.date) <= end_d)
+    )
+    records = records_result.scalars().all()
+
+    # Build a lookup: (student_id, date_str) -> Attendance record
+    record_lookup: dict[tuple, Attendance] = {}
+    for r in records:
+        day_str = r.date.strftime("%Y-%m-%d") if r.date else ""
+        record_lookup[(r.student_id, day_str)] = r
+
+    # --- Generate complete report: every day x every student ---
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Date", "Student ID", "Student Name", "Status", "Remarks"])
-    
-    for r in records:
-        student = await db.get(User, r.student_id)
-        writer.writerow([
-            r.date.strftime("%Y-%m-%d") if r.date else "",
-            student.student_id if student and student.student_id else r.student_id,
-            student.name if student else "Unknown",
-            r.status.value,
-            r.remarks or ""
-        ])
-        
+    writer.writerow(["Batch", "Date", "Student ID", "Student Name", "Status", "Remarks"])
+
+    current_d = start_d
+    while current_d <= end_d:
+        day_str = current_d.strftime("%Y-%m-%d")
+        for s in students:
+            rec = record_lookup.get((s.id, day_str))
+            status = rec.status.value if rec else "ABSENT"
+            remarks = rec.remarks or "" if rec else ""
+            writer.writerow([
+                batch_name,
+                day_str,
+                s.student_id or "",
+                s.name or "",
+                status,
+                remarks
+            ])
+        current_d += timedelta(days=1)
+
     output.seek(0)
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
-    response.headers["Content-Disposition"] = "attachment; filename=attendance_report.csv"
+    response.headers["Content-Disposition"] = f"attachment; filename=attendance_{batch_id}_{start_date}_to_{end_date}.csv"
     return response
 
 

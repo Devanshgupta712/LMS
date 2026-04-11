@@ -291,7 +291,10 @@ img {
   margin-left: calc(var(--sidebar-width) + 0px);
   padding: 32px;
   min-height: 100vh;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* IMPORTANT: Do NOT use 'transition: all' — it creates a stacking context
+     that causes position:fixed children (modals) to be positioned relative
+     to this element instead of the viewport, breaking modal centering. */
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
 }
 
@@ -1129,22 +1132,20 @@ img {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
-  align-items: center;      /* Modal is always centered in the VIEWPORT */
+  align-items: center;
   justify-content: center;
   z-index: 2000;
   animation: fadeIn var(--transition-fast);
-  padding: 16px;
+  padding: 20px 16px;
+  /* Allow overlay itself to scroll on very tall content */
+  overflow-y: auto;
   overscroll-behavior: contain;
-  /* Prevents iOS Safari touch-scroll from passing through to background page.
-     This replaces the broken position:fixed-on-body approach. */
   touch-action: none;
 }
 
-/* Desktop: just prevent scroll with overflow:hidden.
-   IMPORTANT: Do NOT add position:fixed here.
-   When body has position:fixed, child position:fixed elements (like .modal-overlay)
-   become positioned relative to the body, NOT the viewport.
-   That's why the modal was appearing at the center of the PAGE, not the SCREEN. */
+/* Prevents background scroll on desktop. 
+   Do NOT use position:fixed on body — it creates a stacking context
+   that breaks child position:fixed elements. */
 body.modal-open {
   overflow: hidden;
 }
@@ -1156,27 +1157,30 @@ body.modal-open {
   padding: 32px;
   width: 90%;
   max-width: 560px;
-  max-height: 85vh;
-  overflow-y: auto;           /* Scroll happens inside the modal box */
+  /* Use max-height so modal itself scrolls when content is tall */
+  max-height: 90vh;
+  overflow-y: auto;
   animation: slideUp var(--transition-normal);
   box-shadow: var(--shadow-lg);
   position: relative;
   overscroll-behavior: contain;
-  touch-action: auto;         /* Allow scroll inside modal */
+  touch-action: auto;
+  /* Keep modal from shrinking in flex container */
+  flex-shrink: 0;
+  margin: auto;
 }
 
-/* Mobile: start modal at top so user sees it immediately without scrolling */
+/* Mobile: same centering, just smaller padding */
 @media (max-width: 768px) {
   .modal-overlay {
-    align-items: flex-start;  /* Start from top on mobile */
-    padding-top: 20px;
-    padding-bottom: 20px;
-    overflow-y: auto;         /* Let overlay scroll on mobile when content is tall */
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 60px;
   }
   .modal {
     width: 100%;
     max-width: 100%;
-    max-height: none;         /* Let height be natural on mobile — overlay scrolls */
+    max-height: none;
     border-radius: 20px;
     padding: 20px 16px;
   }
