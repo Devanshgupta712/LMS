@@ -7,6 +7,7 @@ import { getStoredUser, clearToken, apiGet, apiPost } from '@/lib/api';
 import ChatbotFAQ from './ChatbotFAQ';
 import { useTheme } from '@/components/ThemeProvider';
 import Student360Report from './Student360Report';
+import SuggestionBox from './SuggestionBox';
 import { useSocket } from '@/hooks/useSocket';
 
 
@@ -389,10 +390,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
             </main>
             <ChatbotFAQ />
+            {user?.role === 'STUDENT' && <SuggestionBox />}
             {selectedStudentId && (
-                <Student360Report 
-                    studentId={selectedStudentId} 
-                    onClose={() => setSelectedStudentId(null)} 
+                <Student360Report
+                    studentId={selectedStudentId}
+                    onClose={() => setSelectedStudentId(null)}
                 />
             )}
         </div>

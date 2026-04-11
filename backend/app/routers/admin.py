@@ -1404,3 +1404,77 @@ async def update_geofence_settings(
     return {"status": "success", "message": "Geofence settings updated"}
 
 
+# ─── Suggestion Box ────────────────────────────────────────
+
+@router.get("/suggestions")
+async def get_suggestions(
+    is_read: str = "",
+    category: str = "",
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    from app.models.notification import Suggestion
+    query = select(Suggestion).order_by(Suggestion.created_at.desc())
+    if is_read == "true":
+        query = query.where(Suggestion.is_read == True)
+    elif is_read == "false":
+        query = query.where(Suggestion.is_read == False)
+    if category:
+        query = query.where(Suggestion.category == category)
+
+    result = await db.execute(query)
+    suggestions = result.scalars().all()
+
+    out = []
+    for s in suggestions:
+        student_name = "Anonymous"
+        student_sid = None
+        if s.student_id and not s.is_anonymous:
+            student = await db.get(User, s.student_id)
+            if student:
+                student_name = student.name
+                student_sid = student.student_id
+        out.append({
+            "id": s.id,
+            "student_name": student_name,
+            "student_sid": student_sid,
+            "message": s.message,
+            "category": s.category or "General",
+            "is_anonymous": s.is_anonymous,
+            "is_read": s.is_read,
+            "admin_reply": s.admin_reply,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        })
+    return out
+
+
+@router.patch("/suggestions/{suggestion_id}/read")
+async def mark_suggestion_read(
+    suggestion_id: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    from app.models.notification import Suggestion
+    s = await db.get(Suggestion, suggestion_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    s.is_read = True
+    await db.commit()
+    return {"status": "marked_read"}
+
+
+@router.patch("/suggestions/{suggestion_id}/reply")
+async def reply_to_suggestion(
+    suggestion_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
+):
+    from app.models.notification import Suggestion
+    s = await db.get(Suggestion, suggestion_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    s.admin_reply = (body.get("reply") or "").strip() or None
+    s.is_read = True
+    await db.commit()
+    return {"status": "replied"}

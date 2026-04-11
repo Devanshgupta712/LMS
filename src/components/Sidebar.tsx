@@ -54,6 +54,7 @@ const navSections: NavSection[] = [
             { label: 'Leaves', href: '/admin/leaves', icon: '🗓️' },
             { label: 'Time Tracking', href: '/admin/time-tracking', icon: '⏱️', roles: ['SUPER_ADMIN', 'ADMIN'] },
             { label: 'Reports', href: '/admin/reports', icon: '📈', roles: ['SUPER_ADMIN', 'ADMIN'] },
+            { label: 'Suggestions', href: '/admin/suggestions', icon: '💡', roles: ['SUPER_ADMIN', 'ADMIN'] },
         ],
     },
     {

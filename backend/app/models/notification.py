@@ -69,3 +69,18 @@ class Feedback(Base):
     student = relationship("User", back_populates="feedback_received", foreign_keys=[student_id])
     batch = relationship("Batch", back_populates="feedback")
     created_by = relationship("User", back_populates="feedback_given", foreign_keys=[created_by_id])
+
+
+class Suggestion(Base):
+    __tablename__ = "suggestions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    student_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)  # Null when anonymous
+    message: Mapped[str] = mapped_column(String)
+    category: Mapped[str | None] = mapped_column(String, nullable=True)  # e.g. General, Curriculum, Technical, Faculty
+    is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    admin_reply: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    student = relationship("User", foreign_keys=[student_id])

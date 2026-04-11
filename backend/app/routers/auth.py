@@ -718,3 +718,29 @@ async def scan_attendance_qr(
         pass  # QR was global secret or unparseable — no attendance marking needed
 
     return {"status": "success", "message": message, "session_info": session_info}
+
+
+# ─── Suggestion Box ────────────────────────────────────────
+@router.post("/suggestions", status_code=201)
+async def submit_suggestion(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    from app.models.notification import Suggestion
+    msg = (body.get("message") or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    if len(msg) > 2000:
+        raise HTTPException(status_code=400, detail="Message too long (max 2000 chars).")
+
+    is_anon = bool(body.get("is_anonymous", False))
+    s = Suggestion(
+        student_id=None if is_anon else user.id,
+        message=msg,
+        category=body.get("category") or "General",
+        is_anonymous=is_anon,
+    )
+    db.add(s)
+    await db.commit()
+    return {"status": "submitted", "message": "Thank you for your suggestion!"}
