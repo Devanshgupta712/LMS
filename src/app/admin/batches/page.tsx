@@ -27,6 +27,11 @@ export default function BatchesPage() {
     const [studentsList, setStudentsList] = useState<any[]>([]);
     const [allStudents, setAllStudents] = useState<any[]>([]);
     const [enrollStudentId, setEnrollStudentId] = useState('');
+    const [studentSearch, setStudentSearch] = useState('');
+    const [studentSearchFocus, setStudentSearchFocus] = useState(false);
+    const [selectedStudentName, setSelectedStudentName] = useState('');
+    const [enrolling, setEnrolling] = useState(false);
+    const [enrollMsg, setEnrollMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     const searchParams = useSearchParams();
 
@@ -164,19 +169,37 @@ export default function BatchesPage() {
     const handleEnrollStudent = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!enrollStudentId || !viewStudentsId) return;
+        setEnrolling(true);
+        setEnrollMsg(null);
         try {
             await apiPost(`/api/admin/users/${enrollStudentId}/assign-batch`, { batch_id: viewStudentsId });
             setEnrollStudentId('');
+            setStudentSearch('');
+            setSelectedStudentName('');
+            setEnrollMsg({ type: 'success', text: `${selectedStudentName || 'Student'} enrolled successfully!` });
+            setTimeout(() => setEnrollMsg(null), 3000);
             handleViewStudents(viewStudentsId, viewStudentsName); // Reload
-        } catch { alert("Failed to enroll student."); }
+        } catch {
+            setEnrollMsg({ type: 'error', text: 'Failed to enroll student. They may already be in this batch.' });
+        } finally {
+            setEnrolling(false);
+        }
     };
 
     const handleRemoveStudent = async (studentId: string) => {
-        if (!viewStudentsId || !confirm("Remove this student from the batch?")) return;
+        if (!viewStudentsId || !confirm('Remove this student from the batch?')) return;
         try {
             await apiDelete(`/api/admin/users/${studentId}/batches/${viewStudentsId}`);
             setStudentsList(studentsList.filter(s => s.id !== studentId));
-        } catch { alert("Failed to remove student."); }
+        } catch { alert('Failed to remove student.'); }
+    };
+
+    const closeRosterModal = () => {
+        setViewStudentsId(null);
+        setStudentSearch('');
+        setEnrollStudentId('');
+        setSelectedStudentName('');
+        setEnrollMsg(null);
     };
 
     return (
@@ -311,28 +334,163 @@ export default function BatchesPage() {
 
             {/* Roster Modal */}
             {viewStudentsId && (
-                <div className="modal-overlay" onClick={() => setViewStudentsId(null)}>
+                <div className="modal-overlay" onClick={closeRosterModal}>
                     <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px', width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <h2 className="modal-title" style={{ margin: 0 }}>Roster: {viewStudentsName}</h2>
-                            <button className="btn btn-sm btn-ghost" onClick={() => setViewStudentsId(null)}>✕ Close</button>
+                            <button className="btn btn-sm btn-ghost" onClick={closeRosterModal}>✕ Close</button>
                         </div>
 
-                        {/* Add Student Form */}
-                        {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole) && (
-                            <div className="card" style={{ padding: '16px', marginBottom: '24px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-                                <h4 style={{ margin: '0 0 12px' }}>➕ Enroll Student</h4>
-                                <form onSubmit={handleEnrollStudent} style={{ display: 'flex', gap: '12px' }}>
-                                    <select className="form-select" style={{ flex: 1 }} value={enrollStudentId} onChange={e => setEnrollStudentId(e.target.value)} required>
-                                        <option value="">— Select a Student —</option>
-                                        {allStudents.filter(u => !studentsList.some(s => s.id === u.id)).map(s => (
-                                            <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
-                                        ))}
-                                    </select>
-                                    <button type="submit" className="btn btn-primary" disabled={!enrollStudentId}>Add</button>
-                                </form>
-                            </div>
-                        )}
+                        {/* Add Student — Searchable Picker */}
+                        {['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole) && (() => {
+                            // Students not yet in this batch
+                            const available = allStudents.filter(u => !studentsList.some(s => s.id === u.id));
+                            // Filter by search query (name or email)
+                            const q = studentSearch.trim().toLowerCase();
+                            const filtered = q
+                                ? available.filter(u =>
+                                    u.name?.toLowerCase().includes(q) ||
+                                    u.email?.toLowerCase().includes(q) ||
+                                    u.student_id?.toLowerCase().includes(q)
+                                  )
+                                : [];
+
+                            return (
+                                <div style={{ marginBottom: '24px' }}>
+                                    <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>➕ Add Student to Batch</h4>
+                                    <form onSubmit={handleEnrollStudent}>
+                                        <div style={{ position: 'relative' }}>
+                                            {/* Search input */}
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                <div style={{ flex: 1, position: 'relative' }}>
+                                                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>🔍</span>
+                                                    <input
+                                                        className="form-input"
+                                                        placeholder="Search student by name, email or ID..."
+                                                        style={{ paddingLeft: '38px', borderRadius: '12px' }}
+                                                        value={studentSearch}
+                                                        onChange={e => {
+                                                            setStudentSearch(e.target.value);
+                                                            // Clear selection if user types again
+                                                            if (enrollStudentId) {
+                                                                setEnrollStudentId('');
+                                                                setSelectedStudentName('');
+                                                            }
+                                                        }}
+                                                        onFocus={() => setStudentSearchFocus(true)}
+                                                        onBlur={() => setTimeout(() => setStudentSearchFocus(false), 180)}
+                                                        autoComplete="off"
+                                                    />
+
+                                                    {/* Dropdown suggestions */}
+                                                    {studentSearchFocus && q && filtered.length > 0 && (
+                                                        <div style={{
+                                                            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                                                            background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                                            borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
+                                                            zIndex: 9999, maxHeight: '220px', overflowY: 'auto'
+                                                        }}>
+                                                            {filtered.slice(0, 20).map(s => (
+                                                                <div
+                                                                    key={s.id}
+                                                                    onClick={() => {
+                                                                        setEnrollStudentId(s.id);
+                                                                        setSelectedStudentName(s.name);
+                                                                        setStudentSearch(s.name);
+                                                                        setStudentSearchFocus(false);
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '10px 14px', cursor: 'pointer',
+                                                                        display: 'flex', alignItems: 'center', gap: '12px',
+                                                                        transition: 'background 0.15s',
+                                                                        borderBottom: '1px solid var(--border-light)'
+                                                                    }}
+                                                                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                                                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                                                >
+                                                                    <div style={{
+                                                                        width: '36px', height: '36px', borderRadius: '50%',
+                                                                        background: 'var(--primary)', color: '#fff',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                        fontWeight: 700, fontSize: '14px', flexShrink: 0
+                                                                    }}>
+                                                                        {s.name?.[0]?.toUpperCase()}
+                                                                    </div>
+                                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{s.name}</div>
+                                                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                            {s.email} {s.student_id ? `• ${s.student_id}` : ''}
+                                                                        </div>
+                                                                    </div>
+                                                                    <span style={{ fontSize: '18px', color: 'var(--primary)' }}>+</span>
+                                                                </div>
+                                                            ))}
+                                                            {filtered.length > 20 && (
+                                                                <div style={{ padding: '8px 14px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                                                                    {filtered.length - 20} more — type more to narrow results
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {studentSearchFocus && q && filtered.length === 0 && (
+                                                        <div style={{
+                                                            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                                                            background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                                            borderRadius: '12px', padding: '14px', textAlign: 'center',
+                                                            fontSize: '13px', color: 'var(--text-muted)', zIndex: 9999
+                                                        }}>
+                                                            No students found matching "{studentSearch}"
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <button
+                                                    type="submit"
+                                                    className="btn btn-primary"
+                                                    disabled={!enrollStudentId || enrolling}
+                                                    style={{ borderRadius: '12px', whiteSpace: 'nowrap', minWidth: '100px' }}
+                                                >
+                                                    {enrolling ? '...' : '✓ Add'}
+                                                </button>
+                                            </div>
+
+                                            {/* Selected student confirmation chip */}
+                                            {enrollStudentId && selectedStudentName && (
+                                                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                        padding: '4px 10px', borderRadius: '20px',
+                                                        background: 'var(--primary-glow)', color: 'var(--primary)',
+                                                        fontSize: '13px', fontWeight: 600, border: '1px solid var(--primary)'
+                                                    }}>
+                                                        ✓ {selectedStudentName} selected
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setEnrollStudentId(''); setStudentSearch(''); setSelectedStudentName(''); }}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', padding: '0 2px', fontSize: '14px', lineHeight: 1 }}
+                                                        >✕</button>
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Feedback message */}
+                                            {enrollMsg && (
+                                                <div style={{
+                                                    marginTop: '8px', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                                                    background: enrollMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                                                    color: enrollMsg.type === 'success' ? '#16a34a' : '#dc2626',
+                                                    border: `1px solid ${enrollMsg.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`
+                                                }}>
+                                                    {enrollMsg.type === 'success' ? '✅' : '❌'} {enrollMsg.text}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </form>
+                                    <div style={{ height: '1px', background: 'var(--border)', margin: '20px 0' }} />
+                                </div>
+                            );
+                        })()}
 
                         {studentsList.length === 0 ? (
                             <div className="empty-state"><div className="empty-icon">👥</div><p className="text-muted">No students enrolled in this batch.</p></div>
