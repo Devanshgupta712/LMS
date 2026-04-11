@@ -88,6 +88,43 @@ async def lifespan(app: FastAPI):
             print("PostgreSQL detected - running migrations.")
             async with engine.begin() as conn:
                 pg_migrations = [
+                    # 1. Base Tables Creation (if missing)
+                    """CREATE TABLE IF NOT EXISTS suggestions (
+                        id VARCHAR PRIMARY KEY,
+                        student_id VARCHAR REFERENCES users(id),
+                        message TEXT NOT NULL,
+                        category VARCHAR(100),
+                        is_anonymous BOOLEAN DEFAULT FALSE,
+                        is_read BOOLEAN DEFAULT FALSE,
+                        admin_reply TEXT,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS sessions (
+                        id VARCHAR PRIMARY KEY,
+                        title VARCHAR NOT NULL,
+                        description TEXT,
+                        batch_id VARCHAR NOT NULL REFERENCES batches(id),
+                        trainer_id VARCHAR NOT NULL REFERENCES users(id),
+                        start_time TIMESTAMP NOT NULL,
+                        end_time TIMESTAMP NOT NULL,
+                        status VARCHAR DEFAULT 'SCHEDULED',
+                        meeting_link VARCHAR,
+                        resources_url VARCHAR,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS student_feedback (
+                        id VARCHAR PRIMARY KEY,
+                        target_type VARCHAR NOT NULL,
+                        target_id VARCHAR NOT NULL,
+                        submitted_by VARCHAR NOT NULL REFERENCES users(id),
+                        rating INTEGER NOT NULL,
+                        comments TEXT,
+                        is_anonymous BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )""",
+
+                    # 2. Existing Migrations
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS rejection_reason VARCHAR",
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approved_by_id VARCHAR",
                     "ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS proof_url VARCHAR",
