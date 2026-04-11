@@ -365,7 +365,9 @@ export default function BatchesPage() {
                                                         onFocus={() => setStudentSearchFocus(true)}
                                                         onBlur={() => setTimeout(() => setStudentSearchFocus(false), 180)}
                                                         autoComplete="off"
-                                                                {/* Dropdown suggestions */}
+                                                    />
+
+                                                    {/* Dropdown suggestions */}
                                                     {studentSearchFocus && q && filtered.length > 0 && (
                                                         <div style={{
                                                             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
