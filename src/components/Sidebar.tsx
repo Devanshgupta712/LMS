@@ -282,20 +282,7 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
             </aside>
 
             {/* Mobile Bottom Navigation Bar - Enhanced */}
-            <div className="mobile-bottom-nav glass-premium" style={{
-                display: 'none',
-                position: 'fixed',
-                bottom: '16px',
-                left: '16px',
-                right: '16px',
-                height: '64px',
-                borderRadius: '20px',
-                zIndex: 1000,
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                padding: '0 8px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
-            }}>
+            <div className="mobile-bottom-nav" style={{ display: 'none' }}>
                 {navSections
                     .filter((section) => section.roles.includes(userRole))
                     .flatMap(s => s.items)
@@ -307,38 +294,24 @@ export default function Sidebar({ userRole, userName, userEmail, isOpen, onClose
                             <Link
                                 key={item.href}
                                 href={item.href}
+                                className={`bottom-nav-item${isActive ? ' active' : ''}`}
                                 style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '8px',
-                                    borderRadius: '12px',
                                     color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-                                    transition: 'all 0.2s ease',
                                     textDecoration: 'none'
                                 }}
                             >
-                                <span style={{ fontSize: '20px' }}>{item.icon}</span>
-                                <span style={{ fontSize: '10px', fontWeight: 700 }}>{item.label}</span>
+                                <span className="bottom-nav-icon">{item.icon}</span>
+                                <span className="bottom-nav-label">{item.label}</span>
                             </Link>
                         );
                     })}
                 <button 
                     onClick={() => setIsMobileMenuOpen(true)}
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '8px',
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)'
-                    }}
+                    className="bottom-nav-item"
+                    style={{ color: 'var(--text-muted)' }}
                 >
-                    <span style={{ fontSize: '20px' }}>☰</span>
-                    <span style={{ fontSize: '10px', fontWeight: 700 }}>Menu</span>
+                    <span className="bottom-nav-icon">☰</span>
+                    <span className="bottom-nav-label">Menu</span>
                 </button>
             </div>
 

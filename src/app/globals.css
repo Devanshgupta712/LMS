@@ -669,8 +669,8 @@ img {
     justify-content: space-around;
     align-items: center;
     z-index: 1000;
-    padding: 0 8px;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    padding: 0 4px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   }
 
   .bottom-nav-item {
@@ -678,15 +678,18 @@ img {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     color: var(--text-secondary);
     text-decoration: none;
     background: none;
     border: none;
-    padding: 8px;
-    min-width: 64px;
+    padding: 6px 4px;
+    min-width: 48px;
+    flex: 1;
+    flex-shrink: 1;
     font-family: var(--font-family);
     cursor: pointer;
+    overflow: hidden;
   }
 
   .bottom-nav-item.active {
@@ -694,12 +697,17 @@ img {
   }
 
   .bottom-nav-icon {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .bottom-nav-label {
-    font-size: 10px;
-    font-weight: 500;
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-align: center;
   }
 
   /* ─── Mobile Full Menu Overlay ───────────────────────────── */
@@ -886,6 +894,36 @@ img {
 
   .mb-32 {
     margin-bottom: 20px;
+  }
+
+  /* ─── Mobile App Header ─────────────────────────── */
+  .app-header {
+    padding: 10px 12px !important;
+    margin-bottom: 0 !important;
+    gap: 8px !important;
+  }
+
+  /* Compact the search input on mobile */
+  .app-header input[type="text"] {
+    font-size: 14px !important;
+    padding: 8px 10px 8px 36px !important;
+  }
+
+  /* Tasks stats: 2 columns on mobile */
+  .tasks-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Main content: add top spacing since header margin is removed */
+  .main-content > .animate-in {
+    padding-top: 16px;
+  }
+
+  /* Notification dropdown: constrain to viewport on mobile */
+  .notif-dropdown {
+    right: 4px !important;
+    max-width: calc(100vw - 8px) !important;
+    width: 100% !important;
   }
 }
 

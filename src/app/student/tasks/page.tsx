@@ -59,7 +59,7 @@ export default function StudentTasksPage() {
     const overdue = tasks.filter(t => t.is_overdue).length;
 
     return (
-        <div style={{ padding: '32px', maxWidth: '950px', margin: '0 auto' }}>
+        <div style={{ padding: '0', maxWidth: '950px', margin: '0 auto' }}>
             {/* ── Header ── */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
                 <div>
@@ -71,7 +71,7 @@ export default function StudentTasksPage() {
             </div>
 
             {/* ── Stats ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '28px' }} className="tasks-stats-grid">
                 {[
                     { label: 'Total', value: tasks.length, color: '#6366f1', bg: 'hsla(239,80%,65%,0.1)' },
                     { label: 'Pending', value: countByStatus('PENDING'), color: '#f59e0b', bg: 'hsla(38,95%,55%,0.1)' },

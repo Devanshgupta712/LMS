@@ -161,17 +161,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Sidebar userRole={user.role} userName={user.name} userEmail={user.email} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             
             <main className="main-content">
-                <header style={{ 
-                    padding: '16px 24px', 
+                <header className="app-header" style={{ 
+                    padding: '12px 16px', 
                     background: '#fff',
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'space-between',
-                    marginBottom: '32px',
+                    marginBottom: '0',
                     position: 'sticky',
                     top: '0',
                     zIndex: 900,
-                    borderBottom: '1px solid var(--border)'
+                    borderBottom: '1px solid var(--border)',
+                    gap: '12px'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
                         <button 
@@ -312,10 +313,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 <div
                                     onMouseLeave={() => setShowNotifs(false)}
                                     style={{
-                                        position: 'absolute', top: 'calc(100% + 12px)', right: '0',
-                                        width: '320px', borderRadius: '12px', border: '1px solid var(--border)',
-                                        background: '#fff', boxShadow: 'var(--shadow-lg)',
-                                        zIndex: 1000, overflow: 'hidden'
+                                        position: 'fixed',
+                                        top: 'auto',
+                                        right: '8px',
+                                        maxWidth: 'calc(100vw - 16px)',
+                                        width: '320px',
+                                        borderRadius: '12px',
+                                        border: '1px solid var(--border)',
+                                        background: '#fff',
+                                        boxShadow: 'var(--shadow-lg)',
+                                        zIndex: 1000,
+                                        overflow: 'hidden'
                                     }}
                                 >
                                     <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
