@@ -29,6 +29,8 @@ export default function StudentAttendancePage() {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
     const userLocationRef = useRef<{ lat: number, lng: number } | null>(null);
     const onScanSuccessRef = useRef<((text: string) => Promise<void>) | null>(null);
+    const isProcessingRef = useRef<boolean>(false);  // Prevents duplicate scan callbacks
+    const lastScannedTokenRef = useRef<string>('');   // Prevents same QR being scanned twice
     const user = getStoredUser();
 
     useEffect(() => {
@@ -128,6 +130,8 @@ export default function StudentAttendancePage() {
     const stopScanner = async () => {
         const currentRef = qrCodeRef.current;
         qrCodeRef.current = null; // immediately nullify to stop pending startups
+        isProcessingRef.current = false;
+        lastScannedTokenRef.current = '';
         setShowScanner(false);
         setIsScanning(false);
 
@@ -148,13 +152,15 @@ export default function StudentAttendancePage() {
     } | null>(null);
 
     const onScanSuccess = async (decodedText: string) => {
-        // IMPORTANT: Make the API call FIRST before stopping the scanner.
-        // On iOS Safari, stopping the camera stream (stopScanner) before fetch completes
-        // causes Safari to abort the in-flight request with "Load failed" TypeError.
+        // GUARD: Prevent duplicate API calls from rapid QR frame detections
+        if (isProcessingRef.current) return;
+        if (decodedText === lastScannedTokenRef.current) return; // same token already processed
+        isProcessingRef.current = true;
+        lastScannedTokenRef.current = decodedText;
+
         try {
             setScanMsg('Processing QR code...');
             const scanBody: any = { qr_token: decodedText };
-            // Use ref (not state) to get the latest location — state closures are stale in callbacks
             const loc = userLocationRef.current;
             if (loc) {
                 scanBody.latitude = loc.lat;
@@ -162,7 +168,7 @@ export default function StudentAttendancePage() {
             }
             const res = await apiPost('/api/auth/attendance/scan', scanBody);
 
-            // Stop the scanner only after the API call completes
+            // Stop scanner after API call completes
             if (qrCodeRef.current) {
                 await stopScanner();
             }
@@ -195,6 +201,8 @@ export default function StudentAttendancePage() {
                 success: false,
                 message: `Connection Error: ${err.message || 'Unknown error'}. Please check your internet or contact admin.`
             });
+        } finally {
+            isProcessingRef.current = false;
         }
     };
     // Always keep the ref pointing to the latest version of the handler

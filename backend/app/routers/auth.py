@@ -589,17 +589,31 @@ async def scan_attendance_qr(
     now = utc_now + timedelta(hours=5, minutes=30)
     today = now.date()
     
-    # Get all sessions for today to calculate session number
+    # Get all sessions for today — use with_for_update to prevent duplicate concurrent inserts
     all_today_result = await db.execute(
         select(TimeTracking).where(
             and_(
                 TimeTracking.user_id == user.id,
                 func.date(TimeTracking.date) == today
             )
-        ).order_by(TimeTracking.login_time.desc())
+        ).order_by(TimeTracking.login_time.desc()).with_for_update()
     )
     today_records = all_today_result.scalars().all()
     time_record = today_records[0] if today_records else None
+
+    # ─── Duplicate / rapid scan guard ──────────────────────
+    # Reject if last event (punch-in OR punch-out) was within 30 seconds.
+    # This prevents the QR scanner firing multiple frames as separate records.
+    COOLDOWN_SECONDS = 30
+    if time_record:
+        last_event_time = time_record.logout_time or time_record.login_time
+        if last_event_time and (now - last_event_time).total_seconds() < COOLDOWN_SECONDS:
+            await db.rollback()
+            punch_type = "OUT" if time_record.logout_time is None else "IN"
+            raise HTTPException(
+                status_code=429,
+                detail=f"Already punched {'in' if punch_type == 'OUT' else 'out'} recently. Please wait {COOLDOWN_SECONDS} seconds between scans."
+            )
     
     message = ""
     session_info = {}
@@ -649,5 +663,5 @@ async def scan_attendance_qr(
             "session_number": session_number
         }
         
-    await db.flush()
+    await db.commit()
     return {"status": "success", "message": message, "session_info": session_info}

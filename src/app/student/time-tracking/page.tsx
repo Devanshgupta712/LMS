@@ -19,6 +19,8 @@ export default function StudentTimeTrackingPage() {
     const [scanMsg, setScanMsg] = useState('');
     const qrCodeRef = useRef<any>(null);
     const userLocationRef = useRef<{ lat: number, lng: number } | null>(null);
+    const isProcessingRef = useRef<boolean>(false);
+    const lastScannedTokenRef = useRef<string>('');
     const user = getStoredUser();
 
     useEffect(() => {
@@ -87,6 +89,8 @@ export default function StudentTimeTrackingPage() {
             }
         }
         qrCodeRef.current = null;
+        isProcessingRef.current = false;
+        lastScannedTokenRef.current = '';
         setShowScanner(false);
     };
 
@@ -98,13 +102,15 @@ export default function StudentTimeTrackingPage() {
     } | null>(null);
 
     const onScanSuccess = async (decodedText: string) => {
-        // IMPORTANT: Make the API call FIRST before stopping the scanner.
-        // On iOS Safari, stopping the camera stream before fetch completes
-        // causes Safari to abort the in-flight request with "Load failed" TypeError.
+        // GUARD: Prevent duplicate calls from rapid QR frame callbacks
+        if (isProcessingRef.current) return;
+        if (decodedText === lastScannedTokenRef.current) return;
+        isProcessingRef.current = true;
+        lastScannedTokenRef.current = decodedText;
+
         try {
             setScanMsg('Processing pulse...');
             const scanBody: any = { qr_token: decodedText };
-            // Use ref (not state) to get latest location — state closures are stale in callbacks
             const loc = userLocationRef.current;
             if (loc) {
                 scanBody.latitude = loc.lat;
@@ -112,7 +118,6 @@ export default function StudentTimeTrackingPage() {
             }
             const res = await apiPost('/api/auth/attendance/scan', scanBody);
 
-            // Stop the scanner only after the API call completes
             if (qrCodeRef.current) {
                 await stopScanner();
             }
@@ -145,6 +150,8 @@ export default function StudentTimeTrackingPage() {
                 success: false,
                 message: `Connection Error: ${err.message || 'Unknown error'}. Please check your internet or contact admin.`
             });
+        } finally {
+            isProcessingRef.current = false;
         }
     };
 
