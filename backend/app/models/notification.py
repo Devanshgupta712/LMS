@@ -79,6 +79,7 @@ class Suggestion(Base):
     message: Mapped[str] = mapped_column(String)
     category: Mapped[str | None] = mapped_column(String, nullable=True)  # e.g. General, Curriculum, Technical, Faculty
     is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
+    screenshot_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     admin_reply: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

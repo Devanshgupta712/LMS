@@ -740,6 +740,7 @@ async def submit_suggestion(
         message=msg,
         category=body.get("category") or "General",
         is_anonymous=is_anon,
+        screenshot_base64=body.get("screenshot_base64")
     )
     db.add(s)
     await db.commit()

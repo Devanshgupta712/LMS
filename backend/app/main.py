@@ -76,6 +76,12 @@ async def lifespan(app: FastAPI):
                     if col_name not in session_cols:
                         print(f"Adding column {col_name} to assessment_sessions...")
                         await conn.execute(text(f"ALTER TABLE assessment_sessions ADD COLUMN {col_name} {col_type}"))
+                
+                # Suggestions schema migration
+                result = await conn.execute(text("PRAGMA table_info(suggestions)"))
+                sugg_cols = [row[1] for row in result.fetchall()]
+                if "screenshot_base64" not in sugg_cols:
+                    await conn.execute(text("ALTER TABLE suggestions ADD COLUMN screenshot_base64 TEXT"))
             print("SQLite startup complete.")
         else:
             # For PostgreSQL production: Run critical startup queries
@@ -134,6 +140,7 @@ async def lifespan(app: FastAPI):
                     "ALTER TABLE assessment_sessions ADD COLUMN IF NOT EXISTS face_violation_count INTEGER DEFAULT 0",
                     "ALTER TABLE assessment_sessions ADD COLUMN IF NOT EXISTS mic_violation_count INTEGER DEFAULT 0",
                     "ALTER TABLE assessment_sessions ADD COLUMN IF NOT EXISTS last_heartbeat TIMESTAMP",
+                    "ALTER TABLE suggestions ADD COLUMN IF NOT EXISTS screenshot_base64 TEXT",
                 ]
                 for sql in pg_migrations:
                     try:
