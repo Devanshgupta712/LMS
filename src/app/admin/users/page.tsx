@@ -31,14 +31,6 @@ export default function UsersPage() {
         loadCourses();
     }, []);
 
-    // Prevent background scroll when modal is open.
-    // We use overflow:hidden (not position:fixed) so that child position:fixed
-    // elements (the modal overlay) remain viewport-relative, not body-relative.
-    useEffect(() => {
-        const anyOpen = showModal || passwordModal.show || manageModal.show || permissionsModal.show;
-        document.body.classList.toggle('modal-open', anyOpen);
-        return () => document.body.classList.remove('modal-open');
-    }, [showModal, passwordModal.show, manageModal.show, permissionsModal.show]);
 
     const loadCourses = async () => {
         try {

@@ -279,23 +279,36 @@ img {
 /* ─── Layout ────────────────────────────────────────────── */
 .app-layout {
   display: flex;
-  min-height: 100vh;
+  /* Lock to viewport height — only .main-content scrolls, body never scrolls */
+  height: 100dvh;
+  overflow: hidden;
   width: 100%;
-  padding: 0;
   background: var(--bg-primary);
-  position: relative;
 }
 
 .main-content {
   flex: 1;
   margin-left: calc(var(--sidebar-width) + 0px);
-  padding: 32px;
-  min-height: 100vh;
-  /* IMPORTANT: Do NOT use 'transition: all' — it creates a stacking context
-     that causes position:fixed children (modals) to be positioned relative
-     to this element instead of the viewport, breaking modal centering. */
+  padding: 0;                            /* padding goes on inner page content, not here */
+  height: 100dvh;
+  overflow-y: auto;                      /* THIS is the scroll container */
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Only transition margin-left — 'transition:all' would create a stacking context */
   transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
+}
+
+/* Content wrapper gets padding — the app-header handles its own padding */
+.main-content > .animate-in {
+  padding: 32px;
+  flex: 1;
+}
+@media (max-width: 768px) {
+  .main-content > .animate-in {
+    padding: 16px;
+  }
 }
 
 .main-content.sidebar-open {
@@ -1125,9 +1138,19 @@ img {
 }
 
 /* ─── Modal ─────────────────────────────────────────────── */
+/*
+ * IMPORTANT: Modals use position:fixed so they cover the VIEWPORT.
+ * The only things that break this are CSS transform/filter/perspective on
+ * an ancestor element. We fixed the root cause: @keyframes animate-in-up
+ * now uses opacity-only (no transform), so .animate-in no longer creates
+ * a containing block. Do NOT add transform back to page-entry animations.
+ */
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
   background: rgba(15, 20, 40, 0.55);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -1135,19 +1158,11 @@ img {
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  animation: fadeIn var(--transition-fast);
   padding: 20px 16px;
-  /* Allow overlay itself to scroll on very tall content */
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  touch-action: none;
-}
-
-/* Prevents background scroll on desktop. 
-   Do NOT use position:fixed on body — it creates a stacking context
-   that breaks child position:fixed elements. */
-body.modal-open {
-  overflow: hidden;
+  overflow-y: auto;               /* Overlay scrolls for very tall modals */
+  overscroll-behavior: contain;   /* Prevents scroll from leaking to .main-content */
+  touch-action: none;             /* Prevents iOS touch-scroll leaking to background */
+  box-sizing: border-box;
 }
 
 .modal {
@@ -1155,33 +1170,29 @@ body.modal-open {
   border: 1px solid var(--border);
   border-radius: var(--border-radius-lg);
   padding: 32px;
-  width: 90%;
-  max-width: 560px;
-  /* Use max-height so modal itself scrolls when content is tall */
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: slideUp var(--transition-normal);
+  width: min(90vw, 560px);
+  max-height: 85dvh;
+  overflow-y: auto;               /* Scrolls inside the box when content is tall */
   box-shadow: var(--shadow-lg);
   position: relative;
   overscroll-behavior: contain;
   touch-action: auto;
-  /* Keep modal from shrinking in flex container */
   flex-shrink: 0;
-  margin: auto;
+  margin: auto;                   /* Centers in flex overlay when content is short */
 }
 
-/* Mobile: same centering, just smaller padding */
+/* Mobile */
 @media (max-width: 768px) {
   .modal-overlay {
     padding: 12px;
     align-items: flex-start;
-    padding-top: 60px;
+    padding-top: 56px;            /* Room for header + notch */
   }
   .modal {
     width: 100%;
     max-width: 100%;
-    max-height: none;
-    border-radius: 20px;
+    max-height: none;             /* Overlay scrolls instead */
+    border-radius: 20px 20px 0 0;
     padding: 20px 16px;
   }
 }
@@ -2064,14 +2075,22 @@ body.modal-open {
   animation: spin 1s linear infinite;
 }
 
-/* ─── Animate-In (fade + slide) ──────────────────────────── */
+/* ─── Animate-In (fade only — NO transform to preserve fixed positioning) ── */
+/*
+ * CRITICAL: Do NOT use transform in this keyframe or fill-mode:both/forwards.
+ * CSS transform on an ancestor creates a "containing block" for position:fixed
+ * descendants. If .animate-in has a transform, ALL modals inside the page
+ * will position relative to .animate-in (full page height) instead of the
+ * viewport — causing modals to appear at the "center of the page" not the screen.
+ */
 @keyframes animate-in-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .animate-in {
-  animation: animate-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: animate-in-up 0.35s ease;
+  animation-fill-mode: none;   /* MUST be none/backwards — NOT both/forwards */
 }
 
 /* ─── Responsive Dashboard Sidebar ───────────────────────── */
