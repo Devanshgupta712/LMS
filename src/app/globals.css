@@ -1129,20 +1129,24 @@ img {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
-  align-items: center;      /* Desktop: modal centered in viewport */
+  align-items: center;      /* Modal is always centered in the VIEWPORT */
   justify-content: center;
   z-index: 2000;
   animation: fadeIn var(--transition-fast);
   padding: 16px;
   overscroll-behavior: contain;
-  /* NO overflow-y here: that would break flexbox centering on desktop */
+  /* Prevents iOS Safari touch-scroll from passing through to background page.
+     This replaces the broken position:fixed-on-body approach. */
+  touch-action: none;
 }
 
-/* Prevent body scroll: iOS‑safe using position:fixed + save/restore scroll in JS */
+/* Desktop: just prevent scroll with overflow:hidden.
+   IMPORTANT: Do NOT add position:fixed here.
+   When body has position:fixed, child position:fixed elements (like .modal-overlay)
+   become positioned relative to the body, NOT the viewport.
+   That's why the modal was appearing at the center of the PAGE, not the SCREEN. */
 body.modal-open {
   overflow: hidden;
-  position: fixed;
-  width: 100%;
 }
 
 .modal {
@@ -1158,6 +1162,7 @@ body.modal-open {
   box-shadow: var(--shadow-lg);
   position: relative;
   overscroll-behavior: contain;
+  touch-action: auto;         /* Allow scroll inside modal */
 }
 
 /* Mobile: start modal at top so user sees it immediately without scrolling */
