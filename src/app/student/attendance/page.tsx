@@ -9,6 +9,7 @@ interface AttendanceRecord {
     date: string;
     status: string;
     remarks: string | null;
+    batch_name?: string;
 }
 
 interface TimeLog {
@@ -295,24 +296,26 @@ export default function StudentAttendancePage() {
                     </div>
                 ) : (
                     <div className="table-responsive">
-                        <table className="table">
+                        <table className="table" style={{ width: '100%', textAlign: 'left' }}>
                             <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Remarks</th>
+                                <tr style={{ background: 'var(--bg-secondary)' }}>
+                                    <th style={{ padding: '16px' }}>Date</th>
+                                    <th style={{ padding: '16px' }}>Course Batch</th>
+                                    <th style={{ padding: '16px' }}>Status</th>
+                                    <th style={{ padding: '16px' }}>Remarks</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {records.map(r => (
-                                    <tr key={r.id}>
-                                        <td>{new Date(r.date).toLocaleDateString('en-IN', { dateStyle: 'long' })}</td>
-                                        <td>
-                                            <span className={`badge ${r.status === 'PRESENT' ? 'badge-success' : r.status === 'ABSENT' ? 'badge-danger' : 'badge-warning'}`}>
+                                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '16px' }}>{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                        <td style={{ padding: '16px', fontWeight: 600, color: 'var(--primary)' }}>{r.batch_name || 'N/A'}</td>
+                                        <td style={{ padding: '16px' }}>
+                                            <span className={`badge ${r.status === 'PRESENT' || r.status === 'LATE' ? 'badge-success' : r.status === 'ABSENT' ? 'badge-danger' : 'badge-warning'}`}>
                                                 {r.status}
                                             </span>
                                         </td>
-                                        <td className="text-muted">{r.remarks || '-'}</td>
+                                        <td className="text-muted" style={{ padding: '16px' }}>{r.remarks || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>
