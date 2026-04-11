@@ -11,22 +11,70 @@ export default function SuggestionBox() {
     const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1200;
+                    const MAX_HEIGHT = 1200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    resolve(dataUrl);
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Ensure file is an image
-        if (!file.type.startsWith('image/')) {
-            alert('Please upload a valid image file (PNG, JPG, JPEG)');
-            return;
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload a valid image file (PNG, JPG, JPEG)');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) { // 5MB pre-compression cap
+                alert("File is too large. Please select an image under 5MB.");
+                return;
+            }
+            try {
+                const compressed = await compressImage(file);
+                if (compressed.length > 1.5 * 1024 * 1024) {
+                    alert("Even after compression, the image is too large. Try a different screenshot.");
+                    return;
+                }
+                setForm(f => ({ ...f, screenshot_base64: compressed }));
+            } catch (err) {
+                console.error("Compression failed:", err);
+                alert("Failed to process image.");
+            }
         }
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result as string;
-            setForm(f => ({ ...f, screenshot_base64: base64String }));
-        };
-        reader.readAsDataURL(file);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -38,9 +86,10 @@ export default function SuggestionBox() {
             setStatus('sent');
             setForm({ message: '', category: 'General', screenshot_base64: '' });
             setTimeout(() => { setStatus('idle'); setOpen(false); }, 2200);
-        } catch {
+        } catch (err: any) {
             setStatus('error');
-            setTimeout(() => setStatus('idle'), 3000);
+            console.error("Submission failed:", err);
+            setTimeout(() => setStatus('idle'), 4000);
         }
     };
 
