@@ -149,18 +149,23 @@ export default function BatchesPage() {
     const handleEnrollStudent = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!enrollStudentId || !viewStudentsId) return;
+        await doEnroll(enrollStudentId, selectedStudentName);
+    };
+
+    const doEnroll = async (studentId: string, studentName: string) => {
+        if (!viewStudentsId || !studentId) return;
         setEnrolling(true);
         setEnrollMsg(null);
         try {
-            await apiPost(`/api/admin/users/${enrollStudentId}/assign-batch`, { batch_id: viewStudentsId });
+            await apiPost(`/api/admin/users/${studentId}/assign-batch`, { batch_id: viewStudentsId });
             setEnrollStudentId('');
             setStudentSearch('');
             setSelectedStudentName('');
-            setEnrollMsg({ type: 'success', text: `${selectedStudentName || 'Student'} enrolled successfully!` });
+            setEnrollMsg({ type: 'success', text: `✅ ${studentName || 'Student'} enrolled successfully!` });
             setTimeout(() => setEnrollMsg(null), 3000);
-            handleViewStudents(viewStudentsId, viewStudentsName); // Reload
+            handleViewStudents(viewStudentsId, viewStudentsName); // Reload roster
         } catch {
-            setEnrollMsg({ type: 'error', text: 'Failed to enroll student. They may already be in this batch.' });
+            setEnrollMsg({ type: 'error', text: '❌ Failed to enroll. Student may already be in this batch.' });
         } finally {
             setEnrolling(false);
         }
@@ -360,9 +365,7 @@ export default function BatchesPage() {
                                                         onFocus={() => setStudentSearchFocus(true)}
                                                         onBlur={() => setTimeout(() => setStudentSearchFocus(false), 180)}
                                                         autoComplete="off"
-                                                    />
-
-                                                    {/* Dropdown suggestions */}
+                                                                {/* Dropdown suggestions */}
                                                     {studentSearchFocus && q && filtered.length > 0 && (
                                                         <div style={{
                                                             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
@@ -373,14 +376,16 @@ export default function BatchesPage() {
                                                             {filtered.slice(0, 20).map(s => (
                                                                 <div
                                                                     key={s.id}
-                                                                    onClick={() => {
-                                                                        setEnrollStudentId(s.id);
-                                                                        setSelectedStudentName(s.name);
-                                                                        setStudentSearch(s.name);
+                                                                    onMouseDown={async (e) => {
+                                                                        // onMouseDown fires BEFORE onBlur, so the dropdown stays open
+                                                                        e.preventDefault();
                                                                         setStudentSearchFocus(false);
+                                                                        setStudentSearch(s.name);
+                                                                        // Immediately enroll on click — no second button click needed
+                                                                        await doEnroll(s.id, s.name);
                                                                     }}
                                                                     style={{
-                                                                        padding: '10px 14px', cursor: 'pointer',
+                                                                        padding: '10px 14px', cursor: enrolling ? 'wait' : 'pointer',
                                                                         display: 'flex', alignItems: 'center', gap: '12px',
                                                                         transition: 'background 0.15s',
                                                                         borderBottom: '1px solid var(--border-light)'
@@ -402,7 +407,15 @@ export default function BatchesPage() {
                                                                             {s.email} {s.student_id ? `• ${s.student_id}` : ''}
                                                                         </div>
                                                                     </div>
-                                                                    <span style={{ fontSize: '18px', color: 'var(--primary)' }}>+</span>
+                                                                    <span style={{
+                                                                        fontSize: '13px', fontWeight: 700,
+                                                                        color: 'var(--primary)',
+                                                                        background: 'var(--primary-glow)',
+                                                                        padding: '3px 10px', borderRadius: '8px',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}>
+                                                                        {enrolling ? '⏳' : '+ Add'}
+                                                                    </span>
                                                                 </div>
                                                             ))}
                                                             {filtered.length > 20 && (
