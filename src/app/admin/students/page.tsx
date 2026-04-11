@@ -195,13 +195,13 @@ export default function StudentsPage() {
             {/* Comprehensive Report Modal */}
             {reportModal.isOpen && (
                 <div className="modal-overlay" onClick={() => setReportModal({ isOpen: false, data: null, loading: false })}>
-                    <div className="modal" style={{ maxWidth: '850px' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                    <div className="modal" style={{ maxWidth: '850px', padding: '24px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <div>
-                                <h2 style={{ fontSize: '28px', fontWeight: 600, letterSpacing: '-0.04em', marginBottom: '4px' }}>Performance Analytics</h2>
-                                <p style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '14px' }}>Comprehensive academic and participation report.</p>
+                                <h2 style={{ fontSize: '24px', fontWeight: 600, letterSpacing: '-0.04em', marginBottom: '2px' }}>Performance Analytics</h2>
+                                <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '13px' }}>Comprehensive academic and participation report.</p>
                             </div>
-                            <button onClick={() => setReportModal({ isOpen: false, data: null, loading: false })} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-tertiary)', border: 'none', color: 'var(--text-primary)', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+                            <button onClick={() => setReportModal({ isOpen: false, data: null, loading: false })} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-tertiary)', border: 'none', color: 'var(--text-primary)', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                         </div>
                         
                         {reportModal.loading ? (
@@ -212,37 +212,37 @@ export default function StudentsPage() {
                         ) : reportModal.data ? (
                             <div className="animate-in">
                                 {/* Student Profile Overview */}
-                                <div className="glass-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', padding: '24px 32px', borderRadius: '24px', marginBottom: '32px', border: '1px solid var(--border)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                        <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 700 }}>
+                                <div className="glass-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-tertiary)', padding: '16px 24px', borderRadius: '20px', marginBottom: '24px', border: '1px solid var(--border)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 700 }}>
                                             {reportModal.data.student.name.charAt(0)}
                                         </div>
                                         <div>
-                                            <h3 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{reportModal.data.student.name}</h3>
-                                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                            <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>{reportModal.data.student.name}</h3>
+                                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
                                                 <span style={{ color: 'var(--primary)' }}>{reportModal.data.student.student_id}</span> • {reportModal.data.student.email}
                                             </div>
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '40px', fontWeight: 600, color: reportModal.data.stats.attendance_percentage < 75 ? '#ef4444' : 'var(--primary)', lineHeight: 1 }}>
+                                        <div style={{ fontSize: '32px', fontWeight: 600, color: reportModal.data.stats.attendance_percentage < 75 ? '#ef4444' : 'var(--primary)', lineHeight: 1 }}>
                                             {reportModal.data.stats.attendance_percentage}%
                                         </div>
-                                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '8px', letterSpacing: '0.05em' }}>Attendance Health</div>
+                                        <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.05em' }}>Attendance Health</div>
                                     </div>
                                 </div>
 
                                 {/* Metrics Summary */}
-                                <div className="grid-4" style={{ gap: '16px', marginBottom: '32px' }}>
+                                <div className="grid-4" style={{ gap: '12px', marginBottom: '24px' }}>
                                     {[
                                         { label: 'Present', val: reportModal.data.stats.days_present, color: 'var(--primary)' },
                                         { label: 'Absent', val: reportModal.data.stats.days_absent, color: '#ef4444' },
                                         { label: 'Leaves', val: reportModal.data.stats.leaves_taken, color: '#f59e0b' },
                                         { label: 'Learning Hours', val: `${Math.floor((reportModal.data.stats.total_punch_minutes || 0) / 60)}h`, color: '#0ea5e9' }
                                     ].map((m, i) => (
-                                        <div key={i} className="glass-premium" style={{ padding: '20px', borderRadius: '20px', textAlign: 'center', border: '1px solid var(--border)' }}>
-                                            <div style={{ fontSize: '24px', fontWeight: 700, color: m.color }}>{m.val}</div>
-                                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>{m.label}</div>
+                                        <div key={i} className="glass-premium" style={{ padding: '16px', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                                            <div style={{ fontSize: '20px', fontWeight: 700, color: m.color }}>{m.val}</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>{m.label}</div>
                                         </div>
                                     ))}
                                 </div>

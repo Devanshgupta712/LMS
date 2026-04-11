@@ -9,6 +9,7 @@ from app.models.placement import Job, JobApplication, Assessment, AssessmentSubm
 from app.models.registration import Registration, Document
 from app.models.notification import Notification, Message, Video, Feedback, Suggestion
 from app.models.setting import SystemSetting
+from app.models.session import Session, StudentFeedback
 
 __all__ = [
     "User",

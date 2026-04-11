@@ -7,6 +7,7 @@ export default function Hero() {
     <section className="hero-section" style={{ 
       position: 'relative', 
       overflow: 'hidden',
+      padding: '120px 0 100px',
       background: 'var(--bg-primary)'
     }}>
       <div className="hero-container">
@@ -123,7 +124,7 @@ export default function Hero() {
       */}
       <style>{`
         .hero-section {
-          padding: 160px 0 100px;
+          padding: 140px 0 100px;
         }
         .hero-container {
           max-width: 1280px;

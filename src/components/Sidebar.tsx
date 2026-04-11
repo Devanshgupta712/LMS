@@ -55,6 +55,8 @@ const navSections: NavSection[] = [
             { label: 'Time Tracking', href: '/admin/time-tracking', icon: '⏱️', roles: ['SUPER_ADMIN', 'ADMIN'] },
             { label: 'Reports', href: '/admin/reports', icon: '📈', roles: ['SUPER_ADMIN', 'ADMIN'] },
             { label: 'Suggestions', href: '/admin/suggestions', icon: '💡', roles: ['SUPER_ADMIN', 'ADMIN'] },
+            { label: 'Sessions', href: '/admin/sessions', icon: '💻', roles: ['SUPER_ADMIN', 'ADMIN'] },
+            { label: 'Feedback', href: '/admin/feedback', icon: '💬', roles: ['SUPER_ADMIN', 'ADMIN'] },
         ],
     },
     {
@@ -91,6 +93,7 @@ const navSections: NavSection[] = [
         items: [
             { label: 'My Courses', href: '/student/courses', icon: '📚' },
             { label: 'My Profile', href: '/student/profile', icon: '👤' },
+            { label: 'Schedule', href: '/student/schedule', icon: '📅' },
             { label: 'Attendance', href: '/student/attendance', icon: '✅' },
             { label: 'Work Hour', href: '/student/time-tracking', icon: '⏱️' },
             { label: 'Tasks', href: '/student/tasks', icon: '📋' },

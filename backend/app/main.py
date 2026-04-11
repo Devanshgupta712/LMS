@@ -183,12 +183,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.routers import auth, admin, marketing, training, placement, sessions
+
 # Register routers
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(marketing.router)
 app.include_router(training.router)
 app.include_router(placement.router)
+app.include_router(sessions.router)
 
 # Mount Socket.io app
 app.mount("/socket.io", sio_app)
