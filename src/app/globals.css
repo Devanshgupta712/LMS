@@ -1129,25 +1129,20 @@ img {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
-  align-items: center;
+  align-items: center;      /* Desktop: modal centered in viewport */
   justify-content: center;
   z-index: 2000;
   animation: fadeIn var(--transition-fast);
   padding: 16px;
-  /* Prevent background page from scrolling while modal is open
-     (works on iOS without needing body position:fixed) */
   overscroll-behavior: contain;
-  overflow-y: auto;
+  /* NO overflow-y here: that would break flexbox centering on desktop */
 }
 
-/* Prevent body scroll using JS-toggled class.
-   Use position:fixed+width:100% for iOS Safari compatibility */
+/* Prevent body scroll: iOS‑safe using position:fixed + save/restore scroll in JS */
 body.modal-open {
   overflow: hidden;
-  /* iOS Safari needs position:fixed to actually stop the page scroll */
   position: fixed;
   width: 100%;
-  /* Store the scroll position so we can restore it when modal closes */
 }
 
 .modal {
@@ -1158,27 +1153,27 @@ body.modal-open {
   width: 90%;
   max-width: 560px;
   max-height: 85vh;
-  overflow-y: auto;
+  overflow-y: auto;           /* Scroll happens inside the modal box */
   animation: slideUp var(--transition-normal);
   box-shadow: var(--shadow-lg);
   position: relative;
-  /* Prevent the overlay scroll from being intercepted */
   overscroll-behavior: contain;
 }
 
-/* On mobile, let the modal start near the top so users can see it immediately */
+/* Mobile: start modal at top so user sees it immediately without scrolling */
 @media (max-width: 768px) {
   .modal-overlay {
-    align-items: flex-start;
-    padding-top: 24px;
-    padding-bottom: 24px;
+    align-items: flex-start;  /* Start from top on mobile */
+    padding-top: 20px;
+    padding-bottom: 20px;
+    overflow-y: auto;         /* Let overlay scroll on mobile when content is tall */
   }
   .modal {
     width: 100%;
     max-width: 100%;
-    max-height: calc(100vh - 48px);
+    max-height: none;         /* Let height be natural on mobile — overlay scrolls */
     border-radius: 20px;
-    padding: 24px 16px;
+    padding: 20px 16px;
   }
 }
 

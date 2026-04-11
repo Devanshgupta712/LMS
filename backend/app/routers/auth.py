@@ -664,4 +664,57 @@ async def scan_attendance_qr(
         }
         
     await db.commit()
+
+    # --- If this scan was from a batch-specific QR, mark the student PRESENT in the Attendance table ---
+    # The trainer attendance page reads from Attendance (not TimeTracking), so we must update both.
+    # A batch-specific QR has a base64 JSON payload with "b" (batch_id) and "d" (date) fields.
+    # The global QR is just a plain UUID secret string — no JSON payload.
+    try:
+        from app.models.attendance import Attendance, AttendanceStatus
+        from app.models.course import BatchStudent
+
+        padded = token + '=' * (-len(token) % 4)
+        decoded_bytes = base64.b64decode(padded)
+        qr_payload = json.loads(decoded_bytes.decode())
+        batch_id = qr_payload.get("b")
+        qr_date_str = qr_payload.get("d")
+
+        if batch_id and qr_date_str:
+            # Verify the student belongs to this batch
+            bs_check = await db.execute(
+                select(BatchStudent).where(
+                    BatchStudent.batch_id == batch_id,
+                    BatchStudent.student_id == user.id
+                )
+            )
+            if bs_check.scalars().first():
+                qr_date = datetime.strptime(qr_date_str, "%Y-%m-%d")
+                # Upsert: check existing attendance for this student/batch/date
+                existing = await db.execute(
+                    select(Attendance).where(
+                        Attendance.student_id == user.id,
+                        Attendance.batch_id == batch_id,
+                        func.date(Attendance.date) == qr_date.date()
+                    )
+                )
+                att = existing.scalars().first()
+                if att:
+                    # Update to PRESENT if currently ABSENT (don't downgrade LATE/ON_LEAVE)
+                    if att.status == AttendanceStatus.ABSENT:
+                        att.status = AttendanceStatus.PRESENT
+                else:
+                    att = Attendance(
+                        student_id=user.id,
+                        batch_id=batch_id,
+                        date=qr_date,
+                        status=AttendanceStatus.PRESENT,
+                        remarks=f"QR scan auto-marked at {now.strftime('%H:%M')}"
+                    )
+                    db.add(att)
+                await db.commit()
+                session_info["batch_id"] = batch_id
+                session_info["attendance_marked"] = True
+    except Exception:
+        pass  # QR was global secret or unparseable — no attendance marking needed
+
     return {"status": "success", "message": message, "session_info": session_info}
