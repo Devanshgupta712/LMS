@@ -20,8 +20,13 @@ export default function AttendancePage() {
     const [leaveForm, setLeaveForm] = useState({ start_date: '', end_date: '', reason: '' });
     const [leaveMsg, setLeaveMsg] = useState('');
 
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30); // default: last 30 days
+        return d.toISOString().split('T')[0];
+    });
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [saveToast, setSaveToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
     const [pendingLeaves, setPendingLeaves] = useState<any[]>([]);
 
@@ -46,6 +51,24 @@ export default function AttendancePage() {
         }
     }, [selectedBatch, selectedDate]);
 
+    const autoSave = async (studentId: string, status: string) => {
+        if (!selectedBatch || !selectedDate) return;
+        try {
+            const res = await apiPost('/api/training/attendance', {
+                records: [{ student_id: studentId, batch_id: selectedBatch, date: selectedDate, status }]
+            });
+            if (res.ok) {
+                setSaveToast({ msg: 'Attendance saved ✓', ok: true });
+            } else {
+                const err = await res.json();
+                setSaveToast({ msg: `Error: ${err.detail || 'Failed to save'}`, ok: false });
+            }
+        } catch {
+            setSaveToast({ msg: 'Network error. Please try again.', ok: false });
+        }
+        setTimeout(() => setSaveToast(null), 2500);
+    };
+
     const handleSave = async () => {
         const recs = Object.entries(localStatus).map(([student_id, status]) => ({
             student_id, batch_id: selectedBatch, date: selectedDate, status,
@@ -54,14 +77,15 @@ export default function AttendancePage() {
             try {
                 const res = await apiPost('/api/training/attendance', { records: recs });
                 if (res.ok) {
-                    alert('Attendance saved successfully!');
+                    setSaveToast({ msg: `All ${recs.length} records saved ✓`, ok: true });
                 } else {
                     const error = await res.json();
-                    alert(`Error: ${error.detail || 'Failed to save attendance'}`);
+                    setSaveToast({ msg: `Error: ${error.detail || 'Failed to save attendance'}`, ok: false });
                 }
-            } catch (err) {
-                alert('Connection error. Please try again.');
+            } catch {
+                setSaveToast({ msg: 'Connection error. Please try again.', ok: false });
             }
+            setTimeout(() => setSaveToast(null), 3000);
         }
     };
 
@@ -121,6 +145,7 @@ export default function AttendancePage() {
         const order = ['PRESENT', 'ABSENT', 'LATE', 'ON_LEAVE'];
         const next = order[(order.indexOf(currentStatus) + 1) % order.length];
         setLocalStatus(prev => ({ ...prev, [studentId]: next }));
+        autoSave(studentId, next);
     };
 
     const markAll = (status: string) => {
@@ -201,15 +226,29 @@ export default function AttendancePage() {
         <div className="animate-in">
             <div className="page-header">
                 <div><h1 className="page-title">Attendance</h1><p className="page-subtitle">Mark daily attendance by batch</p></div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button className="btn btn-accent" onClick={fetchGlobalQr}>
                         🌍 View Global Login QR
                     </button>
-                    <button className="btn btn-primary" onClick={handleSave}>
-                        💾 Save Attendance
+                    <button className="btn btn-primary" onClick={handleSave} disabled={!selectedBatch}>
+                        💾 Save All
                     </button>
                 </div>
             </div>
+
+            {/* Save Toast */}
+            {saveToast && (
+                <div style={{
+                    position: 'fixed', top: '80px', right: '24px', zIndex: 3000,
+                    background: saveToast.ok ? 'var(--success)' : 'var(--danger)',
+                    color: '#fff', padding: '12px 20px', borderRadius: '12px',
+                    fontWeight: 600, fontSize: '14px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                    animation: 'slideUp 0.2s ease'
+                }}>
+                    {saveToast.msg}
+                </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
                 <div className="form-group mb-0">

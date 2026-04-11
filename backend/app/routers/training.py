@@ -256,9 +256,13 @@ async def export_attendance(
         query = query.where(Attendance.batch_id == batch_id)
 
     if start_date:
-        query = query.where(Attendance.date >= parse_dt(start_date))
+        s = parse_dt(start_date)
+        if s:
+            query = query.where(func.date(Attendance.date) >= s.date())
     if end_date:
-        query = query.where(Attendance.date <= parse_dt(end_date))
+        e = parse_dt(end_date)
+        if e:
+            query = query.where(func.date(Attendance.date) <= e.date())
         
     result = await db.execute(query.order_by(Attendance.date.desc()))
     records = result.scalars().all()
@@ -400,7 +404,7 @@ async def mark_attendance(
             )
             db.add(record)
             
-    await db.flush()
+    await db.commit()
     return {"status": "success", "message": f"Updated {len(data)} records"}
 
 
