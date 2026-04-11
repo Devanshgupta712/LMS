@@ -125,10 +125,23 @@ export default function BatchesPage() {
     const handleDelete = async (id: string, name: string) => {
         if (!window.confirm(`Are you sure you want to permanently delete batch "${name}"? All enrolled students and records will be completely removed.`)) return;
         try {
-            await apiDelete(`/api/admin/batches/${id}`);
+            // Wake-up ping for render.com free tier cold starts
+            await fetch((process.env.NEXT_PUBLIC_API_URL || 'https://lms-api-bkuw.onrender.com') + '/api/health').catch(() => {});
+            
+            try {
+                await apiDelete(`/api/admin/batches/${id}`);
+            } catch (err: any) {
+                // If it's a network error (Failed to fetch), the server might still be spinning up. Wait and retry once.
+                if (err.message && err.message.includes('Failed to fetch')) {
+                    await new Promise(r => setTimeout(r, 6000));
+                    await apiDelete(`/api/admin/batches/${id}`);
+                } else {
+                    throw err;
+                }
+            }
             loadData();
         } catch (err: any) {
-            alert(err.message || 'Failed to delete');
+            alert(err.message === 'Failed to fetch' ? 'Server is still warming up. Please try again in 10 seconds.' : err.message || 'Failed to delete');
         }
     };
 
