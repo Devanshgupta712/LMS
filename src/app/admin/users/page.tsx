@@ -21,15 +21,22 @@ export default function UsersPage() {
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'TRAINER', phone: '' });
 
     useEffect(() => {
-        const user = getStoredUser();
-        if (user) {
-            setIsSuperAdmin(user.role === 'SUPER_ADMIN');
-            setIsAdmin(user.role === 'ADMIN');
+        const stored = getStoredUser();
+        if (stored) {
+            setIsSuperAdmin(stored.role === 'SUPER_ADMIN');
+            setIsAdmin(stored.role === 'ADMIN');
         }
         loadUsers();
         loadBatches();
         loadCourses();
     }, []);
+
+    // Lock body scroll when any modal is open
+    useEffect(() => {
+        const anyOpen = showModal || passwordModal.show || manageModal.show || permissionsModal.show;
+        document.body.classList.toggle('modal-open', anyOpen);
+        return () => document.body.classList.remove('modal-open');
+    }, [showModal, passwordModal.show, manageModal.show, permissionsModal.show]);
 
     const loadCourses = async () => {
         try {

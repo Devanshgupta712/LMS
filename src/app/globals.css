@@ -1081,13 +1081,20 @@ img {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(245, 247, 250, 0.95);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 20, 40, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
   animation: fadeIn var(--transition-fast);
+  padding: 16px;
+}
+
+/* Prevent background scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
 }
 
 .modal {
@@ -1101,6 +1108,7 @@ img {
   overflow-y: auto;
   animation: slideUp var(--transition-normal);
   box-shadow: var(--shadow-lg);
+  position: relative;
 }
 
 .modal-header {

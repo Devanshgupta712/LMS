@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPut, apiDelete, getStoredUser } from '@/lib/api';
 
 interface Batch {
     id: string; name: string; start_date: string; end_date: string;
@@ -32,9 +32,16 @@ export default function BatchesPage() {
 
     useEffect(() => { 
         loadData(); 
-        const role = localStorage.getItem('auth_role') || '';
-        setCurrentUserRole(role);
+        const user = getStoredUser();
+        if (user?.role) setCurrentUserRole(user.role.toUpperCase());
     }, []);
+
+    // Lock body scroll when any modal is open
+    useEffect(() => {
+        const anyOpen = showModal || !!viewStudentsId;
+        document.body.classList.toggle('modal-open', anyOpen);
+        return () => document.body.classList.remove('modal-open');
+    }, [showModal, viewStudentsId]);
 
     // Check for search param deep-link
     useEffect(() => {
@@ -44,6 +51,7 @@ export default function BatchesPage() {
             if (b) handleViewStudents(b.id, b.name);
         }
     }, [searchParams, batches]);
+
 
     const loadData = async () => {
         try {
