@@ -99,7 +99,7 @@ export default function StudentCoursesPage() {
             </div>
 
             {/* === TWO-COLUMN LAYOUT === */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
+            <div className="courses-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
 
                 {/* LEFT: Main Content */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -211,7 +211,7 @@ export default function StudentCoursesPage() {
                 </div>
 
                 {/* RIGHT: Sidebar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'sticky', top: '100px' }}>
+                <div className="courses-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'sticky', top: '100px' }}>
 
                     {/* Quick Actions */}
                     <div className="glass-premium reveal-on-scroll" style={{ padding: '24px', borderRadius: '24px', border: '1px solid var(--border)' }}>

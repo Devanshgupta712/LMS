@@ -36,11 +36,25 @@ export default function BatchesPage() {
         if (user?.role) setCurrentUserRole(user.role.toUpperCase());
     }, []);
 
-    // Lock body scroll when any modal is open
+    // Lock body scroll when any modal is open (iOS-safe: save/restore scroll position)
     useEffect(() => {
         const anyOpen = showModal || !!viewStudentsId;
-        document.body.classList.toggle('modal-open', anyOpen);
-        return () => document.body.classList.remove('modal-open');
+        if (anyOpen) {
+            const scrollY = window.scrollY;
+            document.body.style.top = `-${scrollY}px`;
+            document.body.classList.add('modal-open');
+        } else {
+            const scrollY = parseInt(document.body.style.top || '0') * -1;
+            document.body.classList.remove('modal-open');
+            document.body.style.top = '';
+            if (scrollY) window.scrollTo(0, scrollY);
+        }
+        return () => {
+            const scrollY = parseInt(document.body.style.top || '0') * -1;
+            document.body.classList.remove('modal-open');
+            document.body.style.top = '';
+            if (scrollY) window.scrollTo(0, scrollY);
+        };
     }, [showModal, viewStudentsId]);
 
     // Check for search param deep-link

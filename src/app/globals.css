@@ -925,6 +925,50 @@ img {
     max-width: calc(100vw - 8px) !important;
     width: 100% !important;
   }
+
+  /* ─── Student Courses / Two-Column Layout ──────── */
+  .courses-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .courses-sidebar {
+    position: static !important;
+  }
+
+  /* ─── Page headers: stack on mobile ─────────────── */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .page-header > div:last-child {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-header > div:last-child .btn {
+    flex: 1 1 auto;
+  }
+
+  /* ─── Grids: responsive on mobile ───────────────── */
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* ─── Welcome banner compact on mobile ──────────── */
+  .animate-stripe {
+    padding: 32px 20px !important;
+    border-radius: 20px !important;
+  }
 }
 
 
@@ -1090,11 +1134,20 @@ img {
   z-index: 2000;
   animation: fadeIn var(--transition-fast);
   padding: 16px;
+  /* Prevent background page from scrolling while modal is open
+     (works on iOS without needing body position:fixed) */
+  overscroll-behavior: contain;
+  overflow-y: auto;
 }
 
-/* Prevent background scroll when modal is open */
+/* Prevent body scroll using JS-toggled class.
+   Use position:fixed+width:100% for iOS Safari compatibility */
 body.modal-open {
   overflow: hidden;
+  /* iOS Safari needs position:fixed to actually stop the page scroll */
+  position: fixed;
+  width: 100%;
+  /* Store the scroll position so we can restore it when modal closes */
 }
 
 .modal {
@@ -1109,6 +1162,24 @@ body.modal-open {
   animation: slideUp var(--transition-normal);
   box-shadow: var(--shadow-lg);
   position: relative;
+  /* Prevent the overlay scroll from being intercepted */
+  overscroll-behavior: contain;
+}
+
+/* On mobile, let the modal start near the top so users can see it immediately */
+@media (max-width: 768px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 48px);
+    border-radius: 20px;
+    padding: 24px 16px;
+  }
 }
 
 .modal-header {

@@ -2,60 +2,49 @@
 
 import Link from 'next/link';
 
-import { useTheme } from '../ThemeProvider';
-
 export default function Hero() {
   return (
-    <section style={{ 
+    <section className="hero-section" style={{ 
       position: 'relative', 
-      padding: '160px 0 100px', 
       overflow: 'hidden',
       background: 'var(--bg-primary)'
     }}>
-      <div className="container-wide" style={{ 
-        maxWidth: '1280px', 
-        padding: '0 40px',
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 0.8fr)',
-        gap: '60px',
-        alignItems: 'center',
-        position: 'relative',
-        zIndex: 1
-      }}>
+      <div className="hero-container">
         {/* Left Content */}
-        <div>
+        <div className="hero-content">
           <h1 style={{ 
-            fontSize: 'clamp(48px, 6vw, 84px)', 
+            fontSize: 'clamp(36px, 6vw, 84px)', 
             fontWeight: 800, 
             lineHeight: 1.1, 
             marginBottom: '32px', 
             color: 'var(--text-primary)',
             letterSpacing: '-0.04em'
           }}>
-            The Future of <span style={{ 
+            The Future of{' '}
+            <span style={{ 
               background: 'linear-gradient(to right, var(--primary), var(--accent))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-            }}>IT Training</span> <br />
+            }}>IT Training</span>{' '}
             is Real Experience.
           </h1>
 
           <p style={{ 
-            fontSize: '20px', 
+            fontSize: 'clamp(15px, 2vw, 20px)', 
             color: 'var(--text-secondary)', 
             lineHeight: 1.6, 
             marginBottom: '48px', 
             maxWidth: '560px',
             fontWeight: 500
           }}>
-            Graduate with a 6-month experience certificate that top tech firms love. 
+            Graduate with a 6-month experience certificate that top tech firms love.{' '}
             Join 70k+ students hacking their way into the industry.
           </p>
 
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div className="hero-btns">
             <Link href="/register" className="btn btn-primary" style={{ 
               borderRadius: '10px', 
-              padding: '18px 44px', 
+              padding: '16px 36px', 
               fontSize: '17px',
               fontWeight: 700,
               background: 'var(--primary)',
@@ -63,26 +52,26 @@ export default function Hero() {
             }}>
               Enroll For Free
             </Link>
-            <Link href="/courses" style={{ 
+            <Link href="/courses" className="hero-secondary-btn" style={{ 
               borderRadius: '10px', 
-              padding: '18px 44px', 
+              padding: '16px 36px', 
               fontSize: '17px',
               border: '1px solid var(--border)',
               background: '#fff',
               color: 'var(--text-primary)',
               fontWeight: 700,
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--text-primary)'}
-            onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-            >
+              transition: 'all 0.2s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              textDecoration: 'none'
+            }}>
               Explore Courses
             </Link>
           </div>
         </div>
 
-        {/* Right Content */}
-        <div style={{ position: 'relative' }} className="desktop-only">
+        {/* Right Content — hidden on mobile via CSS */}
+        <div className="hero-image-col" style={{ position: 'relative' }}>
           <div style={{ 
             borderRadius: '24px', 
             overflow: 'hidden', 
@@ -96,7 +85,7 @@ export default function Hero() {
             />
           </div>
           
-          {/* Floating 'Results' Badge */}
+          {/* Floating Badge */}
           <div style={{
             position: 'absolute',
             top: '40px',
@@ -116,7 +105,9 @@ export default function Hero() {
               background: 'rgba(255,255,255,0.2)', display: 'flex', 
               alignItems: 'center', justifyContent: 'center'
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/>
+              </svg>
             </div>
             <div>
               <div style={{ fontSize: '20px', fontWeight: 800 }}>14L+</div>
@@ -125,13 +116,56 @@ export default function Hero() {
           </div>
         </div>
       </div>
-      
-      <style jsx>{`
+
+      {/* 
+        ⚠️ styled-jsx (<style jsx>) is NOT supported in Next.js App Router. 
+        Use a plain <style> tag instead.
+      */}
+      <style>{`
+        .hero-section {
+          padding: 160px 0 100px;
+        }
+        .hero-container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 40px;
+          display: grid;
+          grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+          gap: 60px;
+          align-items: center;
+          position: relative;
+          z-index: 1;
+        }
+        .hero-btns {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
         @media (max-width: 1024px) {
-          .container-wide { grid-template-columns: 1fr !important; text-align: center; }
-          .container-wide p { margin-left: auto; margin-right: auto; }
-          .container-wide div:first-child { display: flex; flexDirection: column; alignItems: center; }
-          .desktop-only { display: none !important; }
+          .hero-section {
+            padding: 100px 0 60px;
+          }
+          .hero-container {
+            grid-template-columns: 1fr;
+            text-align: center;
+            padding: 0 20px;
+            gap: 40px;
+          }
+          .hero-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .hero-content p {
+            margin-left: auto;
+            margin-right: auto;
+          }
+          .hero-btns {
+            justify-content: center;
+          }
+          .hero-image-col {
+            display: none;
+          }
         }
       `}</style>
     </section>
