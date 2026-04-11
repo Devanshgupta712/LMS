@@ -167,12 +167,11 @@ export default function PortalSelector() {
             </div>
 
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label style={{
                   color: 'var(--text-primary)', fontSize: '13px', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.05em'
+                  textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block'
                 }}>Password</label>
-                <a href="#" style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>Forgot?</a>
               </div>
               <div style={{ position: 'relative' }}>
                 <input 

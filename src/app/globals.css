@@ -2102,3 +2102,61 @@ img {
     position: static !important;
   }
 }
+
+/* ─── Marketing & Landing Page Layouts ────────────────────── */
+.container, .container-wide {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 5vw;
+}
+
+.hero-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 60px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 120px 5vw 80px;
+}
+
+.hero-content {
+  flex: 1;
+  max-width: 600px;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.hero-image-col {
+  flex: 1;
+  max-width: 50vw;
+  position: relative;
+}
+
+@media (max-width: 1024px) {
+  .hero-container {
+    flex-direction: column;
+    text-align: center;
+    padding: 100px 5vw 60px;
+    gap: 40px;
+  }
+  .hero-content {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero-btns {
+    justify-content: center;
+  }
+  .hero-image-col {
+    max-width: 100%;
+  }
+}
