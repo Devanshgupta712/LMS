@@ -22,6 +22,7 @@ export default function SuggestionsPage() {
     const [expanded, setExpanded] = useState<string | null>(null);
     const [replyText, setReplyText] = useState('');
     const [replyTarget, setReplyTarget] = useState<string | null>(null);
+    const [viewImage, setViewImage] = useState<string | null>(null);
 
     const load = async () => {
         setLoading(true);
@@ -113,7 +114,7 @@ export default function SuggestionsPage() {
             </div>
 
             {/* Stats row */}
-            <div className="grid-4 mb-24">
+            <div className="grid-3 mb-24">
                 <div className="stat-card primary">
                     <div className="stat-icon primary">💡</div>
                     <div className="stat-info"><h3>Total</h3><div className="stat-value">{suggestions.length}</div></div>
@@ -125,10 +126,6 @@ export default function SuggestionsPage() {
                 <div className="stat-card success">
                     <div className="stat-icon success">✅</div>
                     <div className="stat-info"><h3>Read</h3><div className="stat-value">{suggestions.filter(s => s.is_read).length}</div></div>
-                </div>
-                <div className="stat-card danger">
-                    <div className="stat-icon danger">🎭</div>
-                    <div className="stat-info"><h3>Anonymous</h3><div className="stat-value">{suggestions.filter(s => s.is_anonymous).length}</div></div>
                 </div>
             </div>
 
@@ -158,19 +155,28 @@ export default function SuggestionsPage() {
                                 {/* Avatar */}
                                 <div style={{
                                     width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,
-                                    background: s.is_anonymous ? 'var(--bg-tertiary)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: s.is_anonymous ? '20px' : '18px', fontWeight: 700, color: '#fff'
+                                    fontSize: '18px', fontWeight: 700, color: '#fff'
                                 }}>
-                                    {s.is_anonymous ? '🎭' : s.student_name?.[0]?.toUpperCase()}
+                                    {(s.student_name?.[0] || 'U').toUpperCase()}
                                 </div>
 
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                         <span style={{ fontWeight: 700, fontSize: '15px' }}>
-                                            {s.is_anonymous ? 'Anonymous' : s.student_name}
+                                            {s.student_name || 'User'}
                                         </span>
-                                        {s.student_sid && !s.is_anonymous && (
+                                        {s.user_role && (
+                                            <span style={{
+                                                fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px',
+                                                background: s.user_role === 'STUDENT' ? 'rgba(56,189,248,0.1)' : 'rgba(167,139,250,0.1)',
+                                                color: s.user_role === 'STUDENT' ? 'var(--info)' : 'var(--primary)'
+                                            }}>
+                                                {s.user_role}
+                                            </span>
+                                        )}
+                                        {s.student_sid && (
                                             <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                                                 {s.student_sid}
                                             </span>
@@ -229,6 +235,19 @@ export default function SuggestionsPage() {
                             }}>
                                 {s.message}
                             </div>
+                            
+                            {/* Attachment indicator / Viewer */}
+                            {expanded === s.id && (s.screenshot_base64 || s.screenshot_url) && (
+                                <div style={{ marginTop: '12px' }}>
+                                    <button 
+                                        className="btn btn-sm" 
+                                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        onClick={() => setViewImage(s.screenshot_base64 || s.screenshot_url)}
+                                    >
+                                        <span style={{ fontSize: '16px' }}>🖼️</span> View Attached Screenshot
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Expanded: admin reply */}
                             {expanded === s.id && (
@@ -283,6 +302,23 @@ export default function SuggestionsPage() {
                             )}
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Image Preview Modal */}
+            {viewImage && (
+                <div 
+                    className="modal-overlay" 
+                    onClick={() => setViewImage(null)}
+                    style={{ zIndex: 4000, background: 'rgba(0,0,0,0.85)', padding: '40px' }}
+                >
+                    <div style={{ position: 'absolute', top: '20px', right: '30px', color: '#fff', fontSize: '30px', cursor: 'pointer', fontWeight: 700 }}>✕</div>
+                    <img 
+                        src={viewImage} 
+                        alt="Suggestion Attachment" 
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }} 
+                        onClick={e => e.stopPropagation()}
+                    />
                 </div>
             )}
         </div>

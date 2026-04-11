@@ -1,14 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { apiPost } from '@/lib/api';
 
 const CATEGORIES = ['General', 'Curriculum', 'Technical', 'Faculty', 'Infrastructure', 'Other'];
 
 export default function SuggestionBox() {
     const [open, setOpen] = useState(false);
-    const [form, setForm] = useState({ message: '', category: 'General', is_anonymous: false });
+    const [form, setForm] = useState({ message: '', category: 'General', screenshot_base64: '' });
     const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Ensure file is an image
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload a valid image file (PNG, JPG, JPEG)');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result as string;
+            setForm(f => ({ ...f, screenshot_base64: base64String }));
+        };
+        reader.readAsDataURL(file);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,7 +36,7 @@ export default function SuggestionBox() {
         try {
             await apiPost('/api/auth/suggestions', form);
             setStatus('sent');
-            setForm({ message: '', category: 'General', is_anonymous: false });
+            setForm({ message: '', category: 'General', screenshot_base64: '' });
             setTimeout(() => { setStatus('idle'); setOpen(false); }, 2200);
         } catch {
             setStatus('error');
@@ -131,28 +150,71 @@ export default function SuggestionBox() {
                                     </div>
                                 </div>
 
-                                {/* Anonymous toggle */}
-                                <label style={{
-                                    display: 'flex', alignItems: 'center', gap: '10px',
-                                    padding: '12px 14px', borderRadius: '12px', cursor: 'pointer',
-                                    background: form.is_anonymous ? 'rgba(99,102,241,0.08)' : 'var(--bg-secondary)',
-                                    border: `1px solid ${form.is_anonymous ? '#6366f1' : 'var(--border)'}`,
-                                    transition: 'all 0.2s'
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={form.is_anonymous}
-                                        onChange={e => setForm(f => ({ ...f, is_anonymous: e.target.checked }))}
-                                        style={{ width: '16px', height: '16px', accentColor: '#6366f1' }}
-                                    />
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: '13px' }}>Submit anonymously</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                            Your name won&apos;t appear on the suggestion
+                                {/* Screenshot Upload */}
+                                <div className="form-group mb-0">
+                                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Attach Screenshot (Optional)</span>
+                                        {form.screenshot_base64 && (
+                                            <span 
+                                                style={{ color: 'var(--danger)', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+                                                onClick={() => {
+                                                    setForm(f => ({ ...f, screenshot_base64: '' }));
+                                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                                }}
+                                            >
+                                                Remove Image
+                                            </span>
+                                        )}
+                                    </label>
+                                    
+                                    {!form.screenshot_base64 ? (
+                                        <div 
+                                            onClick={() => fileInputRef.current?.click()}
+                                            style={{
+                                                border: '2px dashed var(--border)',
+                                                borderRadius: '12px',
+                                                padding: '20px',
+                                                textAlign: 'center',
+                                                cursor: 'pointer',
+                                                background: 'var(--bg-secondary)',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+                                            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                                        >
+                                            <div style={{ fontSize: '24px' }}>🖼️</div>
+                                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Click to upload screenshot</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>PNG, JPG, or JPEG (Max 5MB)</div>
+                                            <input 
+                                                type="file" 
+                                                ref={fileInputRef} 
+                                                onChange={handleFileChange} 
+                                                accept="image/png, image/jpeg, image/jpg" 
+                                                style={{ display: 'none' }} 
+                                            />
                                         </div>
-                                    </div>
-                                    <span style={{ marginLeft: 'auto', fontSize: '18px' }}>🎭</span>
-                                </label>
+                                    ) : (
+                                        <div style={{ 
+                                            position: 'relative', 
+                                            width: '100%', 
+                                            height: '140px', 
+                                            borderRadius: '12px', 
+                                            overflow: 'hidden',
+                                            border: '1px solid var(--border)',
+                                            background: '#000'
+                                        }}>
+                                            <img 
+                                                src={form.screenshot_base64} 
+                                                alt="Suggestion Preview" 
+                                                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
 
                                 {status === 'error' && (
                                     <div style={{

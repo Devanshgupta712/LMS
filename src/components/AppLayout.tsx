@@ -390,7 +390,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
             </main>
             <ChatbotFAQ />
-            {user?.role === 'STUDENT' && <SuggestionBox />}
+            {/* Global Suggestion Box for Students and Trainers */}
+            {['STUDENT', 'TRAINER'].includes(user?.role || '') && <SuggestionBox />}
             {selectedStudentId && (
                 <Student360Report
                     studentId={selectedStudentId}
