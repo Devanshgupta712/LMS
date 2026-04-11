@@ -43,31 +43,44 @@ export default function CoursesPage() {
         e.preventDefault(); setError(''); setSubmitting(true);
         try {
             const payload = { name: form.name, description: form.description, duration: form.duration, fee: parseFloat(form.fee) || 0 };
-            const res = editCourse
-                ? await apiPatch(`/api/admin/courses/${editCourse.id}`, { ...payload, is_active: editCourse.is_active })
-                : await apiPost('/api/admin/courses', payload);
-            if (res.ok) {
-                setShowModal(false); loadCourses();
+            
+            if (editCourse) {
+                // apiPatch throws an error if it fails and returns parsed JSON if successful
+                await apiPatch(`/api/admin/courses/${editCourse.id}`, { ...payload, is_active: editCourse.is_active });
+                setShowModal(false); 
+                loadCourses();
             } else {
-                const d = await res.json().catch(() => ({}));
-                setError(Array.isArray(d.detail) ? d.detail.map((e: any) => e.msg).join('; ') : d.detail || 'Failed.');
+                // apiPost returns a raw Response object
+                const res = await apiPost('/api/admin/courses', payload);
+                if (res.ok) {
+                    setShowModal(false); 
+                    loadCourses();
+                } else {
+                    const d = await res.json().catch(() => ({}));
+                    setError(Array.isArray(d.detail) ? d.detail.map((e: any) => e.msg).join('; ') : d.detail || 'Failed.');
+                }
             }
         } catch (err: any) { setError(err.message || 'Network error.'); }
         finally { setSubmitting(false); }
     };
 
     const handleToggleActive = async (c: Course) => {
-        const res = await apiPatch(`/api/admin/courses/${c.id}`, { is_active: !c.is_active });
-        if (res.ok) loadCourses();
+        try {
+            await apiPatch(`/api/admin/courses/${c.id}`, { is_active: !c.is_active });
+            loadCourses();
+        } catch (err: any) {
+            alert(err.message || 'Failed to toggle course status.');
+        }
     };
 
     const handleDelete = async (c: Course) => {
         if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
-        const res = await apiDelete(`/api/admin/courses/${c.id}`);
-        if (res.ok) { loadCourses(); }
-        else {
-            const d = await res.json().catch(() => ({}));
-            alert(d.detail || 'Failed to delete course.');
+        try {
+            const res = await apiDelete(`/api/admin/courses/${c.id}`);
+            // apiDelete also returns JSON via res.json() internally! So checking res.ok fails.
+            loadCourses();
+        } catch (err: any) {
+            alert(err.message || 'Failed to delete course.');
         }
     };
 
