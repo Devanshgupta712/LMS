@@ -356,20 +356,8 @@ export default function LeavesPage() {
 
             {/* Rejection Reason Modal */}
             {showRejectionModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)', padding: '20px' }}
-                    onClick={() => setShowRejectionModal(null)}
-                >
-                    <div
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                            maxWidth: '500px', width: '100%',
-                            background: 'var(--bg-card, #1e1e2e)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '16px',
-                            padding: '28px',
-                            boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
-                        }}
-                    >
+                <div className="modal-overlay" onClick={() => setShowRejectionModal(null)}>
+                    <div className="modal" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>Reject Leave Request</h3>
                         <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--text-muted)' }}>Enter a reason for rejection (optional). The student will be notified.</p>
 

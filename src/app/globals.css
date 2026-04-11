@@ -1155,10 +1155,10 @@ img {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;        /* Align top instead of center */
   justify-content: center;
   z-index: 2000;
-  padding: 20px 16px;
+  padding: 24px 16px;             /* Minimal gap from top */
   overflow-y: auto;               /* Overlay scrolls for very tall modals */
   overscroll-behavior: contain;   /* Prevents scroll from leaking to .main-content */
   touch-action: none;             /* Prevents iOS touch-scroll leaking to background */
@@ -1178,7 +1178,7 @@ img {
   overscroll-behavior: contain;
   touch-action: auto;
   flex-shrink: 0;
-  margin: auto;                   /* Centers in flex overlay when content is short */
+  margin: 0 auto;                 /* Centers horizontally only, prevents vertical push-down */
 }
 
 /* Mobile */

@@ -163,8 +163,8 @@ export default function CoursesPage() {
             </div>
 
             {showModal && (
-                <div className="glass-premium" style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setShowModal(false)}>
-                    <div className="glass-premium" style={{ width: '100%', maxWidth: '500px', padding: '32px', borderRadius: '24px', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                    <div className="modal" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
                         <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.04em' }}>{editCourse ? 'Modify Program' : 'New Program Identity'}</h2>
                         
                         {error && (

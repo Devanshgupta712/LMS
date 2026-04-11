@@ -160,8 +160,8 @@ export default function StudentsPage() {
 
             {/* Create Student Modal */}
             {showModal && (
-                <div className="glass-premium" style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }} onClick={() => setShowModal(false)}>
-                    <div className="glass-premium" style={{ width: '100%', maxWidth: '450px', padding: '32px', borderRadius: '24px', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                    <div className="modal" style={{ maxWidth: '450px' }} onClick={e => e.stopPropagation()}>
                         <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '24px', letterSpacing: '-0.04em' }}>New Student Enrollment</h2>
                         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -194,8 +194,8 @@ export default function StudentsPage() {
 
             {/* Comprehensive Report Modal */}
             {reportModal.isOpen && (
-                <div className="glass-premium" style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(12px)' }} onClick={() => setReportModal({ isOpen: false, data: null, loading: false })}>
-                    <div className="glass-premium" style={{ maxWidth: '850px', width: '95%', maxHeight: '85vh', overflowY: 'auto', padding: '40px', borderRadius: '32px', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+                <div className="modal-overlay" onClick={() => setReportModal({ isOpen: false, data: null, loading: false })}>
+                    <div className="modal" style={{ maxWidth: '850px' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <div>
                                 <h2 style={{ fontSize: '28px', fontWeight: 600, letterSpacing: '-0.04em', marginBottom: '4px' }}>Performance Analytics</h2>
