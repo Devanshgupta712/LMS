@@ -31,13 +31,13 @@ export default function AdminSessionsPage() {
             const [sessRes, batchRes, userRes] = await Promise.all([
                 apiGet('/api/sessions'),
                 apiGet('/api/admin/batches'),
-                apiGet('/api/admin/users?role=TRAINER')
+                apiGet('/api/admin/students?role=TRAINER')
             ]);
-            setSessions(sessRes || []);
-            setBatches(batchRes || []);
-            setTrainers(userRes?.users || []);
+            setSessions(Array.isArray(sessRes) ? sessRes : []);
+            setBatches(Array.isArray(batchRes) ? batchRes : []);
+            setTrainers(Array.isArray(userRes) ? userRes : []);
         } catch (err) {
-            console.error(err);
+            console.error("Failed to load session data:", err);
         } finally {
             setLoading(false);
         }
